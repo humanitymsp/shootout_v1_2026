@@ -1,0 +1,371 @@
+.persistent-waitlist-modal {
+  max-width: 760px;
+  width: 90vw;
+  max-height: min(80vh, 680px);
+  overflow-y: auto;
+}
+
+.persistent-waitlist-modal .header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.persistent-waitlist-modal .header-content h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.table-info {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.table-number {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.game-type {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #3b82f6;
+}
+
+.stakes {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #10b981;
+}
+
+.waitlist-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat-label {
+  color: var(--admin-text-secondary);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.stat-value {
+  color: var(--admin-text);
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.stat-value.status-open {
+  color: #10b981;
+}
+
+.stat-value.status-full {
+  color: #ef4444;
+}
+
+.stat-value.status-starting {
+  color: #f59e0b;
+}
+
+.stat-value.status-closed {
+  color: #6b7280;
+}
+
+.waitlist-actions {
+  margin-bottom: 1.5rem;
+}
+
+.add-player-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: 1px solid #10b981;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.add-player-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.add-player-form {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.add-player-form h3 {
+  margin: 0 0 1rem 0;
+  color: var(--admin-text);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.add-player-form .form-group {
+  margin-bottom: 1rem;
+}
+
+.add-player-form label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--admin-text);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.add-player-form input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.add-player-form input:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.form-actions button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  flex: 1;
+}
+
+.form-actions button[type="button"] {
+  background: var(--admin-surface-alt);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+}
+
+.form-actions button[type="button"]:hover {
+  background: var(--admin-surface-hover);
+  border-color: var(--admin-primary);
+}
+
+.form-actions button[type="submit"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: 1px solid #10b981;
+}
+
+.form-actions button[type="submit"]:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.form-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.waitlist-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--admin-text);
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.empty-waitlist {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(30, 41, 59, 0.3);
+  border-radius: 8px;
+  border: 1px solid var(--admin-border);
+}
+
+.empty-waitlist p {
+  margin: 0.5rem 0;
+  color: var(--admin-text-secondary);
+  font-style: italic;
+}
+
+.waitlist-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+.waitlist-player-card {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.waitlist-player-card:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.1);
+}
+
+.player-position {
+  flex-shrink: 0;
+}
+
+.position-number {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  min-width: 3rem;
+  text-align: center;
+  display: block;
+}
+
+.player-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.player-info h4 {
+  margin: 0 0 0.25rem 0;
+  color: var(--admin-text);
+  font-size: 1rem;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.player-info .phone {
+  margin: 0 0 0.25rem 0;
+  color: var(--admin-text-secondary);
+  font-size: 0.9rem;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.player-info .added-date {
+  margin: 0;
+  color: var(--admin-text-secondary);
+  font-size: 0.8rem;
+}
+
+.player-actions {
+  flex-shrink: 0;
+}
+
+.remove-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  border: 1px solid #ef4444;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.close-footer-btn {
+  background: var(--admin-surface-alt);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.close-footer-btn:hover {
+  background: var(--admin-surface-hover);
+  border-color: var(--admin-primary);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .persistent-waitlist-modal {
+    width: 95vw;
+    margin: 1rem;
+  }
+  
+  .table-info {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .waitlist-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .waitlist-player-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .player-actions {
+    width: 100%;
+  }
+  
+  .remove-btn {
+    width: 100%;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+}

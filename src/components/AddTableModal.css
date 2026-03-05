@@ -1,0 +1,753 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(2, 6, 23, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0.75rem;
+  backdrop-filter: blur(6px);
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.modal-content {
+  background: var(--admin-surface);
+  border-radius: 12px;
+  width: min(600px, calc(100vw - 1.5rem));
+  max-height: min(80vh, 680px);
+  box-shadow: var(--admin-shadow);
+  border: 1px solid var(--admin-border);
+  overflow: hidden;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+  box-sizing: border-box;
+}
+
+.add-table-modal {
+  width: min(820px, calc(100vw - 1.5rem));
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.add-table-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--admin-border);
+  flex-shrink: 0;
+  background: var(--admin-surface);
+}
+
+.add-table-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--admin-text);
+}
+
+.add-table-modal .close-button {
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--admin-muted);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.add-table-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  padding: 0.75rem 1rem;
+  -webkit-overflow-scrolling: touch;
+  gap: 0.75rem;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.add-table-modal form {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.add-table-modal .form-group {
+  margin-bottom: 0.5rem;
+}
+
+.add-table-modal .form-group label {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--admin-text);
+}
+
+.add-table-modal .form-group input,
+.add-table-modal .form-group select {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  background: var(--admin-surface-alt);
+  color: var(--admin-text);
+}
+
+.add-table-modal .form-group small {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  color: var(--admin-muted);
+  line-height: 1.2;
+}
+
+.add-table-modal .form-group label .required {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.add-table-modal .error-message {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 0.75rem;
+}
+
+.add-table-modal .modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.5rem 0.75rem;
+  background: var(--admin-surface);
+  border-top: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+
+.add-table-modal .modal-actions button {
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-actions button[type="submit"] {
+  background: var(--admin-primary);
+  color: white;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2);
+}
+
+.modal-actions button[type="submit"]:hover:not(:disabled) {
+  background: var(--admin-primary-600);
+}
+
+.modal-actions button[type="button"] {
+  background: var(--admin-surface-elevated);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+}
+
+.modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Template Selection */
+.template-selection {
+  padding: 0.25rem;
+}
+
+.template-instruction {
+  margin: 0 0 0.5rem 0;
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.template-card {
+  background: var(--admin-surface-alt);
+  border: 2px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.template-card:hover {
+  border-color: var(--admin-primary);
+  background: var(--admin-surface-elevated);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.template-card.custom-template {
+  border-style: dashed;
+  border-color: var(--admin-muted);
+}
+
+.template-card.custom-template:hover {
+  border-color: var(--admin-accent);
+}
+
+.template-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--admin-text);
+}
+
+.template-details {
+  font-size: 0.7rem;
+  color: var(--admin-muted);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-details .buy-in {
+  color: var(--admin-accent);
+  font-weight: 600;
+}
+
+/* Form Layout */
+.table-form {
+  padding: 0;
+  overflow-y: visible;
+  min-height: fit-content;
+}
+
+.form-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.form-col-left,
+.form-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-col-right .persistent-options-section {
+  border-top: 1px solid var(--admin-border);
+  padding: 0.5rem 0 0 0;
+  margin-top: 0.25rem;
+  background: none;
+}
+
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.template-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.5rem;
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: var(--admin-text);
+  font-size: 0.8rem;
+}
+
+.change-template-btn {
+  background: transparent;
+  border: none;
+  color: var(--admin-primary);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.change-template-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Form Preview */
+.form-preview {
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.preview-label {
+  font-size: 0.6rem;
+  color: var(--admin-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.preview-value {
+  font-size: 0.75rem;
+  color: var(--admin-text);
+  font-weight: 600;
+}
+
+.advanced-toggle {
+  grid-column: 1 / -1;
+  background: transparent;
+  border: 1px dashed var(--admin-border);
+  border-radius: 4px;
+  padding: 0.3rem;
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.25rem;
+}
+
+.advanced-toggle:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+/* Quantity Selector */
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  padding: 0.15rem;
+  width: fit-content;
+}
+
+.qty-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qty-btn:hover:not(:disabled) {
+  background: var(--admin-primary);
+  color: white;
+}
+
+.qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qty-value {
+  min-width: 30px;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--admin-text);
+}
+
+/* Table Number Grid */
+.table-number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.table-number-btn {
+  aspect-ratio: 1;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface-alt);
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-number-btn:hover {
+  border-color: var(--admin-primary);
+  color: var(--admin-text);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.table-number-btn.selected {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: white;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.selected-count {
+  font-weight: 400;
+  color: var(--admin-muted);
+  font-size: 0.7rem;
+}
+
+.selected-tables-preview {
+  margin-top: 0.3rem;
+  padding: 0.3rem 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: var(--admin-text);
+}
+
+/* Bulk create button styling */
+.modal-actions button:last-child {
+  background: var(--admin-primary);
+  color: white;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2);
+}
+
+.modal-actions button:last-child:hover:not(:disabled) {
+  background: var(--admin-primary-600);
+}
+
+/* Responsive Styles */
+@media (max-width: 800px) {
+  .add-table-modal {
+    width: calc(100vw - 1rem);
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.4rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+
+  .form-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .add-table-modal {
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
+    border-radius: 10px;
+  }
+
+  .add-table-modal .modal-header {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .add-table-modal .modal-header h2 {
+    font-size: 0.9rem;
+  }
+
+  .add-table-modal .modal-body {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+  }
+
+  .template-card {
+    padding: 0.4rem 0.5rem;
+  }
+
+  .template-name {
+    font-size: 0.8rem;
+  }
+
+  .template-details {
+    font-size: 0.65rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+  }
+  
+  .form-preview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .table-number-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+
+  .add-table-modal .modal-actions {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .add-table-modal .modal-actions button {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .add-table-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    max-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .add-table-modal .modal-header {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .add-table-modal .modal-body {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .template-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.3rem;
+  }
+
+  .template-card {
+    padding: 0.35rem 0.4rem;
+  }
+
+  .template-name {
+    font-size: 0.75rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .table-number-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .table-number-btn {
+    font-size: 0.65rem;
+  }
+}
+
+/* Short screens */
+@media (max-height: 700px) {
+  .add-table-modal {
+    max-height: calc(100vh - 1rem);
+  }
+
+  .add-table-modal .modal-header {
+    padding: 0.3rem 0.6rem;
+  }
+
+  .add-table-modal .modal-body {
+    padding: 0.3rem 0.6rem;
+  }
+
+  .template-grid {
+    gap: 0.3rem;
+  }
+
+  .template-card {
+    padding: 0.35rem 0.45rem;
+  }
+
+  .form-section {
+    gap: 0.35rem;
+  }
+
+  .add-table-modal .form-group {
+    margin-bottom: 0.35rem;
+  }
+
+  .add-table-modal .modal-actions {
+    padding: 0.35rem 0.6rem;
+  }
+}
+
+@media (max-height: 550px) {
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .add-table-modal {
+    max-height: 100vh;
+    max-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .add-table-modal .modal-header {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .add-table-modal .modal-header h2 {
+    font-size: 0.8rem;
+  }
+
+  .add-table-modal .modal-body {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .template-instruction {
+    font-size: 0.75rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .template-grid {
+    gap: 0.25rem;
+  }
+
+  .template-card {
+    padding: 0.3rem 0.4rem;
+  }
+
+  .template-name {
+    font-size: 0.7rem;
+  }
+
+  .template-details {
+    font-size: 0.6rem;
+  }
+
+  .add-table-modal .form-group label {
+    font-size: 0.65rem;
+    margin-bottom: 0.1rem;
+  }
+
+  .add-table-modal .form-group input,
+  .add-table-modal .form-group select {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .add-table-modal .modal-actions {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .add-table-modal .modal-actions button {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Persistent Options Section */
+.persistent-options-section {
+  border-top: 1px solid var(--admin-border);
+  padding: 0.5rem 0 0 0;
+  background: none;
+}
+
+/* Checkbox Group Styles */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--admin-text);
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  width: auto;
+  cursor: pointer;
+}
+
+.checkbox-group small {
+  color: var(--admin-text-secondary);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  margin-top: 0.1rem;
+}

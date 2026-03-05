@@ -1,0 +1,57 @@
+.logo-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.logo-svg {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+.logo-text-main,
+.logo-text-sub {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Animation for cards */
+.card-back-left,
+.card-back-right {
+  animation: float 3s ease-in-out infinite;
+}
+
+.card-back-left {
+  animation-delay: 0s;
+}
+
+.card-back-right {
+  animation-delay: 1.5s;
+}
+
+.card-front {
+  animation: float 3s ease-in-out infinite;
+  animation-delay: 0.75s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Glow effect on gold spade */
+.spade-symbol {
+  filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 6px rgba(251, 191, 36, 0.5));
+}
+
+.spade-symbol path,
+.spade-symbol rect {
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.6));
+}

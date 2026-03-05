@@ -1,0 +1,392 @@
+.reports-modal {
+  width: min(900px, 94vw);
+  max-height: 90vh;
+}
+
+.modal-content.reports-modal {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.reports-modal .modal-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+}
+
+.report-type-selector {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.report-type-selector label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.date-range-selector {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.date-range-selector .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.date-range-selector .form-group label {
+  font-weight: 600;
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.date-range-selector .form-group input {
+  padding: 0.5rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.date-range-selector .form-group input:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.report-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.report-info p {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.report-info .report-summary {
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.report-info ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--admin-text);
+}
+
+.report-info li {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+/* Report content is now displayed in a popup window for printing, not in the modal */
+
+/* Shift Report section */
+.shift-report-section {
+  margin-bottom: 1.5rem;
+}
+
+.shift-report-notice {
+  padding: 0.6rem 0.85rem;
+  background: rgba(14, 165, 233, 0.08);
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: var(--admin-text);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.shift-report-notice strong {
+  color: #38bdf8;
+}
+
+/* Generate Shift Report button */
+.btn-shift-report {
+  background: #0369a1 !important;
+  color: white !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+
+.btn-shift-report:hover:not(:disabled) {
+  background: #0284c7 !important;
+}
+
+/* Generate Report button - highlighted for current day */
+.btn-generate-report {
+  background: var(--admin-primary) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  border: none !important;
+}
+
+.btn-generate-report:hover:not(:disabled) {
+  background: #2563eb !important;
+}
+
+/* EOD Reset Section */
+.eod-reset-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid rgba(239, 68, 68, 0.3);
+}
+
+.eod-reset-header h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fca5a5;
+}
+
+/* EOD flow steps */
+.eod-flow-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.06);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  border-radius: 8px;
+}
+
+.eod-flow-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--admin-text);
+}
+
+.eod-flow-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.eod-flow-arrow {
+  text-align: center;
+  color: rgba(239, 68, 68, 0.4);
+  font-size: 0.9rem;
+  padding-left: 0.5rem;
+}
+
+/* Ready state for close button after report generated */
+.eod-reset-btn.ready {
+  border-color: rgba(239, 68, 68, 0.7);
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+.eod-reset-btn {
+  width: 100%;
+  padding: 0.6rem 1rem;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 8px;
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.eod-reset-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.6);
+}
+
+.eod-reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.eod-confirm {
+  padding: 0.75rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+}
+
+.eod-confirm-text {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8rem;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.eod-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.eod-confirm-cancel {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface-alt);
+  color: var(--admin-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eod-confirm-cancel:hover {
+  background: var(--admin-surface-elevated);
+}
+
+.eod-confirm-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.eod-confirm-btn:hover {
+  background: #dc2626;
+}
+
+.eod-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.eod-report-note {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.75rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Export Controls */
+.modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.export-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.export-controls label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.export-controls select {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  min-width: 100px;
+}
+
+.export-controls select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-buttons button {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-buttons button:first-child {
+  background: var(--admin-surface-alt);
+  color: var(--admin-text);
+}
+
+.action-buttons button:first-child:hover:not(:disabled) {
+  background: var(--admin-surface-elevated);
+}
+
+.action-buttons button:last-child {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.action-buttons button:last-child:hover:not(:disabled) {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.action-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-shift-report {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+}
+
+.btn-shift-report:hover:not(:disabled) {
+  background: #059669 !important;
+  border-color: #059669 !important;
+}
+
+.btn-generate-report {
+  background: #8b5cf6 !important;
+  border-color: #8b5cf6 !important;
+}
+
+.btn-generate-report:hover:not(:disabled) {
+  background: #7c3aed !important;
+  border-color: #7c3aed !important;
+}

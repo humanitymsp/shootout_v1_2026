@@ -1,0 +1,334 @@
+.door-fee-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.door-fee-modal {
+  background: var(--admin-surface-elevated);
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  width: 90%;
+  max-width: 420px;
+  animation: slideUp 0.3s ease;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.door-fee-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+}
+
+.door-fee-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.door-fee-icon {
+  font-size: 2rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+}
+
+.door-fee-modal-title h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  line-height: 1.2;
+}
+
+.door-fee-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: var(--admin-secondary);
+  font-weight: 500;
+}
+
+.door-fee-close {
+  background: none;
+  border: none;
+  color: var(--admin-secondary);
+  font-size: 1.75rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.door-fee-close:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.door-fee-form {
+  padding: 1.5rem;
+}
+
+.door-fee-section {
+  margin-bottom: 1.5rem;
+}
+
+.door-fee-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.door-fee-options {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.door-fee-option-btn {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  background: var(--admin-surface);
+  border: 2px solid var(--admin-border);
+  border-radius: 10px;
+  color: var(--admin-text);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.door-fee-option-btn:hover {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+  transform: translateY(-1px);
+}
+
+.door-fee-option-btn.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-color: #10b981;
+  color: white;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.door-fee-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.door-fee-currency {
+  position: absolute;
+  left: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--admin-text);
+  z-index: 1;
+}
+
+.door-fee-input {
+  width: 100%;
+  padding: 1rem 1rem 1rem 2.5rem;
+  background: var(--admin-surface);
+  border: 2px solid var(--admin-border);
+  border-radius: 10px;
+  color: var(--admin-text);
+  font-size: 1.5rem;
+  font-weight: 700;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.door-fee-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.door-fee-table-select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: var(--admin-surface);
+  border: 2px solid var(--admin-border);
+  border-radius: 10px;
+  color: var(--admin-text);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.door-fee-table-select option {
+  color: var(--admin-text, #f1f5f9);
+  background: var(--admin-surface, #1a2332);
+}
+
+.door-fee-table-select:hover {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.door-fee-table-select:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+/* Previous Player checkbox */
+.door-fee-previous-player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.75rem 1rem;
+  background: var(--admin-surface);
+  border: 2px solid var(--admin-border);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.door-fee-previous-player:hover {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.door-fee-previous-player input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.door-fee-previous-player input[type="checkbox"]:checked + span {
+  color: #fbbf24;
+}
+
+.door-fee-previous-player span {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.door-fee-previous-hint {
+  font-size: 0.75rem !important;
+  font-weight: 400 !important;
+  color: var(--admin-secondary) !important;
+  margin-left: auto;
+}
+
+.door-fee-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.door-fee-cancel,
+.door-fee-confirm {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.door-fee-cancel {
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-text);
+}
+
+.door-fee-cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.door-fee-confirm {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.door-fee-confirm:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.door-fee-confirm:disabled,
+.door-fee-cancel:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .door-fee-modal {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .door-fee-modal-header {
+    padding: 1.25rem;
+  }
+
+  .door-fee-form {
+    padding: 1.25rem;
+  }
+
+  .door-fee-options {
+    flex-direction: column;
+  }
+}

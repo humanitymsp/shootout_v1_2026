@@ -1,0 +1,5 @@
+name = "ftpc-sms-proxy"
+main = "sms-proxy.js"
+compatibility_date = "2024-01-01"
+workers_dev = true
+# Subdomain will be ftpc-sms-proxy.[account-subdomain].workers.dev

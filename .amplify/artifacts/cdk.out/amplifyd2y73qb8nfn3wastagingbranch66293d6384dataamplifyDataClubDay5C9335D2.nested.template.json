@@ -1,0 +1,2032 @@
+{
+ "Parameters": {
+  "DynamoDBModelTableReadIOPS": {
+   "Type": "Number",
+   "Default": 5,
+   "Description": "The number of read IOPS the table should support."
+  },
+  "DynamoDBModelTableWriteIOPS": {
+   "Type": "Number",
+   "Default": 5,
+   "Description": "The number of write IOPS the table should support."
+  },
+  "DynamoDBBillingMode": {
+   "Type": "String",
+   "Default": "PAY_PER_REQUEST",
+   "AllowedValues": [
+    "PAY_PER_REQUEST",
+    "PROVISIONED"
+   ],
+   "Description": "Configure @model types to create DynamoDB tables with PAY_PER_REQUEST or PROVISIONED billing modes."
+  },
+  "DynamoDBEnablePointInTimeRecovery": {
+   "Type": "String",
+   "Default": "false",
+   "AllowedValues": [
+    "true",
+    "false"
+   ],
+   "Description": "Whether to enable Point in Time Recovery on the table."
+  },
+  "DynamoDBEnableServerSideEncryption": {
+   "Type": "String",
+   "Default": "true",
+   "AllowedValues": [
+    "true",
+    "false"
+   ],
+   "Description": "Enable server side encryption powered by KMS."
+  },
+  "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource1FE353A7Outputsamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataAmplifyTableManagerTableMana2B56EFC2": {
+   "Type": "String"
+  },
+  "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId": {
+   "Type": "String"
+  },
+  "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name": {
+   "Type": "String"
+  },
+  "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref": {
+   "Type": "String"
+  },
+  "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref": {
+   "Type": "String"
+  },
+  "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef": {
+   "Type": "String"
+  }
+ },
+ "Conditions": {
+  "HasEnvironmentParameter": {
+   "Fn::Not": [
+    {
+     "Fn::Equals": [
+      "NONE",
+      "NONE"
+     ]
+    }
+   ]
+  },
+  "ShouldUsePayPerRequestBilling": {
+   "Fn::Equals": [
+    {
+     "Ref": "DynamoDBBillingMode"
+    },
+    "PAY_PER_REQUEST"
+   ]
+  },
+  "ShouldUsePointInTimeRecovery": {
+   "Fn::Equals": [
+    {
+     "Ref": "DynamoDBEnablePointInTimeRecovery"
+    },
+    "true"
+   ]
+  },
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Resources": {
+  "ClubDayTable": {
+   "Type": "Custom::AmplifyDynamoDBTable",
+   "Properties": {
+    "ServiceToken": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataAmplifyTableManagerNestedStackAmplifyTableManagerNestedStackResource1FE353A7Outputsamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataAmplifyTableManagerTableMana2B56EFC2"
+    },
+    "tableName": {
+     "Fn::Join": [
+      "",
+      [
+       "ClubDay-",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "-NONE"
+      ]
+     ]
+    },
+    "attributeDefinitions": [
+     {
+      "attributeName": "id",
+      "attributeType": "S"
+     }
+    ],
+    "keySchema": [
+     {
+      "attributeName": "id",
+      "keyType": "HASH"
+     }
+    ],
+    "provisionedThroughput": {
+     "Fn::If": [
+      "ShouldUsePayPerRequestBilling",
+      {
+       "Ref": "AWS::NoValue"
+      },
+      {
+       "ReadCapacityUnits": {
+        "Ref": "DynamoDBModelTableReadIOPS"
+       },
+       "WriteCapacityUnits": {
+        "Ref": "DynamoDBModelTableWriteIOPS"
+       }
+      }
+     ]
+    },
+    "sseSpecification": {
+     "sseEnabled": false
+    },
+    "streamSpecification": {
+     "streamViewType": "NEW_AND_OLD_IMAGES"
+    },
+    "deletionProtectionEnabled": false,
+    "allowDestructiveGraphqlSchemaUpdates": true,
+    "replaceTableUponGsiUpdate": false,
+    "pointInTimeRecoverySpecification": {
+     "Fn::If": [
+      "ShouldUsePointInTimeRecovery",
+      {
+       "PointInTimeRecoveryEnabled": true
+      },
+      {
+       "Ref": "AWS::NoValue"
+      }
+     ]
+    },
+    "billingMode": {
+     "Fn::If": [
+      "ShouldUsePayPerRequestBilling",
+      "PAY_PER_REQUEST",
+      {
+       "Ref": "AWS::NoValue"
+      }
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/ClubDayTable/Default/Default"
+   }
+  },
+  "ClubDayIAMRole2FCEFBB1": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "appsync.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:Scan",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem",
+          "dynamodb:ConditionCheckItem",
+          "dynamodb:DescribeTable",
+          "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator"
+         ],
+         "Effect": "Allow",
+         "Resource": [
+          {
+           "Fn::Sub": [
+            "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}",
+            {
+             "tablename": {
+              "Fn::Join": [
+               "",
+               [
+                "ClubDay-",
+                {
+                 "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+                },
+                "-NONE"
+               ]
+              ]
+             }
+            }
+           ]
+          },
+          {
+           "Fn::Sub": [
+            "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tablename}/*",
+            {
+             "tablename": {
+              "Fn::Join": [
+               "",
+               [
+                "ClubDay-",
+                {
+                 "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+                },
+                "-NONE"
+               ]
+              ]
+             }
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "DynamoDBAccess"
+     }
+    ],
+    "RoleName": {
+     "Fn::Join": [
+      "",
+      [
+       "ClubDayIAMRole5cfbdb-",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "-NONE"
+      ]
+     ]
+    },
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "amplify:friendly-name",
+      "Value": "amplifyData"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/ClubDayIAMRole/Resource"
+   }
+  },
+  "ClubDayDataSource": {
+   "Type": "AWS::AppSync::DataSource",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DynamoDBConfig": {
+     "AwsRegion": {
+      "Ref": "AWS::Region"
+     },
+     "TableName": {
+      "Fn::Select": [
+       1,
+       {
+        "Fn::Split": [
+         "/",
+         {
+          "Fn::Select": [
+           5,
+           {
+            "Fn::Split": [
+             ":",
+             {
+              "Fn::GetAtt": [
+               "ClubDayTable",
+               "TableArn"
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    "Name": "ClubDayTable",
+    "ServiceRoleArn": {
+     "Fn::GetAtt": [
+      "ClubDayIAMRole2FCEFBB1",
+      "Arn"
+     ]
+    },
+    "Type": "AMAZON_DYNAMODB"
+   },
+   "DependsOn": [
+    "ClubDayIAMRole2FCEFBB1"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/ClubDayDataSource/Resource"
+   }
+  },
+  "QuerygetClubDayauth0FunctionQuerygetClubDayauth0FunctionAppSyncFunction31C9FDDE": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerygetClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c198324ea51bbec9cebb98ea3502cd4efb8cea55edece7e137710efb94ab930b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/QuerygetClubDayauth0Function/QuerygetClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "QuerygetClubDaypostAuth0FunctionQuerygetClubDaypostAuth0FunctionAppSyncFunctionF76A32A9": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerygetClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/QuerygetClubDaypostAuth0Function/QuerygetClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "QueryGetClubDayDataResolverFnQueryGetClubDayDataResolverFnAppSyncFunction55D09A8C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryGetClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/08f4d557693d96c1a4efba0f9dc91330e4b19772fd5477c156468843e3d9cb5e.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/4c6a2d29f01c6091bd1d9afe16e5849d456c96f17c3b215938c8067399532719.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/QueryGetClubDayDataResolverFn/QueryGetClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "GetClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "getClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QuerygetClubDayauth0FunctionQuerygetClubDayauth0FunctionAppSyncFunction31C9FDDE",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerygetClubDaypostAuth0FunctionQuerygetClubDaypostAuth0FunctionAppSyncFunctionF76A32A9",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QueryGetClubDayDataResolverFnQueryGetClubDayDataResolverFnAppSyncFunction55D09A8C",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"getClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "ClubDayTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Query"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/queryGetClubDayResolver"
+   }
+  },
+  "QuerylistClubDaysauth0FunctionQuerylistClubDaysauth0FunctionAppSyncFunctionB343A6ED": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistClubDaysauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c198324ea51bbec9cebb98ea3502cd4efb8cea55edece7e137710efb94ab930b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/QuerylistClubDaysauth0Function/QuerylistClubDaysauth0Function.AppSyncFunction"
+   }
+  },
+  "QuerylistClubDayspostAuth0FunctionQuerylistClubDayspostAuth0FunctionAppSyncFunction4DCD780C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QuerylistClubDayspostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/QuerylistClubDayspostAuth0Function/QuerylistClubDayspostAuth0Function.AppSyncFunction"
+   }
+  },
+  "QueryListClubDaysDataResolverFnQueryListClubDaysDataResolverFnAppSyncFunction33EA9982": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "QueryListClubDaysDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/9fcbe070ecd3023c5bf5b966fa9584757db9762eef123bad0820bd87591b2174.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/cc01911d0269d4080ea57505dc445dfc315ef7ad85d3d9d4ea1357858bff451d.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/QueryListClubDaysDataResolverFn/QueryListClubDaysDataResolverFn.AppSyncFunction"
+   }
+  },
+  "ListClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "listClubDays",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "QuerylistClubDaysauth0FunctionQuerylistClubDaysauth0FunctionAppSyncFunctionB343A6ED",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QuerylistClubDayspostAuth0FunctionQuerylistClubDayspostAuth0FunctionAppSyncFunction4DCD780C",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "QueryListClubDaysDataResolverFnQueryListClubDaysDataResolverFnAppSyncFunction33EA9982",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Query\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"listClubDays\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "ClubDayTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Query"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/queryListClubDaysResolver"
+   }
+  },
+  "MutationcreateClubDayinit0FunctionMutationcreateClubDayinit0FunctionAppSyncFunction4BAF6AD3": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateClubDayinit0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/a183ddccbd956316c38ef97177b8f088ef0826f62023323f5ae6053d348ccffc.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationcreateClubDayinit0Function/MutationcreateClubDayinit0Function.AppSyncFunction"
+   }
+  },
+  "MutationcreateClubDayauth0FunctionMutationcreateClubDayauth0FunctionAppSyncFunctionEA386271": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/163f1e92c10dcaf85e4690f19146fc5a18d1291ad6a6ad84db40c0c36d101fe9.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationcreateClubDayauth0Function/MutationcreateClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "MutationcreateClubDaypostAuth0FunctionMutationcreateClubDaypostAuth0FunctionAppSyncFunction7A6DA665": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationcreateClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationcreateClubDaypostAuth0Function/MutationcreateClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationCreateClubDayDataResolverFnMutationCreateClubDayDataResolverFnAppSyncFunction7CDAAEAF": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationCreateClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/8ad4ef175e2ca5f13c03b6a325dc3b1772f59795cbe5e4064be6465805b4376f.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationCreateClubDayDataResolverFn/MutationCreateClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "CreateClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "createClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationcreateClubDayinit0FunctionMutationcreateClubDayinit0FunctionAppSyncFunction4BAF6AD3",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreateClubDayauth0FunctionMutationcreateClubDayauth0FunctionAppSyncFunctionEA386271",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationcreateClubDaypostAuth0FunctionMutationcreateClubDaypostAuth0FunctionAppSyncFunction7A6DA665",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationCreateClubDayDataResolverFnMutationCreateClubDayDataResolverFnAppSyncFunction7CDAAEAF",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"createClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "ClubDayTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Mutation"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/mutationCreateClubDayResolver"
+   }
+  },
+  "MutationupdateClubDayinit0FunctionMutationupdateClubDayinit0FunctionAppSyncFunction35B0352E": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateClubDayinit0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/06db846fd14e6fc371f22b12b5545ba8e2dbfeda85d8c8d586c71c282166657b.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationupdateClubDayinit0Function/MutationupdateClubDayinit0Function.AppSyncFunction"
+   }
+  },
+  "MutationupdateClubDayauth0FunctionMutationupdateClubDayauth0FunctionAppSyncFunction6EEC34DD": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1f5fed297da9c32ae3af922bf3a38ccf23b956078887d16891ec06c20c64722c.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/58a246af4be16a1ddccdbae460faba9ba768ae2655833a75797307311c63ad0f.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationupdateClubDayauth0Function/MutationupdateClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "MutationupdateClubDaypostAuth0FunctionMutationupdateClubDaypostAuth0FunctionAppSyncFunctionD429FFD0": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationupdateClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationupdateClubDaypostAuth0Function/MutationupdateClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationUpdateClubDayDataResolverFnMutationUpdateClubDayDataResolverFnAppSyncFunction6509710A": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationUpdateClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/474bf0776ec2164a13191d1a0a9e057154931e4918fea5086f49850d02a5371b.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationUpdateClubDayDataResolverFn/MutationUpdateClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "UpdateClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "updateClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationupdateClubDayinit0FunctionMutationupdateClubDayinit0FunctionAppSyncFunction35B0352E",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationupdateClubDayauth0FunctionMutationupdateClubDayauth0FunctionAppSyncFunction6EEC34DD",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationupdateClubDaypostAuth0FunctionMutationupdateClubDaypostAuth0FunctionAppSyncFunctionD429FFD0",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationUpdateClubDayDataResolverFnMutationUpdateClubDayDataResolverFnAppSyncFunction6509710A",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"updateClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "ClubDayTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Mutation"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/mutationUpdateClubDayResolver"
+   }
+  },
+  "MutationdeleteClubDayauth0FunctionMutationdeleteClubDayauth0FunctionAppSyncFunction0DD112DD": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationdeleteClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1f5fed297da9c32ae3af922bf3a38ccf23b956078887d16891ec06c20c64722c.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/d9026b39b763f6e1ba5a06488ea2fbfe6eb653fb4c7ebeb3d0aafabe2928d34b.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationdeleteClubDayauth0Function/MutationdeleteClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "MutationdeleteClubDaypostAuth0FunctionMutationdeleteClubDaypostAuth0FunctionAppSyncFunction0B5DB578": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationdeleteClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationdeleteClubDaypostAuth0Function/MutationdeleteClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "MutationDeleteClubDayDataResolverFnMutationDeleteClubDayDataResolverFnAppSyncFunction9203EB34": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Fn::GetAtt": [
+      "ClubDayDataSource",
+      "Name"
+     ]
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "MutationDeleteClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/4f7907d1209a2c9953a0c053df402c634e359546d70c7cc5c2e8e21ea734880f.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/f4a52b72209a9dfa197b5e7367a5c378c5bb86de6e29ddd9e48b49a3fe54b249.vtl"
+    }
+   },
+   "DependsOn": [
+    "ClubDayDataSource"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/MutationDeleteClubDayDataResolverFn/MutationDeleteClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "DeleteClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "deleteClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "MutationdeleteClubDayauth0FunctionMutationdeleteClubDayauth0FunctionAppSyncFunction0DD112DD",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationdeleteClubDaypostAuth0FunctionMutationdeleteClubDaypostAuth0FunctionAppSyncFunction0B5DB578",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "MutationDeleteClubDayDataResolverFnMutationDeleteClubDayDataResolverFnAppSyncFunction9203EB34",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Mutation\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"deleteClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"AMAZON_DYNAMODB\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n$util.qr($ctx.stash.put(\"tableName\", \"",
+       {
+        "Fn::Select": [
+         1,
+         {
+          "Fn::Split": [
+           "/",
+           {
+            "Fn::Select": [
+             5,
+             {
+              "Fn::Split": [
+               ":",
+               {
+                "Fn::GetAtt": [
+                 "ClubDayTable",
+                 "TableArn"
+                ]
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         }
+        ]
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Mutation"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/mutationDeleteClubDayResolver"
+   }
+  },
+  "SubscriptiononCreateClubDayauth0FunctionSubscriptiononCreateClubDayauth0FunctionAppSyncFunctionEC89654B": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononCreateClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1d1fc1ddf435f301f89c9d0239d1040afb5fa61ba26cd289c29b8349f558e43d.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptiononCreateClubDayauth0Function/SubscriptiononCreateClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptiononCreateClubDaypostAuth0FunctionSubscriptiononCreateClubDaypostAuth0FunctionAppSyncFunction8997A208": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononCreateClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptiononCreateClubDaypostAuth0Function/SubscriptiononCreateClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptionOnCreateClubDayDataResolverFnSubscriptionOnCreateClubDayDataResolverFnAppSyncFunction373F2195": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptionOnCreateClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fe3c43ada4b9d681a5e2312663ef7a73386424d73b73e51f8e2e9d4b50f7c502.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0cff47fb007f0bbf2a4e43ca256d6aa7ec109821769fd79fa7c5e83f0e7f9fc.vtl"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptionOnCreateClubDayDataResolverFn/SubscriptionOnCreateClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "SubscriptiononCreateClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "onCreateClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononCreateClubDayauth0FunctionSubscriptiononCreateClubDayauth0FunctionAppSyncFunctionEC89654B",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononCreateClubDaypostAuth0FunctionSubscriptiononCreateClubDaypostAuth0FunctionAppSyncFunction8997A208",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptionOnCreateClubDayDataResolverFnSubscriptionOnCreateClubDayDataResolverFnAppSyncFunction373F2195",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Subscription\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"onCreateClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"NONE\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Subscription"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/subscriptionOnCreateClubDayResolver"
+   }
+  },
+  "SubscriptiononUpdateClubDayauth0FunctionSubscriptiononUpdateClubDayauth0FunctionAppSyncFunctionB9CB0129": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononUpdateClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1d1fc1ddf435f301f89c9d0239d1040afb5fa61ba26cd289c29b8349f558e43d.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptiononUpdateClubDayauth0Function/SubscriptiononUpdateClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptiononUpdateClubDaypostAuth0FunctionSubscriptiononUpdateClubDaypostAuth0FunctionAppSyncFunctionAD724BC1": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononUpdateClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptiononUpdateClubDaypostAuth0Function/SubscriptiononUpdateClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptionOnUpdateClubDayDataResolverFnSubscriptionOnUpdateClubDayDataResolverFnAppSyncFunction1BA5F45C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptionOnUpdateClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fe3c43ada4b9d681a5e2312663ef7a73386424d73b73e51f8e2e9d4b50f7c502.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0cff47fb007f0bbf2a4e43ca256d6aa7ec109821769fd79fa7c5e83f0e7f9fc.vtl"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptionOnUpdateClubDayDataResolverFn/SubscriptionOnUpdateClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "SubscriptiononUpdateClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "onUpdateClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononUpdateClubDayauth0FunctionSubscriptiononUpdateClubDayauth0FunctionAppSyncFunctionB9CB0129",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononUpdateClubDaypostAuth0FunctionSubscriptiononUpdateClubDaypostAuth0FunctionAppSyncFunctionAD724BC1",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptionOnUpdateClubDayDataResolverFnSubscriptionOnUpdateClubDayDataResolverFnAppSyncFunction1BA5F45C",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Subscription\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"onUpdateClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"NONE\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Subscription"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/subscriptionOnUpdateClubDayResolver"
+   }
+  },
+  "SubscriptiononDeleteClubDayauth0FunctionSubscriptiononDeleteClubDayauth0FunctionAppSyncFunction2C841C35": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononDeleteClubDayauth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1d1fc1ddf435f301f89c9d0239d1040afb5fa61ba26cd289c29b8349f558e43d.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptiononDeleteClubDayauth0Function/SubscriptiononDeleteClubDayauth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptiononDeleteClubDaypostAuth0FunctionSubscriptiononDeleteClubDaypostAuth0FunctionAppSyncFunction2B551718": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptiononDeleteClubDaypostAuth0Function",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c1721bcd774e27c514d3454b5be4f9bdd094c0161b57ddf053d618e3b0086a77.vtl"
+    },
+    "ResponseMappingTemplate": "$util.toJson({})"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptiononDeleteClubDaypostAuth0Function/SubscriptiononDeleteClubDaypostAuth0Function.AppSyncFunction"
+   }
+  },
+  "SubscriptionOnDeleteClubDayDataResolverFnSubscriptionOnDeleteClubDayDataResolverFnAppSyncFunctionC240061C": {
+   "Type": "AWS::AppSync::FunctionConfiguration",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "DataSourceName": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPINONEDSA0A660B0Name"
+    },
+    "FunctionVersion": "2018-05-29",
+    "Name": "SubscriptionOnDeleteClubDayDataResolverFn",
+    "RequestMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/fe3c43ada4b9d681a5e2312663ef7a73386424d73b73e51f8e2e9d4b50f7c502.vtl"
+    },
+    "ResponseMappingTemplateS3Location": {
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e0cff47fb007f0bbf2a4e43ca256d6aa7ec109821769fd79fa7c5e83f0e7f9fc.vtl"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/SubscriptionOnDeleteClubDayDataResolverFn/SubscriptionOnDeleteClubDayDataResolverFn.AppSyncFunction"
+   }
+  },
+  "SubscriptiononDeleteClubDayResolver": {
+   "Type": "AWS::AppSync::Resolver",
+   "Properties": {
+    "ApiId": {
+     "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    },
+    "FieldName": "onDeleteClubDay",
+    "Kind": "PIPELINE",
+    "PipelineConfig": {
+     "Functions": [
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononDeleteClubDayauth0FunctionSubscriptiononDeleteClubDayauth0FunctionAppSyncFunction2C841C35",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptiononDeleteClubDaypostAuth0FunctionSubscriptiononDeleteClubDaypostAuth0FunctionAppSyncFunction2B551718",
+        "FunctionId"
+       ]
+      },
+      {
+       "Fn::GetAtt": [
+        "SubscriptionOnDeleteClubDayDataResolverFnSubscriptionOnDeleteClubDayDataResolverFnAppSyncFunctionC240061C",
+        "FunctionId"
+       ]
+      }
+     ]
+    },
+    "RequestMappingTemplate": {
+     "Fn::Join": [
+      "",
+      [
+       "$util.qr($ctx.stash.put(\"typeName\", \"Subscription\"))\n$util.qr($ctx.stash.put(\"fieldName\", \"onDeleteClubDay\"))\n$util.qr($ctx.stash.put(\"conditions\", []))\n$util.qr($ctx.stash.put(\"metadata\", {}))\n$util.qr($ctx.stash.metadata.put(\"dataSourceType\", \"NONE\"))\n$util.qr($ctx.stash.metadata.put(\"apiId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"connectionAttributes\", {}))\n\n$util.qr($ctx.stash.put(\"authRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"unauthRole\", \"arn:",
+       {
+        "Ref": "AWS::Partition"
+       },
+       ":sts::",
+       {
+        "Ref": "AWS::AccountId"
+       },
+       ":assumed-role/",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+       },
+       "/CognitoIdentityCredentials\"))\n$util.qr($ctx.stash.put(\"identityPoolId\", \"",
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+       },
+       "\"))\n$util.qr($ctx.stash.put(\"adminRoles\", []))\n$util.toJson({})"
+      ]
+     ]
+    },
+    "ResponseMappingTemplate": "$util.toJson($ctx.prev.result)",
+    "TypeName": "Subscription"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/subscriptionOnDeleteClubDayResolver"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOwW6DMAyGn6X34K2gSbuuVDtuE+xemcSgFHBQ7LSqEO8+QadOO/3+5E/2n0NevMB+h1fJrOuzwTcwf5AouVrR9qZs+QsjjqQUVygDO68+sKlIQoqWTJlEw/iHLT9mvMppdjfGMbgGvrEZ6IBCxuMIcxWGux0GWgxOk9zYwnzc9GNzRMX6cfI/vSe2a4kycOu7FHFr9Pt5uFBcjBQnFCEVeFvDSAGHZHvStcCyup9Jp6RmW9eKneduMRwcwVmeLnkO+1d43p3F+ywmVj8SVPf8AR06nBA2AQAA"
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data/amplifyData/ClubDay/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Outputs": {
+  "GetAttClubDayTableStreamArn": {
+   "Description": "Your DynamoDB table StreamArn.",
+   "Value": {
+    "Fn::GetAtt": [
+     "ClubDayTable",
+     "TableStreamArn"
+    ]
+   },
+   "Export": {
+    "Name": {
+     "Fn::Join": [
+      ":",
+      [
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "GetAtt:ClubDayTable:StreamArn"
+      ]
+     ]
+    }
+   }
+  },
+  "GetAttClubDayTableName": {
+   "Description": "Your DynamoDB table name.",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "ClubDay-",
+      {
+       "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+      },
+      "-NONE"
+     ]
+    ]
+   },
+   "Export": {
+    "Name": {
+     "Fn::Join": [
+      ":",
+      [
+       {
+        "Ref": "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+       },
+       "GetAtt:ClubDayTable:Name"
+      ]
+     ]
+    }
+   }
+  },
+  "amplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataClubDayClubDayDataSource3566B89BName": {
+   "Value": {
+    "Fn::GetAtt": [
+     "ClubDayDataSource",
+     "Name"
+    ]
+   }
+  },
+  "amplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataClubDayClubDayTable01582361TableArn": {
+   "Value": {
+    "Fn::GetAtt": [
+     "ClubDayTable",
+     "TableArn"
+    ]
+   }
+  }
+ }
+}

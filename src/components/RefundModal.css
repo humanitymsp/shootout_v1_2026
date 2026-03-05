@@ -1,0 +1,475 @@
+/* Refund Modal - Scoped Styles */
+.refund-modal {
+  background: var(--admin-surface);
+  border-radius: 12px;
+  width: min(660px, calc(100vw - 1.5rem));
+  max-height: min(80vh, 680px);
+  overflow: hidden;
+  box-shadow: var(--admin-shadow);
+  border: 1px solid var(--admin-border);
+  display: flex;
+  flex-direction: column;
+  margin: auto;
+}
+
+.refund-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--admin-border);
+  flex-shrink: 0;
+  background: var(--admin-surface);
+}
+
+.refund-modal .modal-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--admin-text);
+}
+
+.refund-modal .close-button {
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--admin-muted);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.refund-modal .modal-body {
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--admin-text);
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: inherit;
+  background: var(--admin-surface-alt);
+  color: var(--admin-text);
+}
+
+.form-group textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+.checkins-list {
+  max-height: 220px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  margin: 1rem 0;
+  background: var(--admin-surface-alt);
+}
+
+.checkin-item {
+  padding: 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checkin-item:hover {
+  background: #1e293b;
+}
+
+.checkin-item.selected {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: rgba(14, 165, 233, 0.6);
+}
+
+.checkin-item:last-child {
+  border-bottom: none;
+}
+
+.checkin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.checkin-header strong {
+  font-size: 1.1rem;
+}
+
+.status {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.status.active {
+  background: #ecfdf3;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.status.refunded {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.checkin-details {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: var(--admin-muted);
+  flex-wrap: wrap;
+}
+
+.refund-form {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.error-message {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0.75rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  border: 1px solid #fecaca;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.modal-actions button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 999px;
+  font-size: 1rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-actions button[type="button"]:last-child {
+  background: var(--admin-primary);
+  color: white;
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2);
+}
+
+.modal-actions button[type="button"]:last-child:hover:not(:disabled) {
+  background: var(--admin-primary-600);
+}
+
+.modal-actions button:first-child {
+  background: var(--admin-surface-elevated);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+}
+
+.modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.search-results {
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  max-height: 120px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  background: var(--admin-surface-alt);
+}
+
+.search-result-item {
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.search-result-item:hover {
+  background: #1e293b;
+}
+
+.search-result-fullname {
+  color: var(--admin-muted);
+  font-weight: normal;
+}
+
+.selected-player {
+  background: rgba(14, 165, 233, 0.1);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  padding: 0.75rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.no-checkins {
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+  padding: 0.75rem;
+  border-radius: 12px;
+  margin: 1rem 0;
+  color: #92400e;
+  text-align: center;
+}
+
+.searching-message {
+  padding: 0.75rem;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-muted);
+  text-align: center;
+  font-style: italic;
+}
+
+.no-results {
+  padding: 0.75rem;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  color: var(--admin-muted);
+  text-align: center;
+}
+
+.search-hint {
+  padding: 0.5rem;
+  color: var(--admin-muted);
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+.checkins-list h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--admin-text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.eligible-players-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.eligible-players-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--admin-text);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.loading-players {
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--admin-muted);
+  font-style: italic;
+}
+
+.eligible-players-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-surface-alt);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.eligible-player-item {
+  padding: 0.625rem 0.75rem;
+  background: var(--admin-surface-elevated);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.eligible-player-item:hover {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--admin-primary);
+  transform: translateY(-1px);
+}
+
+.eligible-player-item.highlighted {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.player-fullname {
+  color: var(--admin-muted);
+  font-weight: normal;
+}
+
+.no-eligible-players {
+  padding: 1rem;
+  text-align: center;
+  color: var(--admin-muted);
+  font-style: italic;
+  background: var(--admin-surface-alt);
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .refund-modal {
+    width: calc(100vw - 1rem);
+    max-height: calc(100vh - 1rem);
+    border-radius: 10px;
+  }
+
+  .refund-modal .modal-header {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .refund-modal .modal-header h2 {
+    font-size: 0.9rem;
+  }
+
+  .refund-modal .modal-body {
+    padding: 0.4rem 0.6rem;
+  }
+
+  .eligible-players-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .refund-modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100vh;
+    max-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .refund-modal .modal-header {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .refund-modal .modal-body {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .eligible-players-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-height: 700px) {
+  .refund-modal {
+    max-height: calc(100vh - 1rem);
+  }
+
+  .refund-modal .modal-header {
+    padding: 0.3rem 0.6rem;
+  }
+
+  .refund-modal .modal-body {
+    padding: 0.3rem 0.6rem;
+  }
+
+  .form-group {
+    margin-bottom: 0.5rem;
+  }
+
+  .checkins-list {
+    max-height: 150px;
+  }
+
+  .eligible-players-list {
+    max-height: 200px;
+  }
+}
+
+@media (max-height: 550px) {
+  .refund-modal {
+    max-height: 100vh;
+    max-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .refund-modal .modal-header {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .refund-modal .modal-header h2 {
+    font-size: 0.85rem;
+  }
+
+  .refund-modal .modal-body {
+    padding: 0.25rem 0.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 0.4rem;
+  }
+
+  .form-group label {
+    margin-bottom: 0.2rem;
+    font-size: 0.75rem;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}

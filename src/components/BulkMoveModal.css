@@ -1,0 +1,91 @@
+.bulk-move-modal {
+  max-width: 700px;
+  max-height: min(80vh, 680px);
+}
+
+.bulk-move-summary {
+  margin-bottom: 1rem;
+  color: var(--admin-text);
+}
+
+.bulk-move-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bulk-move-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--admin-text);
+  font-size: 0.9rem;
+}
+
+.bulk-move-controls select {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.bulk-move-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 45vh;
+  overflow-y: auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  background: var(--admin-surface-alt);
+}
+
+.bulk-move-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  background: var(--admin-surface);
+  border: 1px solid var(--admin-border);
+}
+
+.bulk-move-player {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  color: var(--admin-text);
+  font-size: 0.85rem;
+}
+
+.bulk-move-player span {
+  color: var(--admin-muted);
+  font-size: 0.75rem;
+}
+
+.bulk-move-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-success {
+  color: var(--admin-success);
+}
+
+.status-failed {
+  color: var(--admin-danger);
+}
+
+.bulk-move-errors {
+  margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+  .bulk-move-controls {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,1149 @@
+{
+ "Description": "{\"createdOn\":\"Windows\",\"createdBy\":\"AmplifyPipelineDeploy\",\"createdWith\":\"1.20.0\",\"stackType\":\"root\",\"metadata\":{}}",
+ "Metadata": {
+  "AWS::Amplify::Platform": {
+   "version": "1",
+   "stackOutputs": [
+    "deploymentType",
+    "region"
+   ]
+  },
+  "AWS::Amplify::Auth": {
+   "version": "1",
+   "stackOutputs": [
+    "userPoolId",
+    "webClientId",
+    "identityPoolId",
+    "authRegion",
+    "allowUnauthenticatedIdentities",
+    "signupAttributes",
+    "usernameAttributes",
+    "verificationMechanisms",
+    "passwordPolicyMinLength",
+    "passwordPolicyRequirements",
+    "mfaConfiguration",
+    "mfaTypes",
+    "passwordlessOptions",
+    "socialProviders",
+    "oauthCognitoDomain",
+    "oauthScope",
+    "oauthRedirectSignIn",
+    "oauthRedirectSignOut",
+    "oauthResponseType",
+    "oauthClientId",
+    "groups"
+   ]
+  },
+  "AWS::Amplify::Function": {
+   "version": "1",
+   "stackOutputs": [
+    "definedFunctions"
+   ]
+  },
+  "AWS::Amplify::GraphQL": {
+   "version": "1",
+   "stackOutputs": [
+    "awsAppsyncApiId",
+    "awsAppsyncApiEndpoint",
+    "awsAppsyncAuthenticationType",
+    "awsAppsyncRegion",
+    "amplifyApiModelSchemaS3Uri",
+    "awsAppsyncApiKey",
+    "awsAppsyncAdditionalAuthenticationTypes"
+   ]
+  },
+  "AWS::Amplify::Storage": {
+   "version": "1",
+   "stackOutputs": [
+    "buckets",
+    "storageRegion",
+    "bucketName"
+   ]
+  }
+ },
+ "Outputs": {
+  "deploymentType": {
+   "Value": "branch"
+  },
+  "region": {
+   "Value": {
+    "Ref": "AWS::Region"
+   }
+  },
+  "userPoolId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "auth179371D7",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthUserPool7CABE4EBRef"
+    ]
+   }
+  },
+  "webClientId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "auth179371D7",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthUserPoolAppClientF03180A3Ref"
+    ]
+   }
+  },
+  "identityPoolId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "auth179371D7",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+    ]
+   }
+  },
+  "authRegion": {
+   "Value": {
+    "Ref": "AWS::Region"
+   }
+  },
+  "allowUnauthenticatedIdentities": {
+   "Value": "true"
+  },
+  "signupAttributes": {
+   "Value": "[\"email\"]"
+  },
+  "usernameAttributes": {
+   "Value": "[\"email\"]"
+  },
+  "verificationMechanisms": {
+   "Value": "[\"email\"]"
+  },
+  "passwordPolicyMinLength": {
+   "Value": "8"
+  },
+  "passwordPolicyRequirements": {
+   "Value": "[\"REQUIRES_NUMBERS\",\"REQUIRES_LOWERCASE\",\"REQUIRES_UPPERCASE\",\"REQUIRES_SYMBOLS\"]"
+  },
+  "mfaConfiguration": {
+   "Value": "OFF"
+  },
+  "mfaTypes": {
+   "Value": "[]"
+  },
+  "passwordlessOptions": {
+   "Value": ""
+  },
+  "socialProviders": {
+   "Value": ""
+  },
+  "oauthCognitoDomain": {
+   "Value": ""
+  },
+  "oauthScope": {
+   "Value": "[\"profile\",\"phone\",\"email\",\"openid\",\"aws.cognito.signin.user.admin\"]"
+  },
+  "oauthRedirectSignIn": {
+   "Value": "https://example.com"
+  },
+  "oauthRedirectSignOut": {
+   "Value": ""
+  },
+  "oauthResponseType": {
+   "Value": "code"
+  },
+  "oauthClientId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "auth179371D7",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthUserPoolAppClientF03180A3Ref"
+    ]
+   }
+  },
+  "groups": {
+   "Value": "[]"
+  },
+  "definedFunctions": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "[\"",
+      {
+       "Fn::GetAtt": [
+        "function1351588B",
+        "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384functionhandlerlambdaCC3D44A6Ref"
+       ]
+      },
+      "\"]"
+     ]
+    ]
+   }
+  },
+  "awsAppsyncApiId": {
+   "Value": {
+    "Fn::GetAtt": [
+     "data7552DF31",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EApiId"
+    ]
+   }
+  },
+  "awsAppsyncApiEndpoint": {
+   "Value": {
+    "Fn::GetAtt": [
+     "data7552DF31",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPI5CDBF64EGraphQLUrl"
+    ]
+   }
+  },
+  "awsAppsyncAuthenticationType": {
+   "Value": "AMAZON_COGNITO_USER_POOLS"
+  },
+  "awsAppsyncRegion": {
+   "Value": {
+    "Ref": "AWS::Region"
+   }
+  },
+  "amplifyApiModelSchemaS3Uri": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "s3://",
+      {
+       "Fn::Select": [
+        0,
+        {
+         "Fn::Split": [
+          "/",
+          {
+           "Fn::Select": [
+            5,
+            {
+             "Fn::Split": [
+              ":",
+              {
+               "Fn::GetAtt": [
+                "data7552DF31",
+                "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataAmplifyCodegenAssetsAmplifyCodegenAssetsDeploymentCustomResource1536MiB0A349282DestinationBucketArn"
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      "/model-schema.graphql"
+     ]
+    ]
+   }
+  },
+  "awsAppsyncApiKey": {
+   "Value": {
+    "Fn::GetAtt": [
+     "data7552DF31",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384dataamplifyDataGraphQLAPIDefaultApiKey971E37F1ApiKey"
+    ]
+   }
+  },
+  "awsAppsyncAdditionalAuthenticationTypes": {
+   "Value": "API_KEY,AWS_IAM"
+  },
+  "storageRegion": {
+   "Value": {
+    "Ref": "AWS::Region"
+   }
+  },
+  "bucketName": {
+   "Value": {
+    "Fn::GetAtt": [
+     "storage0EC3F24A",
+     "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384storageftpcstorageBucketBA9FD3C1Ref"
+    ]
+   }
+  },
+  "buckets": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "[\"{\\\"name\\\":\\\"ftpc-storage\\\",\\\"bucketName\\\":\\\"",
+      {
+       "Fn::GetAtt": [
+        "storage0EC3F24A",
+        "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384storageftpcstorageBucketBA9FD3C1Ref"
+       ]
+      },
+      "\\\",\\\"storageRegion\\\":\\\"",
+      {
+       "Ref": "AWS::Region"
+      },
+      "\\\",\\\"paths\\\":{\\\"audit-logs/*\\\":{\\\"authenticated\\\":[\\\"get\\\",\\\"list\\\",\\\"write\\\"]},\\\"reports/*\\\":{\\\"authenticated\\\":[\\\"get\\\",\\\"list\\\",\\\"write\\\"]}}}\"]"
+     ]
+    ]
+   }
+  }
+ },
+ "Resources": {
+  "AmplifyBranchLinkerCustomResourceLambdaServiceRole3DDCBC03": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceLambda/ServiceRole/Resource"
+   }
+  },
+  "AmplifyBranchLinkerCustomResourceLambdaServiceRoleDefaultPolicy86099CA1": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": [
+        "amplify:GetBranch",
+        "amplify:UpdateBranch"
+       ],
+       "Effect": "Allow",
+       "Resource": "arn:aws:amplify:*:*:apps/d2y73qb8nfn3wa/branches/staging"
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "AmplifyBranchLinkerCustomResourceLambdaServiceRoleDefaultPolicy86099CA1",
+    "Roles": [
+     {
+      "Ref": "AmplifyBranchLinkerCustomResourceLambdaServiceRole3DDCBC03"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceLambda/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "AmplifyBranchLinkerCustomResourceLambda582AC093": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "c0170dcff60191006320697ae8964607c2ac87ff0bf0a2fad6748b5180a369b8.zip"
+    },
+    "Handler": "index.handler",
+    "Role": {
+     "Fn::GetAtt": [
+      "AmplifyBranchLinkerCustomResourceLambdaServiceRole3DDCBC03",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs20.x",
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 10
+   },
+   "DependsOn": [
+    "AmplifyBranchLinkerCustomResourceLambdaServiceRoleDefaultPolicy86099CA1",
+    "AmplifyBranchLinkerCustomResourceLambdaServiceRole3DDCBC03"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceLambda/Resource",
+    "aws:asset:path": "asset.c0170dcff60191006320697ae8964607c2ac87ff0bf0a2fad6748b5180a369b8",
+    "aws:asset:is-bundled": true,
+    "aws:asset:property": "Code"
+   }
+  },
+  "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRole92A035EB": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceProvider/framework-onEvent/ServiceRole/Resource"
+   }
+  },
+  "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRoleDefaultPolicy38AAE412": {
+   "Type": "AWS::IAM::Policy",
+   "Properties": {
+    "PolicyDocument": {
+     "Statement": [
+      {
+       "Action": "lambda:InvokeFunction",
+       "Effect": "Allow",
+       "Resource": [
+        {
+         "Fn::GetAtt": [
+          "AmplifyBranchLinkerCustomResourceLambda582AC093",
+          "Arn"
+         ]
+        },
+        {
+         "Fn::Join": [
+          "",
+          [
+           {
+            "Fn::GetAtt": [
+             "AmplifyBranchLinkerCustomResourceLambda582AC093",
+             "Arn"
+            ]
+           },
+           ":*"
+          ]
+         ]
+        }
+       ]
+      },
+      {
+       "Action": "lambda:GetFunction",
+       "Effect": "Allow",
+       "Resource": {
+        "Fn::GetAtt": [
+         "AmplifyBranchLinkerCustomResourceLambda582AC093",
+         "Arn"
+        ]
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "PolicyName": "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRoleDefaultPolicy38AAE412",
+    "Roles": [
+     {
+      "Ref": "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRole92A035EB"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceProvider/framework-onEvent/ServiceRole/DefaultPolicy/Resource"
+   }
+  },
+  "AmplifyBranchLinkerCustomResourceProviderframeworkonEvent3B23F900": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": {
+      "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+     },
+     "S3Key": "07a90cc3efdfc34da22208dcd9d211f06f5b0e01b21e778edc7c3966b1f61d57.zip"
+    },
+    "Description": "AWS CDK resource provider framework - onEvent (amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceProvider)",
+    "Environment": {
+     "Variables": {
+      "USER_ON_EVENT_FUNCTION_ARN": {
+       "Fn::GetAtt": [
+        "AmplifyBranchLinkerCustomResourceLambda582AC093",
+        "Arn"
+       ]
+      }
+     }
+    },
+    "Handler": "framework.onEvent",
+    "LoggingConfig": {
+     "ApplicationLogLevel": "FATAL",
+     "LogFormat": "JSON"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRole92A035EB",
+      "Arn"
+     ]
+    },
+    "Runtime": "nodejs22.x",
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "Timeout": 900
+   },
+   "DependsOn": [
+    "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRoleDefaultPolicy38AAE412",
+    "AmplifyBranchLinkerCustomResourceProviderframeworkonEventServiceRole92A035EB"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResourceProvider/framework-onEvent/Resource",
+    "aws:asset:path": "asset.07a90cc3efdfc34da22208dcd9d211f06f5b0e01b21e778edc7c3966b1f61d57",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "AmplifyBranchLinkerCustomResource96E36FC1": {
+   "Type": "Custom::AmplifyBranchLinkerResource",
+   "Properties": {
+    "ServiceToken": {
+     "Fn::GetAtt": [
+      "AmplifyBranchLinkerCustomResourceProviderframeworkonEvent3B23F900",
+      "Arn"
+     ]
+    },
+    "appId": "d2y73qb8nfn3wa",
+    "branchName": "staging"
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/AmplifyBranchLinker/CustomResource/Default"
+   }
+  },
+  "auth179371D7": {
+   "Type": "AWS::CloudFormation::Stack",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "TemplateURL": {
+     "Fn::Join": [
+      "",
+      [
+       "https://s3.",
+       {
+        "Ref": "AWS::Region"
+       },
+       ".",
+       {
+        "Ref": "AWS::URLSuffix"
+       },
+       "/",
+       {
+        "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+       },
+       "/a3644b561b1fb0e1e3af2377c0ccac2352f4c5e17818b4fd65daad7e1dd5672b.json"
+      ]
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/auth.NestedStack/auth.NestedStackResource",
+    "aws:asset:path": "amplifyd2y73qb8nfn3wastagingbranch66293d6384auth9D3C035E.nested.template.json",
+    "aws:asset:property": "TemplateURL"
+   }
+  },
+  "data7552DF31": {
+   "Type": "AWS::CloudFormation::Stack",
+   "Properties": {
+    "Parameters": {
+     "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthUserPool7CABE4EBRef": {
+      "Fn::GetAtt": [
+       "auth179371D7",
+       "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthUserPool7CABE4EBRef"
+      ]
+     },
+     "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref": {
+      "Fn::GetAtt": [
+       "auth179371D7",
+       "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+      ]
+     },
+     "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref": {
+      "Fn::GetAtt": [
+       "auth179371D7",
+       "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthunauthenticatedUserRole779682F7Ref"
+      ]
+     },
+     "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef": {
+      "Fn::GetAtt": [
+       "auth179371D7",
+       "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthIdentityPool69FFDB4ARef"
+      ]
+     },
+     "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384functionNestedStackfunctionNestedStackResource19D47F87Outputsamplifyd2y73qb8nfn3wastagingbranch66293d6384functionhandlerlambdaCC3D44A6Arn": {
+      "Fn::GetAtt": [
+       "function1351588B",
+       "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384functionhandlerlambdaCC3D44A6Arn"
+      ]
+     }
+    },
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "TemplateURL": {
+     "Fn::Join": [
+      "",
+      [
+       "https://s3.",
+       {
+        "Ref": "AWS::Region"
+       },
+       ".",
+       {
+        "Ref": "AWS::URLSuffix"
+       },
+       "/",
+       {
+        "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+       },
+       "/fb18f46d27d966ecdd69853003627696a71f01fbef832690281994d637a11c92.json"
+      ]
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/data.NestedStack/data.NestedStackResource",
+    "aws:asset:path": "amplifyd2y73qb8nfn3wastagingbranch66293d6384data834D3955.nested.template.json",
+    "aws:asset:property": "TemplateURL"
+   }
+  },
+  "function1351588B": {
+   "Type": "AWS::CloudFormation::Stack",
+   "Properties": {
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "TemplateURL": {
+     "Fn::Join": [
+      "",
+      [
+       "https://s3.",
+       {
+        "Ref": "AWS::Region"
+       },
+       ".",
+       {
+        "Ref": "AWS::URLSuffix"
+       },
+       "/",
+       {
+        "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+       },
+       "/586584720d5597cb2274329f5ab83d5cf0d26a6be1d2e41f685f3ad77f88059a.json"
+      ]
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/function.NestedStack/function.NestedStackResource",
+    "aws:asset:path": "amplifyd2y73qb8nfn3wastagingbranch66293d6384function9DE86A8B.nested.template.json",
+    "aws:asset:property": "TemplateURL"
+   }
+  },
+  "storage0EC3F24A": {
+   "Type": "AWS::CloudFormation::Stack",
+   "Properties": {
+    "Parameters": {
+     "referencetoamplifyd2y73qb8nfn3wastagingbranch66293d6384authNestedStackauthNestedStackResource7252E54FOutputsamplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref": {
+      "Fn::GetAtt": [
+       "auth179371D7",
+       "Outputs.amplifyd2y73qb8nfn3wastagingbranch66293d6384authamplifyAuthauthenticatedUserRole8E48CE88Ref"
+      ]
+     }
+    },
+    "Tags": [
+     {
+      "Key": "amplify:app-id",
+      "Value": "d2y73qb8nfn3wa"
+     },
+     {
+      "Key": "amplify:branch-name",
+      "Value": "staging"
+     },
+     {
+      "Key": "amplify:deployment-type",
+      "Value": "branch"
+     },
+     {
+      "Key": "created-by",
+      "Value": "amplify"
+     }
+    ],
+    "TemplateURL": {
+     "Fn::Join": [
+      "",
+      [
+       "https://s3.",
+       {
+        "Ref": "AWS::Region"
+       },
+       ".",
+       {
+        "Ref": "AWS::URLSuffix"
+       },
+       "/",
+       {
+        "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
+       },
+       "/d5796e3a1c5a8fd9d1261017d58e9b3904dbdab59ffdaf0f5a2490851ac3b5ad.json"
+      ]
+     ]
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/storage.NestedStack/storage.NestedStackResource",
+    "aws:asset:path": "amplifyd2y73qb8nfn3wastagingbranch66293d6384storage1052FA6E.nested.template.json",
+    "aws:asset:property": "TemplateURL"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/02PzWrDQAyEnyV3WWlsCrk2hh7b4DyA2ayVIP/slpU2oRi/e9l1Enr6RgwzaEosq3fcbcxdCtsNxchnnE9q7AD1xX1H/YkK5i7tPJrp3JnW+Y56wa+Mz+issnfAZsK58SOlVObRj2x/07mqBaRqjQip4EcCSIWHaAfSgxGCtR7n+uJerU+xLNCQ+BgsQc6e1FzZXcFGUT+14WEKHoO/cUcB6uy8UumrfzoPXCBtwV62t7LE3R7fNr0wFyE65YmwWfkHfJXjoyIBAAA="
+   },
+   "Metadata": {
+    "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/CDKMetadata/Default"
+   },
+   "Condition": "CDKMetadataAvailable"
+  }
+ },
+ "Conditions": {
+  "CDKMetadataAvailable": {
+   "Fn::Or": [
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "af-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-northeast-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-south-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-3"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ap-southeast-4"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "ca-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "cn-northwest-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-central-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-north-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-south-2"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Or": [
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "eu-west-3"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "il-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-central-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "me-south-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "sa-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-1"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-east-2"
+       ]
+      },
+      {
+       "Fn::Equals": [
+        {
+         "Ref": "AWS::Region"
+        },
+        "us-west-1"
+       ]
+      }
+     ]
+    },
+    {
+     "Fn::Equals": [
+      {
+       "Ref": "AWS::Region"
+      },
+      "us-west-2"
+     ]
+    }
+   ]
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

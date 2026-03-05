@@ -1,0 +1,45 @@
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+.app-footer {
+  margin-top: auto;
+  background: var(--admin-surface);
+  border-top: 1px solid var(--admin-border);
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--admin-muted);
+  position: relative;
+  z-index: 10;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  font-weight: 500;
+}
+
+/* Hide footer and prevent body scroll on tablet route */
+body:has(.tablet-management-page) {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+body:has(.tablet-management-page) .app-footer {
+  display: none;
+}
+
+body:has(.tablet-management-page) .app-container {
+  overflow: hidden;
+  height: 100dvh;
+}

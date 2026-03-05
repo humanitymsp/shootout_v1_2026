@@ -1,0 +1,2010 @@
+/* TV Page - Modern Large Display Design */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&display=swap');
+
+.tv-page {
+  color-scheme: dark;
+  --admin-bg: #0a0f1c;
+  --admin-surface: #0f1629;
+  --admin-surface-alt: #1a2332;
+  --admin-surface-elevated: #1e293b;
+  --admin-border: #2a3a52;
+  --admin-text: #f1f5f9;
+  --admin-muted: #94a3b8;
+  --admin-primary: #3b82f6;
+  --admin-primary-600: #2563eb;
+  --admin-accent: #fbbf24;
+  --admin-accent-600: #d97706;
+  --admin-secondary: #9ca3af;
+  --admin-shadow: 0 12px 32px rgba(15, 23, 42, 0.6);
+  --admin-shadow-sm: 0 6px 16px rgba(15, 23, 42, 0.45);
+
+  min-height: 100vh;
+  height: 100vh;
+  max-height: 100vh;
+  background: linear-gradient(135deg, var(--admin-bg) 0%, var(--admin-surface) 50%, var(--admin-surface-alt) 100%);
+  color: var(--admin-text);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.tv-page.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, 
+    rgba(26, 26, 31, 0.95) 0%, 
+    rgba(42, 42, 47, 0.9) 50%,
+    rgba(26, 26, 31, 0.95) 100%
+  );
+}
+
+.tv-loading-content {
+  text-align: center;
+  color: white;
+}
+
+.tv-loading-spinner {
+  width: 80px;
+  height: 80px;
+  border: 6px solid rgba(156, 163, 175, 0.2);
+  border-top: 6px solid #fbbf24;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 2rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.tv-loading-content h2 {
+  font-size: 2.5rem;
+  font-weight: 300;
+  margin: 0;
+  color: #f5f5dc;
+  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
+/* Header - Horizontal layout with logo, date, time */
+.tv-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(0.3rem, 0.6vw, 0.5rem) clamp(1rem, 2vw, 2rem);
+  background: linear-gradient(135deg, 
+    rgba(30, 58, 138, 0.3) 0%, 
+    rgba(42, 42, 47, 0.6) 50%,
+    rgba(30, 58, 138, 0.3) 100%
+  );
+  backdrop-filter: blur(15px);
+  border-bottom: 2px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.1);
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.tv-header-left {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.tv-header-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tv-main-title {
+  margin: 0;
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  font-weight: 700;
+  color: #f5f5dc;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  text-shadow: 
+    0 2px 8px rgba(251, 191, 36, 0.4),
+    0 0 20px rgba(30, 58, 138, 0.3);
+  text-align: center;
+}
+
+.tv-header-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.tv-datetime {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, 
+    rgba(30, 58, 138, 0.25) 0%, 
+    rgba(156, 163, 175, 0.2) 50%,
+    rgba(30, 58, 138, 0.25) 100%
+  );
+  border-radius: 8px;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  box-shadow: 
+    0 2px 8px rgba(30, 58, 138, 0.3),
+    inset 0 1px 0 rgba(251, 191, 36, 0.1);
+}
+
+.tv-datetime-separator {
+  color: rgba(251, 191, 36, 0.6);
+  font-size: 0.9rem;
+}
+
+/* Logo Section */
+.tv-logo-section {
+  width: clamp(92px, 11.5vw, 161px);
+  padding: 0;
+  margin: 0;
+  background: transparent;
+}
+
+.tv-logo-section > .logo-container {
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+}
+
+.tv-logo-section > .logo-container > .logo-svg {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5)) 
+          drop-shadow(0 0 15px rgba(251, 191, 36, 0.4))
+          drop-shadow(0 0 8px rgba(30, 58, 138, 0.3));
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.tv-date {
+  font-size: clamp(0.75rem, 1.2vw, 0.95rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.tv-time {
+  font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+  font-weight: 700;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-family: 'Roboto Mono', 'SF Mono', 'Monaco', 'Consolas', 'Courier New', monospace;
+  display: flex;
+  align-items: baseline;
+  gap: 0.1rem;
+  white-space: nowrap;
+}
+
+.tv-time-period {
+  font-size: 0.75em;
+  font-weight: 600;
+  color: var(--admin-accent);
+  margin-left: 0.15rem;
+}
+
+/* Offline Indicator */
+.tv-offline-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  backdrop-filter: blur(10px);
+  animation: pulse-offline 2s ease-in-out infinite;
+}
+
+@keyframes pulse-offline {
+  0%, 100% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
+  }
+}
+
+.tv-offline-icon {
+  font-size: 1.2rem;
+  margin-right: 0.5rem;
+}
+
+.tv-offline-text {
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+  font-weight: 600;
+  color: #fca5a5;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tv-offline-time {
+  font-size: clamp(0.65rem, 1.2vw, 0.85rem);
+  color: #cbd5e1;
+  opacity: 0.8;
+}
+
+
+.tv-club-day {
+  font-size: clamp(0.9rem, 2vw, 1.3rem);
+  color: #94a3b8;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+
+/* Sub Header - Smaller header below main header */
+.tv-sub-header {
+  padding: 0.3rem 1rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(30, 64, 175, 0.2);
+  flex-shrink: 0;
+}
+
+.tv-sub-header-title {
+  margin: 0;
+  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-weight: 600;
+  color: var(--admin-text);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+/* Columns Container — 3-column layout, one column per game+stakes type */
+.tv-columns-container {
+  display: grid;
+  /* grid-template-columns set dynamically via inline style based on group count */
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75vh 0.75rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0.5vh 0.75rem 0.5vh;
+  align-items: stretch;
+}
+
+/* Single column */
+.tv-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+  background: rgba(30, 30, 35, 0.5);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Column header — game type + stakes */
+.tv-column-header {
+  padding: 0.5vh 0.75rem 0.4vh;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.04) 100%);
+  border-bottom: 2px solid rgba(251, 191, 36, 0.25);
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tv-column-title {
+  margin: 0 0 0.2vh;
+  font-size: clamp(1rem, 1.8vh, 1.5rem);
+  font-weight: 800;
+  color: #fbbf24;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.tv-column-stats {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tv-column-stat {
+  font-size: clamp(0.6rem, 0.9vh, 0.8rem);
+  font-weight: 600;
+  color: rgba(148, 163, 184, 0.8);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.15);
+  padding: 0.1rem 0.4rem;
+  border-radius: 10px;
+}
+
+/* Column body — fits within viewport, no scroll */
+.tv-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vh;
+  padding: 0.5vh 0.5rem;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Table info summary inside column */
+.tv-column-table-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2vh;
+  flex-shrink: 0;
+  margin-bottom: 0.4vh;
+}
+
+.tv-summary-table-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.15vh 0.5rem;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 6px;
+  font-size: clamp(0.85rem, 1.8vh, 1.3rem);
+}
+
+.tv-summary-table-num {
+  font-weight: 800;
+  color: #e2e8f0;
+  min-width: 2.5em;
+}
+
+.tv-summary-table-seats {
+  color: rgba(148, 163, 184, 0.9);
+  font-weight: 600;
+}
+
+.tv-summary-bomb {
+  color: #f97316;
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+.tv-summary-lockout {
+  color: #ef4444;
+  font-weight: 700;
+  font-size: 0.9em;
+}
+
+/* Waitlist summary inside column */
+.tv-column-waitlist {
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 8px;
+  padding: 0.6vh 0.75rem;
+  flex-shrink: 0;
+}
+
+.tv-column-waitlist-header {
+  font-size: clamp(0.9rem, 2vh, 1.5rem);
+  font-weight: 700;
+  color: #a5b4fc;
+  margin-bottom: 0.2vh;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tv-column-waitlist-count {
+  background: rgba(99, 102, 241, 0.25);
+  color: #c7d2fe;
+  font-size: clamp(0.85rem, 1.8vh, 1.3rem);
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  border-radius: 8px;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.tv-column-waitlist-names {
+  display: flex;
+  flex-direction: row;
+  gap: 0.75rem;
+}
+
+.tv-waitlist-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1vh;
+}
+
+.tv-column-waitlist-name {
+  font-size: clamp(1rem, 2.2vh, 1.6rem);
+  font-weight: 800;
+  color: #ffffff;
+  text-transform: uppercase;
+  padding: 0.2vh 0.6rem;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+}
+
+.tv-column-waitlist-empty {
+  font-size: clamp(0.85rem, 1.5vh, 1.2rem);
+  color: rgba(148, 163, 184, 0.5);
+  font-style: italic;
+}
+
+/* Responsive: fewer columns on smaller screens */
+@media (max-width: 1024px) {
+  .tv-columns-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 0.75rem 1rem 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .tv-columns-container {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+}
+
+/* Table Card - Modern Card Design with Logo Colors */
+.tv-table-card {
+  background: linear-gradient(135deg, 
+    rgba(58, 58, 63, 0.85) 0%, 
+    rgba(42, 42, 47, 0.9) 50%,
+    rgba(58, 58, 63, 0.85) 100%
+  );
+  border: 2px solid rgba(30, 58, 138, 0.4);
+  border-radius: 10px;
+  padding: 0.6vh 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3vh;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(251, 191, 36, 0.1);
+  position: relative;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.tv-table-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    rgba(251, 191, 36, 0.5) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tv-table-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.5),
+    0 0 20px rgba(251, 191, 36, 0.2),
+    inset 0 1px 0 rgba(251, 191, 36, 0.2);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.tv-table-card:hover::before {
+  opacity: 1;
+}
+
+.tv-table-card.open {
+  border-color: rgba(30, 58, 138, 0.4);
+  background: linear-gradient(135deg, 
+    rgba(58, 58, 63, 0.85) 0%, 
+    rgba(42, 42, 47, 0.9) 50%,
+    rgba(58, 58, 63, 0.85) 100%
+  );
+}
+
+.tv-table-card.busy {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: linear-gradient(135deg, 
+    rgba(58, 58, 63, 0.85) 0%, 
+    rgba(251, 191, 36, 0.15) 50%,
+    rgba(58, 58, 63, 0.85) 100%
+  );
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 15px rgba(251, 191, 36, 0.2),
+    inset 0 1px 0 rgba(251, 191, 36, 0.2);
+}
+
+.tv-table-card.full {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: linear-gradient(135deg, 
+    rgba(58, 58, 63, 0.85) 0%, 
+    rgba(239, 68, 68, 0.15) 50%,
+    rgba(58, 58, 63, 0.85) 100%
+  );
+}
+
+/* Persistent / Pre-Sign Up table */
+.tv-table-card.tv-persistent {
+  border-color: rgba(139, 92, 246, 0.6);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 16px rgba(139, 92, 246, 0.15),
+    inset 0 1px 0 rgba(139, 92, 246, 0.15);
+}
+
+.tv-persistent-label {
+  background: rgba(139, 92, 246, 0.25);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: clamp(0.55rem, 0.8vw, 0.7rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.tv-persistent-note {
+  color: #c4b5fd;
+  font-size: clamp(0.5rem, 0.75vw, 0.65rem);
+  font-weight: 500;
+  text-align: center;
+  padding: 0.3rem 0.5rem;
+  margin-top: auto;
+  background: rgba(139, 92, 246, 0.1);
+  border-top: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 0 0 10px 10px;
+  letter-spacing: 0.02em;
+}
+
+/* Card Header */
+.tv-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2vh;
+  padding-bottom: 0.3vh;
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.tv-card-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.tv-card-title {
+  margin: 0;
+  font-size: clamp(1rem, 2vw, 1.6rem);
+  font-weight: 700;
+  color: var(--admin-primary);
+  letter-spacing: 0.02em;
+}
+
+.tv-card-seats {
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: clamp(0.8rem, 1.4vw, 1.1rem);
+  text-shadow: 0 1px 3px rgba(251, 191, 36, 0.6);
+}
+
+.tv-card-info-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.tv-card-game {
+  color: #d1d5db;
+  font-weight: 500;
+  font-size: clamp(0.6rem, 1vw, 0.85rem);
+}
+
+.tv-card-buyin {
+  color: #22c55e;
+  font-weight: 700;
+  font-size: clamp(0.55rem, 0.9vw, 0.75rem);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.tv-card-bombs {
+  color: #fbbf24;
+  font-weight: 600;
+  font-size: clamp(0.6rem, 1vw, 0.85rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.tv-card-bombs::before {
+  content: '💣';
+  font-size: 1em;
+  line-height: 1;
+}
+
+.tv-card-lockouts {
+  color: #f87171;
+  font-weight: 600;
+  font-size: clamp(0.6rem, 1vw, 0.85rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.tv-card-lockouts::before {
+  content: '🔒';
+  font-size: 1em;
+  line-height: 1;
+}
+
+/* Seated Section */
+.tv-card-seated {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/* Waitlist Section */
+.tv-card-waitlist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2vh;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Section Labels */
+.tv-card-section-label {
+  font-weight: 700;
+  color: rgba(96, 165, 250, 0.9);
+  font-size: clamp(0.55rem, 0.9vw, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tv-card-section-label.waitlist {
+  color: #fbbf24;
+}
+
+.tv-card-waitlist-count {
+  background: rgba(251, 191, 36, 0.2);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+  font-weight: 800;
+  font-size: 0.9em;
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  min-width: 1.2em;
+  text-align: center;
+}
+
+.tv-card-tc-count {
+  color: #a78bfa;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+/* Player List */
+.tv-card-player-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0;
+  max-width: 100%;
+  overflow: hidden;
+  flex: 1;
+  align-items: baseline;
+}
+
+.tv-card-player-name {
+  font-weight: 600;
+  font-size: clamp(0.8rem, 1.15vw, 1.05rem);
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  padding: 0;
+  background: none;
+  display: inline;
+  vertical-align: baseline;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.tv-card-player-name.seated {
+  color: #ffffff;
+}
+
+.tv-card-player-name.waiting {
+  color: #ffffff;
+  animation: playerSlideIn 0.6s ease-out both;
+}
+
+.tv-card-player-name.waiting + .tv-card-player-name.waiting::before {
+  content: '\00a0·\00a0';
+  color: rgba(251, 191, 36, 0.6);
+  font-weight: 700;
+  font-size: 1em;
+}
+
+@keyframes playerSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.9);
+    text-shadow: 0 0 0 transparent;
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(2px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.tv-card-waitlist-compact {
+  color: #fbbf24;
+  font-size: clamp(0.75rem, 1.1vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.tv-card-no-players {
+  color: var(--admin-muted);
+  font-size: clamp(0.7rem, 1vw, 0.85rem);
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* TC Indicator */
+.tv-tc-indicator {
+  display: inline-block;
+  background: rgba(139, 92, 246, 0.25);
+  color: #a78bfa;
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+/* 4K displays: 5 columns */
+@media (min-width: 2561px) {
+  .tv-games-grid {
+    --tv-grid-columns: 5;
+    --tv-grid-gap: 1.5rem;
+    --tv-grid-padding: 2rem;
+  }
+}
+
+/* 2K displays: 4 columns */
+@media (max-width: 2560px) {
+  .tv-games-grid {
+    --tv-grid-columns: 4;
+    --tv-grid-gap: 1.25rem;
+    --tv-grid-padding: 1.5rem;
+  }
+}
+
+/* Large desktop / TV 1080p: 3 columns */
+@media (max-width: 1920px) {
+  .tv-games-grid {
+    --tv-grid-columns: 3;
+    --tv-grid-gap: 1rem;
+    --tv-grid-padding: 1rem;
+  }
+}
+
+/* Desktop / Large screens: 3 columns */
+@media (max-width: 1440px) {
+  .tv-games-grid {
+    --tv-grid-columns: 3;
+    --tv-grid-gap: 0.85rem;
+    --tv-grid-padding: 0.85rem;
+  }
+}
+
+/* Medium desktop: 2 columns */
+@media (max-width: 1200px) {
+  .tv-games-grid {
+    --tv-grid-columns: 2;
+    --tv-grid-gap: 0.75rem;
+    --tv-grid-padding: 0.75rem;
+  }
+}
+
+/* Tablet / Medium screens: 2 columns */
+@media (max-width: 1024px) {
+  .tv-games-grid {
+    --tv-grid-columns: 2;
+    --tv-grid-gap: 0.6rem;
+    --tv-grid-padding: 0.6rem;
+  }
+}
+
+/* Small tablet: 2 columns */
+@media (max-width: 768px) {
+  .tv-games-grid {
+    --tv-grid-columns: 2;
+    --tv-grid-gap: 0.5rem;
+    --tv-grid-padding: 0.5rem;
+  }
+}
+
+/* Mobile / Small screens: 1 column */
+@media (max-width: 600px) {
+  .tv-games-grid {
+    --tv-grid-columns: 1;
+    --tv-grid-gap: 0.5rem;
+    --tv-grid-padding: 0.5rem;
+  }
+}
+
+/* Placeholder Card */
+.tv-placeholder-card {
+  background: linear-gradient(135deg, 
+    rgba(58, 58, 63, 0.5) 0%, 
+    rgba(42, 42, 47, 0.6) 50%,
+    rgba(58, 58, 63, 0.5) 100%
+  );
+  border: 2px dashed rgba(156, 163, 175, 0.25);
+  border-radius: 12px;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.tv-placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  flex: 1;
+}
+
+.tv-placeholder-text {
+  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-weight: 600;
+  color: var(--admin-muted);
+  margin: 0;
+  opacity: 0.6;
+  font-style: italic;
+  letter-spacing: 0.03em;
+}
+
+/* Animated Poker Table */
+.tv-poker-table-anim {
+  position: relative;
+  width: 95%;
+  max-width: 380px;
+  aspect-ratio: 300 / 185;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.tv-poker-table-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Chip tray - dealer area */
+.tv-chip-tray {
+  fill: rgba(15, 15, 20, 0.9);
+  stroke: rgba(100, 100, 110, 0.5);
+  stroke-width: 1;
+}
+
+/* Chip stacks - laying down, top-down view (thin edge ellipses) */
+.tv-chip-edge {
+  stroke-width: 0.4;
+  stroke: rgba(255, 255, 255, 0.15);
+}
+.tv-chip-edge.c1 { fill: #1e3a6e; }
+.tv-chip-edge.c2 { fill: #1f4030; }
+.tv-chip-edge.c3 { fill: #4a3510; }
+.tv-chip-edge.c4 { fill: #2e2e42; }
+.tv-chip-edge.c5 { fill: #1a1a1a; }
+
+/* Gold seat dot markers around the rail */
+.tv-table-seat-dot {
+  fill: rgba(251, 191, 36, 0.7);
+  stroke: rgba(251, 191, 36, 0.3);
+  stroke-width: 1;
+  animation: seatDotPulse 2.7s ease-in-out infinite;
+  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.4));
+}
+
+@keyframes seatDotPulse {
+  0%, 100% {
+    fill: rgba(251, 191, 36, 0.5);
+    filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.3));
+  }
+  50% {
+    fill: rgba(251, 191, 36, 0.9);
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
+  }
+}
+
+/* Logo in center of table */
+.tv-table-center-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(90px, 18vw, 150px);
+  opacity: 1;
+  animation: logoGlow 3s ease-in-out infinite;
+}
+
+.tv-table-center-logo .logo-container {
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.tv-table-center-logo .logo-svg {
+  width: 100% !important;
+  height: auto !important;
+}
+
+@keyframes logoGlow {
+  0%, 100% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(1);
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))
+            drop-shadow(0 0 20px rgba(251, 191, 36, 0.2));
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.06);
+    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.7))
+            drop-shadow(0 0 40px rgba(251, 191, 36, 0.35))
+            drop-shadow(0 0 60px rgba(30, 58, 138, 0.2));
+  }
+}
+
+/* Game Cards - Compact for casting */
+.tv-game-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(25px);
+  border-radius: 16px;
+  padding: clamp(0.75rem, 1.5vw, 1.25rem);
+  border: 2px solid rgba(30, 64, 175, 0.15);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: visible;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  animation: cardFadeIn 0.6s ease-out;
+  animation-fill-mode: both;
+  display: flex;
+  flex-direction: column;
+  height: auto; /* Allow card to grow based on content */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.tv-game-card * {
+  transition: all 0.3s ease;
+}
+
+.tv-game-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+@keyframes cardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.tv-game-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #fbbf24, #9ca3af, #3b82f6);
+  animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.tv-game-card.open {
+  border-color: rgba(30, 64, 175, 0.6);
+  box-shadow: 0 0 50px rgba(30, 64, 175, 0.4), inset 0 0 30px rgba(30, 64, 175, 0.1);
+  background: rgba(30, 64, 175, 0.05);
+}
+
+.tv-game-card.open::before {
+  background: linear-gradient(90deg, #3b82f6, #2563eb, #1d4ed8, #3b82f6);
+  height: 5px;
+}
+
+.tv-game-card.busy {
+  border-color: rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.1);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.tv-game-card.busy::before {
+  background: linear-gradient(90deg, #fbbf24, #d97706, #b45309, #fbbf24);
+  height: 5px;
+}
+
+.tv-game-card.full {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 50px rgba(239, 68, 68, 0.4), inset 0 0 30px rgba(239, 68, 68, 0.1);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.tv-game-card.full::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626, #b91c1c, #ef4444);
+  height: 5px;
+}
+
+/* Compact Single-Line Header */
+.tv-game-header-compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.8rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  flex-shrink: 0;
+  font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tv-compact-table {
+  font-size: 1.2em;
+  font-weight: 900;
+  color: var(--admin-primary);
+  text-shadow: 0 1px 3px rgba(30, 64, 175, 0.5);
+}
+
+.tv-compact-game {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.tv-compact-seats {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tv-compact-bombs {
+  font-weight: 700;
+  color: var(--admin-accent);
+}
+
+.tv-compact-separator {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: 400;
+}
+
+.tv-compact-status {
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tv-compact-status.open {
+  background: rgba(30, 64, 175, 0.2);
+  color: #1e40af;
+  border: 1px solid rgba(30, 64, 175, 0.4);
+}
+
+.tv-compact-status.busy {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.tv-compact-status.full {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.tv-game-title h2 {
+  font-size: clamp(1.3rem, 2.2vw, 1.8rem);
+  font-weight: 900;
+  margin: 0 0 0.2rem 0;
+  color: var(--admin-text);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+  letter-spacing: 0.02em;
+  transition: all 0.3s ease;
+}
+
+.tv-table-number {
+  font-size: clamp(1.25rem, 2.6vw, 2.05rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.05em !important;
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none !important;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
+}
+
+.tv-game-stakes {
+  font-size: clamp(0.75rem, 1.3vw, 0.95rem);
+  color: var(--admin-muted);
+  font-weight: 600;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.tv-game-type {
+  font-weight: 700;
+  color: var(--admin-primary);
+  letter-spacing: 0.05em;
+}
+
+.tv-stakes-separator {
+  color: var(--admin-secondary);
+  opacity: 0.6;
+}
+
+.tv-stakes-text {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.tv-game-tables {
+  font-size: clamp(0.85rem, 2vw, 1.1rem);
+  color: #3b82f6;
+  font-weight: 600;
+  background: rgba(30, 64, 175, 0.15);
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  display: inline-block;
+  border: 1px solid rgba(30, 64, 175, 0.4);
+}
+
+.tv-game-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.tv-game-buyin {
+  font-size: clamp(0.55rem, 1vw, 0.7rem);
+  font-weight: 700;
+  color: var(--admin-accent);
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  transition: all 0.3s ease;
+}
+
+.tv-game-buyin:hover {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.7);
+  transform: scale(1.05);
+}
+
+.tv-buyin-label {
+  font-size: 0.75em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.9;
+}
+
+.tv-buyin-range {
+  font-size: 1.1em;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.tv-buyin-unavailable {
+  opacity: 0.5;
+}
+
+.tv-buyin-unavailable .tv-buyin-range {
+  font-style: italic;
+}
+
+/* Player Lists - Show names instead of counts */
+.tv-player-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.8rem;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.tv-player-section {
+  text-align: center;
+  flex: 0 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1rem;
+}
+
+.tv-seated-section .tv-section-title-simple {
+  color: rgba(96, 165, 250, 0.8);
+  border-bottom-color: rgba(96, 165, 250, 0.3);
+}
+
+.tv-waitlist-section .tv-section-title-simple {
+  color: rgba(251, 191, 36, 0.8);
+  border-bottom-color: rgba(251, 191, 36, 0.3);
+}
+
+/* Waitlist Count Badge - Compact */
+.tv-waitlist-count-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tv-waitlist-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.3rem 0.8rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%);
+  border: 1.5px solid rgba(251, 191, 36, 0.4);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.15);
+}
+
+.tv-waitlist-number {
+  font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+  font-weight: 900;
+  color: var(--admin-accent);
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(251, 191, 36, 0.3);
+}
+
+.tv-waitlist-label {
+  font-size: clamp(0.55rem, 0.85vw, 0.65rem);
+  font-weight: 600;
+  color: rgba(251, 191, 36, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tv-empty-section {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+}
+
+.tv-empty-text {
+  font-size: clamp(0.85rem, 1.3vw, 1rem);
+}
+
+.tv-section-header-simple {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0.6rem;
+  flex-shrink: 0;
+}
+
+.tv-section-title-simple {
+  font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  text-align: center;
+}
+
+.tv-section-title {
+  font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.tv-seated-section .tv-section-title {
+  color: var(--admin-primary);
+}
+
+.tv-waitlist-section .tv-section-title {
+  color: var(--admin-accent);
+}
+
+.tv-section-count {
+  font-size: clamp(0.85rem, 1.4vw, 1.05rem);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tv-player-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Allow all players to be shown - removed max-height constraint */
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+/* Custom scrollbar for player names */
+.tv-player-names::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tv-player-names::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.tv-player-names::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+}
+
+.tv-player-names::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tv-player-name {
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: inherit;
+  width: 100%;
+  max-width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tv-player-name:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateX(2px);
+}
+
+.tv-waiting-player {
+  color: #ffffff;
+}
+
+.tv-waitlist-position {
+  color: var(--admin-accent);
+  font-weight: 700;
+  margin-right: 0.3rem;
+  min-width: 1.5rem;
+  display: inline-block;
+}
+
+/* Seated count indicator */
+.tv-seated-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.6rem;
+  background: rgba(30, 64, 175, 0.15);
+  border: 1px solid rgba(30, 64, 175, 0.3);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.tv-seated-count-number {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fbbf24;
+  text-shadow: 0 1px 3px rgba(251, 191, 36, 0.5);
+}
+
+.tv-seated-count-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.tv-tc-indicator {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.7em;
+  font-weight: 700;
+  background: rgba(139, 92, 246, 0.3);
+  color: #a78bfa;
+  border-radius: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.05em;
+}
+
+.tv-no-players {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Responsive player names for different screen sizes */
+@media (max-width: 600px) {
+  .tv-player-names {
+    font-size: clamp(0.6rem, 1.2vw, 0.8rem);
+    gap: 0.1rem;
+  }
+  .tv-section-title,
+  .tv-section-count {
+    font-size: 0.7rem;
+  }
+  .tv-player-section {
+    padding: 0.4rem 0.6rem;
+  }
+  .tv-player-name {
+    padding: 0.08rem 0.25rem;
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  .tv-player-names {
+    font-size: clamp(0.75rem, 1.3vw, 0.95rem);
+    gap: 0.2rem;
+  }
+}
+
+@media (min-width: 1441px) {
+  .tv-player-names {
+    font-size: clamp(0.8rem, 1.5vw, 1.05rem);
+    line-height: 1.35;
+    gap: 0.25rem;
+  }
+  .tv-section-title,
+  .tv-section-count {
+    font-size: 0.9rem;
+  }
+  .tv-player-name {
+    padding: 0.18rem 0.45rem;
+  }
+}
+
+@media (min-width: 1921px) {
+  .tv-player-names {
+    font-size: clamp(0.85rem, 1.6vw, 1.1rem);
+    line-height: 1.35;
+    gap: 0.25rem;
+  }
+  .tv-section-title,
+  .tv-section-count {
+    font-size: 0.95rem;
+  }
+  .tv-player-section {
+    padding: 0.5rem 0.75rem;
+  }
+  .tv-player-name {
+    padding: 0.2rem 0.5rem;
+  }
+}
+
+@media (min-width: 2561px) {
+  .tv-player-names {
+    font-size: clamp(0.9rem, 1.7vw, 1.2rem);
+    line-height: 1.4;
+    gap: 0.3rem;
+  }
+  .tv-section-title,
+  .tv-section-count {
+    font-size: 1rem;
+  }
+  .tv-player-section {
+    padding: 0.6rem 0.9rem;
+    border-radius: 10px;
+  }
+  .tv-player-name {
+    padding: 0.25rem 0.6rem;
+  }
+}
+
+/* Game Stats - Compact for casting (legacy, keeping for reference) */
+.tv-game-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.tv-seats-available-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.3rem;
+  min-height: 1.2rem;
+  flex-shrink: 0;
+}
+
+.tv-stat-item {
+  text-align: center;
+  padding: 0.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tv-stat-number {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-weight: 900;
+  color: white;
+  margin-bottom: 0.15rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  transition: all 0.3s ease;
+  letter-spacing: 0.02em;
+}
+
+.tv-stat-seated {
+  font-size: clamp(1.5rem, 3vw, 2.25rem) !important;
+  font-weight: 900 !important;
+  color: var(--admin-primary) !important;
+  text-shadow: 0 0 12px rgba(96, 165, 250, 0.5), 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.tv-stat-waitlist {
+  font-size: clamp(1.5rem, 3vw, 2.25rem) !important;
+  font-weight: 900 !important;
+  color: var(--admin-accent) !important;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.5), 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.tv-stat-label {
+  font-size: clamp(0.55rem, 1.1vw, 0.75rem);
+  color: var(--admin-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tv-stat-subtext {
+  font-size: clamp(0.5rem, 1vw, 0.65rem);
+  color: #64748b;
+  font-weight: 400;
+  margin-top: 0.1rem;
+}
+
+.tv-stat-item.capacity-stat {
+  border-color: rgba(30, 64, 175, 0.3);
+}
+
+.tv-stat-item.capacity-stat .tv-stat-number.capacity-percent {
+  color: #3b82f6;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+/* Capacity Progress Bar - Compact */
+.tv-capacity-progress-container {
+  margin-bottom: 0.4rem;
+  flex-shrink: 0;
+}
+
+.tv-capacity-progress-bar {
+  width: 100%;
+  height: clamp(0.25rem, 0.5vw, 0.4rem);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.15rem;
+  position: relative;
+}
+
+.tv-capacity-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.tv-capacity-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer-progress 2s infinite;
+}
+
+@keyframes shimmer-progress {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.tv-capacity-progress-fill.open {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  box-shadow: 0 0 20px rgba(30, 64, 175, 0.6);
+}
+
+.tv-capacity-progress-fill.busy {
+  background: linear-gradient(90deg, #fbbf24, #fcd34d);
+  box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+}
+
+.tv-capacity-progress-fill.full {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+}
+
+.tv-capacity-progress-text {
+  font-size: clamp(0.55rem, 1.1vw, 0.75rem);
+  color: var(--admin-muted);
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* Game Indicators - Compact */
+.tv-game-indicators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  justify-content: center;
+}
+
+.tv-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.7rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+  font-size: clamp(0.75rem, 1.2vw, 0.9rem);
+}
+
+.tv-indicator-icon {
+  font-size: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.tv-indicator-icon.bomb-icon {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  line-height: 1;
+}
+
+.tv-indicator.bomb-pots {
+  font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+  font-weight: 900;
+  padding: clamp(0.35rem, 1vw, 0.6rem) clamp(0.6rem, 1.5vw, 1rem);
+  gap: clamp(0.75rem, 1.5vw, 1rem);
+}
+
+.tv-indicator.bomb-pots {
+  background: rgba(251, 191, 36, 0.25);
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #fbbf24;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.tv-bomb-pots-prominent {
+  background: rgba(251, 191, 36, 0.35) !important;
+  border: 1px solid rgba(251, 191, 36, 0.8) !important;
+  padding: clamp(0.35rem, 1vw, 0.6rem) clamp(0.6rem, 1.5vw, 1rem) !important;
+  box-shadow: 0 0 12px rgba(251, 191, 36, 0.5) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: clamp(0.35rem, 0.75vw, 0.5rem) !important;
+}
+
+.tv-bomb-count {
+  font-size: clamp(1rem, 2vw, 1.5rem) !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.05em !important;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+}
+
+.tv-bomb-label {
+  font-size: clamp(0.6rem, 1.2vw, 0.85rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+}
+
+.tv-indicator.seats-available {
+  background: rgba(30, 64, 175, 0.25);
+  border-color: rgba(30, 64, 175, 0.5);
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.tv-indicator.cross-waiting {
+  background: rgba(30, 64, 175, 0.25);
+  border-color: rgba(30, 64, 175, 0.5);
+  color: #3b82f6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.tv-indicator.buy-in {
+  background: rgba(156, 163, 175, 0.25);
+  border-color: rgba(156, 163, 175, 0.5);
+  color: #9ca3af;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Game Footer - Compact */
+/* Old footer styles - now using tv-game-footer-compact */
+
+.tv-game-card.open .tv-game-status {
+  background: rgba(30, 64, 175, 0.25);
+  border-color: #1e40af;
+  color: #1e40af;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Old status card styles - now using .tv-compact-status */
+
+/* Empty State */
+.tv-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.tv-empty-content {
+  text-align: center;
+  color: #d1d5db;
+}
+
+.tv-empty-content h2 {
+  font-size: 3rem;
+  font-weight: 300;
+  margin: 0 0 1rem 0;
+  color: #f5f5dc;
+  text-shadow: 
+    0 2px 8px rgba(251, 191, 36, 0.3),
+    0 0 15px rgba(30, 58, 138, 0.2);
+}
+
+.tv-empty-content p {
+  font-size: 1.5rem;
+  margin: 0;
+  color: #d1d5db;
+  opacity: 0.9;
+}
+
+/* Responsive Design - Additional styles */
+@media (max-width: 768px) {
+  .tv-header {
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+
+  .tv-logo-section {
+    width: clamp(60px, 15vw, 100px);
+  }
+
+  .tv-datetime {
+    padding: 0.3rem 0.6rem;
+    gap: 0.4rem;
+  }
+
+  .tv-date {
+    font-size: clamp(0.6rem, 1.8vw, 0.8rem);
+  }
+
+  .tv-time {
+    font-size: clamp(0.7rem, 2vw, 0.9rem);
+  }
+
+  .tv-game-card {
+    padding: 0.6rem;
+    border-radius: 12px;
+  }
+
+  .tv-game-header {
+    margin-bottom: 0.4rem;
+    flex-direction: row;
+    gap: 0.4rem;
+  }
+
+  .tv-game-title h2 {
+    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  }
+
+  .tv-table-number {
+    font-size: clamp(1rem, 3vw, 1.35rem) !important;
+  }
+
+  .tv-game-stakes {
+    font-size: clamp(0.6rem, 2vw, 0.8rem);
+  }
+
+  .tv-game-buyin {
+    font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+    padding: 0.25rem 0.5rem;
+  }
+
+  .tv-capacity-progress-container {
+    margin-bottom: 0.5rem;
+  }
+
+  .tv-game-stats {
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tv-stat-item {
+    padding: 0.3rem;
+  }
+
+  .tv-stat-number {
+    font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+  }
+
+  .tv-stat-seated,
+  .tv-stat-waitlist {
+    font-size: clamp(1.25rem, 4vw, 1.75rem) !important;
+  }
+
+  .tv-stat-label {
+    font-size: clamp(0.5rem, 1.5vw, 0.65rem);
+  }
+
+  .tv-game-indicators {
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .tv-bomb-pots-prominent {
+    padding: 0.3rem 0.5rem !important;
+  }
+
+  .tv-bomb-count {
+    font-size: clamp(0.9rem, 2.5vw, 1.25rem) !important;
+  }
+
+  .tv-bomb-label {
+    font-size: clamp(0.5rem, 1.5vw, 0.7rem) !important;
+  }
+
+  .tv-game-status {
+    font-size: clamp(0.6rem, 2vw, 0.8rem);
+    padding: 0.25rem 0.75rem;
+  }
+
+  .tv-empty-content h2 {
+    font-size: clamp(1.25rem, 4vw, 1.75rem);
+  }
+
+  .tv-empty-content p {
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .tv-header {
+    padding: 0.35rem 0.5rem;
+    gap: 0.25rem;
+  }
+
+  .tv-logo-section {
+    width: clamp(50px, 12vw, 70px);
+  }
+
+  .tv-datetime {
+    padding: 0.25rem 0.5rem;
+    gap: 0.3rem;
+  }
+
+  .tv-date {
+    font-size: clamp(0.5rem, 1.5vw, 0.65rem);
+  }
+
+  .tv-time {
+    font-size: clamp(0.6rem, 1.8vw, 0.75rem);
+  }
+
+  .tv-datetime-separator {
+    font-size: 0.6rem;
+  }
+
+  .tv-game-card {
+    padding: 0.5rem;
+    border-radius: 10px;
+  }
+
+  .tv-game-header {
+    margin-bottom: 0.3rem;
+    gap: 0.3rem;
+  }
+
+  .tv-game-title h2 {
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  }
+
+  .tv-table-number {
+    font-size: clamp(0.9rem, 2.75vw, 1.15rem) !important;
+  }
+
+  .tv-game-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

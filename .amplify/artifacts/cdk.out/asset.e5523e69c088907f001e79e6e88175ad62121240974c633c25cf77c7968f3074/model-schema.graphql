@@ -1,0 +1,206 @@
+type Player @model @auth(rules: [{allow: private, operations: [create, read, update, delete]}])
+{
+  name: String!
+  nick: String!
+  phone: String
+  email: String
+  checkIns: [CheckIn] @hasMany(references: ["playerId"])
+  receipts: [Receipt] @hasMany(references: ["playerId"])
+  seats: [TableSeat] @hasMany(references: ["playerId"])
+  waitlist: [TableWaitlist] @hasMany(references: ["playerId"])
+  ledgerEntries: [LedgerEntry] @hasMany(references: ["playerId"])
+}
+
+type ClubDay @model @auth(rules: [{allow: private, operations: [create, read, update, delete]},
+  {allow: public, provider: apiKey, operations: [read]}])
+{
+  startedAt: AWSDateTime!
+  endedAt: AWSDateTime
+  status: ClubDayStatus
+  tables: [PokerTable] @hasMany(references: ["clubDayId"])
+  checkIns: [CheckIn] @hasMany(references: ["clubDayId"])
+  receipts: [Receipt] @hasMany(references: ["clubDayId"])
+  seats: [TableSeat] @hasMany(references: ["clubDayId"])
+  waitlist: [TableWaitlist] @hasMany(references: ["clubDayId"])
+  ledgerEntries: [LedgerEntry] @hasMany(references: ["clubDayId"])
+  playerSyncs: [PlayerSync] @hasMany(references: ["clubDayId"])
+}
+
+type PokerTable @model @auth(rules: [{allow: private, operations: [create, read, update, delete]},
+  {allow: public, provider: apiKey, operations: [read]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  tableNumber: Int!
+  gameType: PokerTableGameType
+  stakesText: String!
+  seatsTotal: Int!
+  bombPotCount: Int!
+  buyInLimits: String
+  showOnTv: Boolean
+  status: PokerTableStatus
+  closedAt: AWSDateTime
+  seats: [TableSeat] @hasMany(references: ["tableId"])
+  waitlist: [TableWaitlist] @hasMany(references: ["tableId"])
+}
+
+type CheckIn @model @auth(rules: [{allow: private, operations: [create, read, update, delete]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  playerId: ID!
+  player: Player @belongsTo(references: ["playerId"])
+  checkinTime: AWSDateTime!
+  doorFeeAmount: Float!
+  paymentMethod: String!
+  receiptId: ID
+  receipt: Receipt @belongsTo(references: ["receiptId"])
+  refunds: [Refund] @hasMany(references: ["checkinId"])
+  ledgerEntries: [LedgerEntry] @hasMany(references: ["checkinId"])
+  overrideReason: String
+  refundedAt: AWSDateTime
+}
+
+type Refund @model @auth(rules: [{allow: private, operations: [create, read, update, delete]}])
+{
+  checkinId: ID!
+  checkin: CheckIn @belongsTo(references: ["checkinId"])
+  refundReceiptId: ID
+  refundReceipt: Receipt @belongsTo(references: ["refundReceiptId"])
+  refundedAt: AWSDateTime!
+  amount: Float!
+  reason: String!
+  adminUser: String
+  ledgerEntries: [LedgerEntry] @hasMany(references: ["refundId"])
+}
+
+type Receipt @model @auth(rules: [{allow: private, operations: [create, read, update, delete]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  receiptNumber: Int!
+  playerId: ID!
+  player: Player @belongsTo(references: ["playerId"])
+  amount: Float!
+  paymentMethod: String!
+  kind: ReceiptKind
+  createdBy: String
+  checkIns: [CheckIn] @hasMany(references: ["receiptId"])
+  refunds: [Refund] @hasMany(references: ["refundReceiptId"])
+  ledgerEntries: [LedgerEntry] @hasMany(references: ["receiptId"])
+}
+
+type TableSeat @model @auth(rules: [{allow: private, operations: [create, read, update, delete]},
+  {allow: public, provider: apiKey, operations: [read]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  tableId: ID!
+  table: PokerTable @belongsTo(references: ["tableId"])
+  playerId: ID!
+  player: Player @belongsTo(references: ["playerId"])
+  seatedAt: AWSDateTime!
+  leftAt: AWSDateTime
+}
+
+type TableWaitlist @model @auth(rules: [{allow: private, operations: [create, read, update, delete]},
+  {allow: public, provider: apiKey, operations: [read]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  tableId: ID!
+  table: PokerTable @belongsTo(references: ["tableId"])
+  playerId: ID!
+  player: Player @belongsTo(references: ["playerId"])
+  position: Int!
+  addedAt: AWSDateTime!
+  removedAt: AWSDateTime
+  calledIn: Boolean
+}
+
+type CashCount @model @auth(rules: [{allow: private, operations: [create, read, update, delete]}])
+{
+  scope: CashCountScope
+  clubDayId: ID
+  shiftStart: AWSDateTime
+  shiftEnd: AWSDateTime
+  countedAmount: Float!
+  countedAt: AWSDateTime!
+  adminUser: String!
+}
+
+type AuditLog @model @auth(rules: [{allow: private, operations: [create, read, update, delete]}])
+{
+  adminUser: String!
+  action: String!
+  entityType: String
+  entityId: String
+  detailsJson: AWSJSON
+  reason: String
+}
+
+type LedgerEntry @model @auth(rules: [{allow: private, operations: [create, read]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  sequenceNumber: Int!
+  transactionType: LedgerEntryTransactionType
+  amount: Float!
+  balance: Float!
+  checkinId: ID
+  checkin: CheckIn @belongsTo(references: ["checkinId"])
+  refundId: ID
+  refund: Refund @belongsTo(references: ["refundId"])
+  receiptId: ID
+  receipt: Receipt @belongsTo(references: ["receiptId"])
+  playerId: ID!
+  player: Player @belongsTo(references: ["playerId"])
+  transactionTime: AWSDateTime!
+  adminUser: String
+  notes: String
+}
+
+type PlayerSync @model @auth(rules: [{allow: private, operations: [create, read, update]},
+  {allow: public, provider: apiKey, operations: [read]}])
+{
+  clubDayId: ID!
+  clubDay: ClubDay @belongsTo(references: ["clubDayId"])
+  playersJson: AWSJSON!
+  syncedAt: AWSDateTime!
+}
+
+enum ClubDayStatus {
+  active
+  closed
+}
+
+enum PokerTableGameType {
+  NLH
+  BigO
+  Limit
+  PLO
+  Mixed
+  Custom
+}
+
+enum PokerTableStatus {
+  OPEN
+  FULL
+  STARTING
+  CLOSED
+}
+
+enum ReceiptKind {
+  checkin
+  refund
+}
+
+enum CashCountScope {
+  clubday
+  shift
+}
+
+enum LedgerEntryTransactionType {
+  checkin
+  refund
+}

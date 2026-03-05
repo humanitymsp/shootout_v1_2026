@@ -1,0 +1,382 @@
+/* Mobile TV Modal Styles - Dark Mode, Optimized for mobile devices */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #0a0a0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 0;
+}
+
+.modal-content.mobile-tv-modal {
+  background: #0f0f18;
+  border-radius: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 100%;
+  max-height: 100vh;
+  overflow: hidden;
+  box-shadow: none;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.mobile-tv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  padding-top: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #0f0f18;
+  position: relative;
+  min-height: 80px;
+}
+
+.mobile-tv-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.mobile-tv-close:hover {
+  color: #ffffff;
+  background: rgba(239, 68, 68, 0.3);
+}
+
+.mobile-tv-logo {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translate(-50%, -50%);
+  width: auto;
+  max-width: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.mobile-tv-logo .logo-container {
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  max-width: 200px;
+}
+
+.mobile-tv-logo .logo-svg {
+  width: 100% !important;
+  max-width: 200px !important;
+  margin: 0 auto !important;
+  display: block !important;
+  height: auto !important;
+}
+
+.mobile-tv-time {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+}
+
+.mobile-tv-seconds {
+  color: #3b82f6;
+  font-size: 0.9rem;
+}
+
+.mobile-tv-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  padding-top: 1.5rem;
+  background: #0a0a0f;
+}
+
+.mobile-tv-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #ffffff;
+}
+
+.mobile-tv-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.mobile-tv-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.mobile-tv-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.mobile-tv-card.open {
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.mobile-tv-card.busy {
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+.mobile-tv-card.full {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.mobile-tv-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-tv-table-info h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.mobile-tv-game-type {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.mobile-tv-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.open {
+  background: var(--admin-primary);
+}
+
+.status-dot.busy {
+  background: #f59e0b;
+}
+
+.status-dot.full {
+  background: #ef4444;
+}
+
+.mobile-tv-buyin {
+  font-size: 0.9rem;
+  color: #fbbf24;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+/* Player Lists - Show names instead of numbers */
+.mobile-tv-player-lists {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-tv-player-section {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 0.75rem;
+  text-align: center;
+}
+
+.mobile-tv-seated-section {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.mobile-tv-waitlist-section {
+  border-color: rgba(251, 191, 36, 0.3);
+  background: rgba(251, 191, 36, 0.05);
+}
+
+.mobile-tv-section-header {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.mobile-tv-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.mobile-tv-seated-section .mobile-tv-section-title {
+  color: #3b82f6;
+}
+
+.mobile-tv-waitlist-section .mobile-tv-section-title {
+  color: #fbbf24;
+}
+
+.mobile-tv-section-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.mobile-tv-player-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+}
+
+.mobile-tv-player-name {
+  font-weight: 700;
+  padding: 0.1rem 0;
+}
+
+.mobile-tv-waiting-player {
+  color: #f97316;
+}
+
+.mobile-tv-no-players {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.mobile-tv-waiting-elsewhere {
+  font-size: 0.8rem;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.mobile-tv-bomb-pots {
+  font-size: 0.85rem;
+  color: #fbbf24;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(251, 191, 36, 0.1);
+  border-radius: 6px;
+}
+
+.mobile-tv-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+}
+
+.mobile-tv-empty h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  color: #ffffff;
+}
+
+.mobile-tv-empty p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 360px) {
+  .mobile-tv-card {
+    padding: 0.75rem;
+  }
+
+  .mobile-tv-stats {
+    gap: 0.5rem;
+  }
+
+  .mobile-tv-stat {
+    padding: 0.4rem;
+  }
+
+  .mobile-tv-stat-number {
+    font-size: 1.1rem;
+  }
+}
+
+/* Ensure touch-friendly interactions */
+@media (pointer: coarse) {
+  .mobile-tv-card {
+    min-height: 120px;
+  }
+
+  .mobile-tv-close {
+    width: 44px;
+    height: 44px;
+  }
+}

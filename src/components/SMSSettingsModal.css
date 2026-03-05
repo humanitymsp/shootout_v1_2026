@@ -1,0 +1,632 @@
+/* ── Modal Shell ── */
+.sms-settings-modal {
+  width: min(600px, calc(100vw - 2rem));
+  max-height: min(85vh, 720px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.sms-settings-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--admin-border);
+  flex-shrink: 0;
+  background: var(--admin-surface);
+}
+
+.sms-settings-modal .modal-header h2 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.sms-settings-modal .close-button {
+  background: none;
+  border: none;
+  color: var(--admin-text-secondary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.sms-settings-modal .close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--admin-text);
+}
+
+/* ── Scrollable Body (settings + campaign section) ── */
+.sms-settings-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+}
+
+/* ── Footer ── */
+.sms-settings-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid var(--admin-border);
+  background: var(--admin-surface);
+  flex-shrink: 0;
+}
+
+/* ── Form Fields ── */
+.sms-settings-modal .form-group {
+  margin-bottom: 1.1rem;
+}
+
+.sms-settings-modal .form-group label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--admin-text);
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+.sms-settings-modal .form-group input[type="text"],
+.sms-settings-modal .form-group input[type="password"],
+.sms-settings-modal .form-group input[type="tel"],
+.sms-settings-modal .form-group input[type="date"],
+.sms-settings-modal .form-group input[type="time"],
+.sms-settings-modal .form-group textarea {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  background: var(--admin-input-bg);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+
+.sms-settings-modal .form-group input:focus,
+.sms-settings-modal .form-group textarea:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.sms-settings-modal .form-group textarea {
+  resize: vertical;
+  min-height: 68px;
+}
+
+.sms-settings-modal .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--admin-text);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.sms-settings-modal .checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--admin-primary);
+  flex-shrink: 0;
+}
+
+.sms-settings-modal .form-help {
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--admin-text-secondary);
+  line-height: 1.4;
+}
+
+.sms-settings-modal .form-help a {
+  color: var(--admin-primary);
+  text-decoration: none;
+}
+
+.sms-settings-modal .form-help a:hover {
+  text-decoration: underline;
+}
+
+/* ── Shared Button Base ── */
+.sms-settings-modal button {
+  font-family: inherit;
+}
+
+.sms-settings-modal .cancel-button,
+.sms-settings-modal .save-button {
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid;
+  line-height: 1.4;
+}
+
+.sms-settings-modal .cancel-button {
+  background: var(--admin-surface-alt, #1e293b);
+  color: var(--admin-text);
+  border-color: var(--admin-border);
+}
+
+.sms-settings-modal .cancel-button:hover {
+  background: var(--admin-surface-hover, #334155);
+  border-color: var(--admin-text-secondary);
+}
+
+.sms-settings-modal .save-button {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.sms-settings-modal .save-button:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+/* ── Test SMS Row ── */
+.sms-settings-modal .test-sms-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sms-settings-modal .test-phone-input {
+  flex: 1;
+}
+
+.sms-settings-modal .test-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.45rem 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.sms-settings-modal .test-button:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.sms-settings-modal .test-button:disabled {
+  background: #4b5563;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ── Marketing Send Button ── */
+.sms-settings-modal .marketing-button {
+  display: block;
+  width: 100%;
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.85rem;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.sms-settings-modal .marketing-button:hover:not(:disabled) {
+  background: #059669;
+}
+
+.sms-settings-modal .marketing-button:disabled {
+  background: #4b5563;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ══════════════════════════════════════════
+   Campaign Scheduling Section
+   ══════════════════════════════════════════ */
+.sms-settings-modal .campaign-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--admin-border);
+}
+
+.sms-settings-modal .campaign-section h3 {
+  margin: 0 0 0.6rem 0;
+  color: var(--admin-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* Action row: New Campaign / Use Template / Save Template */
+.sms-settings-modal .campaign-actions-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.sms-settings-modal .create-campaign-button,
+.sms-settings-modal .template-button,
+.sms-settings-modal .save-template-button {
+  padding: 0.35rem 0.75rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.8rem;
+  transition: all 0.15s;
+  white-space: nowrap;
+  border: none;
+  color: white;
+}
+
+.sms-settings-modal .create-campaign-button {
+  background: #10b981;
+}
+.sms-settings-modal .create-campaign-button:hover {
+  background: #059669;
+}
+
+.sms-settings-modal .template-button {
+  background: #8b5cf6;
+}
+.sms-settings-modal .template-button:hover {
+  background: #7c3aed;
+}
+
+.sms-settings-modal .save-template-button {
+  background: #f59e0b;
+}
+.sms-settings-modal .save-template-button:hover {
+  background: #d97706;
+}
+
+/* ── Campaign / Template Forms ── */
+.sms-settings-modal .campaign-form,
+.sms-settings-modal .template-form {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sms-settings-modal .template-form {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.sms-settings-modal .campaign-form h4,
+.sms-settings-modal .template-form h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--admin-text);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.sms-settings-modal .campaign-form .form-group,
+.sms-settings-modal .template-form .form-group {
+  margin-bottom: 0.6rem;
+}
+
+.sms-settings-modal .campaign-form .form-group label,
+.sms-settings-modal .template-form .form-group label {
+  font-size: 0.8rem;
+  margin-bottom: 0.25rem;
+}
+
+.sms-settings-modal .campaign-form .form-group input,
+.sms-settings-modal .campaign-form .form-group textarea,
+.sms-settings-modal .template-form .form-group input,
+.sms-settings-modal .template-form .form-group textarea {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.82rem;
+  border-radius: 5px;
+}
+
+.sms-settings-modal .campaign-form .form-group textarea,
+.sms-settings-modal .template-form .form-group textarea {
+  min-height: 56px;
+}
+
+.sms-settings-modal .campaign-form .form-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sms-settings-modal .campaign-form .form-row .form-group {
+  flex: 1;
+}
+
+.sms-settings-modal .campaign-form .form-actions,
+.sms-settings-modal .template-form .form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.sms-settings-modal .campaign-form .form-actions .cancel-button,
+.sms-settings-modal .campaign-form .form-actions .save-button,
+.sms-settings-modal .template-form .form-actions .cancel-button,
+.sms-settings-modal .template-form .form-actions .save-button {
+  padding: 0.3rem 0.75rem;
+  font-size: 0.82rem;
+}
+
+/* ── Template Selector ── */
+.sms-settings-modal .template-selector {
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid #8b5cf6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sms-settings-modal .template-selector h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--admin-text);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.sms-settings-modal .no-templates {
+  color: var(--admin-text-secondary);
+  text-align: center;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.sms-settings-modal .template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sms-settings-modal .template-item {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  transition: border-color 0.15s;
+}
+
+.sms-settings-modal .template-item:hover {
+  border-color: #8b5cf6;
+}
+
+.sms-settings-modal .template-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sms-settings-modal .template-info h5 {
+  margin: 0 0 0.15rem 0;
+  color: var(--admin-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.sms-settings-modal .template-info p {
+  margin: 0;
+  color: var(--admin-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.sms-settings-modal .last-used {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-size: 0.72rem;
+  color: var(--admin-text-secondary);
+  background: rgba(139, 92, 246, 0.1);
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.sms-settings-modal .template-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.sms-settings-modal .use-template-button,
+.sms-settings-modal .delete-template-button {
+  padding: 0.3rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+  border: none;
+  color: white;
+}
+
+.sms-settings-modal .use-template-button {
+  background: #10b981;
+}
+.sms-settings-modal .use-template-button:hover {
+  background: #059669;
+}
+
+.sms-settings-modal .delete-template-button {
+  background: #ef4444;
+}
+.sms-settings-modal .delete-template-button:hover {
+  background: #dc2626;
+}
+
+/* ── Campaign List ── */
+.sms-settings-modal .campaign-list {
+  margin-top: 0.5rem;
+}
+
+.sms-settings-modal .no-campaigns {
+  color: var(--admin-text-secondary);
+  text-align: center;
+  padding: 1rem;
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  font-size: 0.82rem;
+}
+
+.sms-settings-modal .campaign-item {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  transition: border-color 0.15s;
+}
+
+.sms-settings-modal .campaign-item:hover {
+  border-color: var(--admin-primary);
+}
+
+.sms-settings-modal .campaign-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sms-settings-modal .campaign-info h4 {
+  margin: 0 0 0.15rem 0;
+  color: var(--admin-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.sms-settings-modal .campaign-info p {
+  margin: 0 0 0.25rem 0;
+  color: var(--admin-text-secondary);
+  line-height: 1.3;
+  font-size: 0.78rem;
+  word-break: break-word;
+}
+
+.sms-settings-modal .campaign-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--admin-text-secondary);
+  align-items: center;
+}
+
+.sms-settings-modal .campaign-details span {
+  white-space: nowrap;
+}
+
+.sms-settings-modal .campaign-details .status {
+  font-weight: 500;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  display: inline-block;
+  font-size: 0.72rem;
+}
+
+.sms-settings-modal .campaign-details .status.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.sms-settings-modal .campaign-details .status.sent {
+  background: rgba(107, 114, 128, 0.15);
+  color: #9ca3af;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.sms-settings-modal .campaign-details .player-count {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+.sms-settings-modal .campaign-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.sms-settings-modal .send-now-button,
+.sms-settings-modal .delete-button {
+  padding: 0.3rem 0.65rem;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  white-space: nowrap;
+  border: none;
+  color: white;
+  text-align: center;
+}
+
+.sms-settings-modal .send-now-button {
+  background: #3b82f6;
+}
+.sms-settings-modal .send-now-button:hover {
+  background: #2563eb;
+}
+
+.sms-settings-modal .delete-button {
+  background: #ef4444;
+}
+.sms-settings-modal .delete-button:hover {
+  background: #dc2626;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .sms-settings-modal {
+    width: calc(100vw - 1rem);
+    max-height: 92vh;
+  }
+
+  .sms-settings-modal .test-sms-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sms-settings-modal .test-button {
+    width: 100%;
+  }
+
+  .sms-settings-modal .campaign-actions-row {
+    flex-direction: column;
+  }
+
+  .sms-settings-modal .campaign-actions-row button {
+    width: 100%;
+  }
+}
