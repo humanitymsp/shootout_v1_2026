@@ -34,6 +34,3 @@ assets.tar.gz
 dist.zip
 lambda-out.json
 lambda-output.json
-
-# Amplify outputs (contains backend config)
-amplify_outputs.json
