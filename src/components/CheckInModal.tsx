@@ -444,33 +444,22 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         log('Check-in created:', result);
       }
 
-      // Add player to waitlist of ALL tables matching the selected game type
-      log(`Adding player to ${gameTypeTables.length} table waitlists for game type: ${selectedGameType}`);
-      const waitlistResults: { tableId: string; tableNumber: number; success: boolean; error?: string }[] = [];
-      
-      for (const table of gameTypeTables) {
-        try {
-          await addPlayerToWaitlist(table.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
-          waitlistResults.push({ tableId: table.id, tableNumber: table.table_number, success: true });
-          log(`Added to waitlist at Table ${table.table_number}`);
-        } catch (err: any) {
-          logError(`Failed to add to waitlist at Table ${table.table_number}:`, err);
-          waitlistResults.push({ tableId: table.id, tableNumber: table.table_number, success: false, error: err.message });
-        }
-      }
-      
-      const successCount = waitlistResults.filter(r => r.success).length;
-      const failCount = waitlistResults.filter(r => !r.success).length;
-      
-      if (successCount === 0 && failCount > 0) {
-        setError('Failed to add player to any waitlists. They may already be on all of them.');
+      // Add player to the lobby waitlist for this game type.
+      // We add to ONE table (first active table) — the tablet/admin lobby view
+      // merges and deduplicates waitlists across all tables of the same game type,
+      // so the player appears in the correct game-type lobby regardless of which
+      // specific table holds the waitlist entry.
+      const lobbyTable = gameTypeTables[0];
+      const [gameLabel] = selectedGameType.split('||');
+      log(`Adding player to ${gameLabel} lobby waitlist via Table ${lobbyTable.table_number}`);
+      try {
+        await addPlayerToWaitlist(lobbyTable.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
+        log(`Added to ${gameLabel} lobby waitlist (Table ${lobbyTable.table_number})`);
+      } catch (err: any) {
+        logError(`Failed to add to ${gameLabel} lobby waitlist:`, err);
+        setError(err.message || 'Failed to add player to waitlist. They may already be on it.');
         setLoading(false);
         return;
-      }
-      
-      const [gameLabel] = selectedGameType.split('||');
-      if (failCount > 0) {
-        showToast(`Added to ${successCount} of ${gameTypeTables.length} ${gameLabel} waitlists`, 'warning');
       }
 
       setReceipt(result?.receipt || existingCheckIn?.receipt);
@@ -503,7 +492,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         try {
           const [gameType, stakes] = selectedGameType.split('||');
           let smsMsg = `Hi ${player.nick}! You're checked in for ${gameType} ${stakes}`;
-          smsMsg += ` and on the waitlist for ${successCount} table${successCount !== 1 ? 's' : ''}`;
+          smsMsg += ` and on the waitlist`;
           smsMsg += `. Good luck! - Final Table Poker Club`;
 
           showToast(`Sending SMS to ${smsPhone}…`, 'info');
@@ -734,7 +723,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
             {/* Game Type Lobby Selection */}
             <div className="form-section" ref={gameTypeSectionRef}>
               <label className="form-label required">Game Type</label>
-              <p className="form-help">Player will be added to the waitlist for all tables of this game type.</p>
+              <p className="form-help">Player will be added to the waitlist lobby for this game type.</p>
               <div className="game-type-buttons">
                 {(() => {
                   const activeTables = (enrichedTables.length > 0 ? enrichedTables : tableList).filter((t: any) => t.status !== 'CLOSED');
