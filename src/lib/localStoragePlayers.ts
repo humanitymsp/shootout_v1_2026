@@ -222,16 +222,28 @@ export async function loadPlayersFromBackend(clubDayId: string, authMode?: strin
     
     if (syncEntries && syncEntries.length > 0) {
       const latestSync = syncEntries[0]; // Should only be one per club day
-      const syncData = latestSync.playersJson as any;
+      let rawData = latestSync.playersJson as any;
       
-      if (syncData && syncData.players && Array.isArray(syncData.players)) {
+      // playersJson may be a string (needs parsing) or already parsed by AppSync
+      if (typeof rawData === 'string') {
+        try { rawData = JSON.parse(rawData); } catch { rawData = null; }
+      }
+
+      // Handle both formats: plain array [...] or {players: [...]}
+      let syncedPlayers: Player[] | null = null;
+      if (Array.isArray(rawData)) {
+        syncedPlayers = rawData;
+      } else if (rawData && rawData.players && Array.isArray(rawData.players)) {
+        syncedPlayers = rawData.players;
+      }
+
+      if (syncedPlayers && syncedPlayers.length > 0) {
         // Update localStorage cache
         const syncKey = `players-sync-${clubDayId}`;
-        localStorage.setItem(syncKey, JSON.stringify(syncData));
+        localStorage.setItem(syncKey, JSON.stringify({ players: syncedPlayers }));
         
         // Merge with local players (local is source of truth - backend sync may be stale)
         const localPlayers = getTodayPlayers();
-        const syncedPlayers = syncData.players as Player[];
         
         // Create a map: local players first (source of truth), synced fills in any gaps
         const merged = new Map<string, Player>();
