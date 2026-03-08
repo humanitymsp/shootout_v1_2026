@@ -257,13 +257,43 @@ export default function PublicPage() {
       }
       setClubDay(activeDay);
 
-      // Pre-load player data from PlayerSync so enrichArrayWithPlayerData
-      // can resolve player names (Player model doesn't allow apiKey reads,
-      // so the nested player { ... } fields are skipped in apiKey queries)
+      // Build a player lookup map from PlayerSync (apiKey-accessible).
+      // Player model doesn't allow apiKey reads, so GraphQL nested player { ... }
+      // fields are skipped. We fetch player data separately from PlayerSync.
+      const playerMap = new Map<string, { name: string; nick: string }>();
       try {
-        const { loadPlayersFromBackend } = await import('../lib/localStoragePlayers');
-        await loadPlayersFromBackend(activeDay.id, AUTH);
-      } catch { /* non-critical — names may show as Unknown */ }
+        const { data: syncEntries } = await client.models.PlayerSync.list({
+          filter: { clubDayId: { eq: activeDay.id } },
+          authMode: AUTH,
+        });
+        if (syncEntries && syncEntries.length > 0) {
+          let raw = syncEntries[0].playersJson as any;
+          if (typeof raw === 'string') {
+            try { raw = JSON.parse(raw); } catch { raw = null; }
+          }
+          const arr: any[] = Array.isArray(raw) ? raw : (raw?.players || []);
+          for (const p of arr) {
+            if (p && p.id) {
+              playerMap.set(p.id, { name: p.name || '', nick: p.nick || '' });
+            }
+          }
+        }
+        log(`Public: Loaded ${playerMap.size} players from PlayerSync`);
+      } catch {
+        log('Public: PlayerSync fetch failed — player names may show as Unknown');
+      }
+
+      // Helper: patch player data onto seat/waitlist entries using the playerMap
+      const patchPlayerData = <T extends { player_id: string; player?: any }>(items: T[]): T[] => {
+        return items.map(item => {
+          if (item.player?.nick || item.player?.name) return item;
+          const p = playerMap.get(item.player_id);
+          if (p) {
+            return { ...item, player: { id: item.player_id, name: p.name, nick: p.nick } };
+          }
+          return item;
+        });
+      };
 
       // ⚠️ CRITICAL: Get all tables and deduplicate by table_number
       // Multiple tables with same table_number can exist (different statuses)
@@ -302,6 +332,10 @@ export default function PublicPage() {
         const seatsFilled = counts.seatedCount;
         const waitlistCount = counts.waitlistCount;
 
+        // Patch player names from PlayerSync data
+        const seatedPlayers = patchPlayerData(counts.seatedPlayers);
+        const waitlistPlayers = patchPlayerData(counts.waitlistPlayers);
+
         // Count players seated here who are waiting at another table
         // This provides visibility into cross-table waitlist situations
         let playersWaitingElsewhere = 0;
@@ -323,8 +357,8 @@ export default function PublicPage() {
           seatsFilled,
           waitlistCount,
           playersWaitingElsewhere,
-          seatedPlayers: counts.seatedPlayers,
-          waitlistPlayers: counts.waitlistPlayers,
+          seatedPlayers,
+          waitlistPlayers,
         });
       }
 
