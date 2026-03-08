@@ -32,7 +32,7 @@ export default function TabletPage() {
   const [undoTimeout, setUndoTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null);
   const [swipeStart, setSwipeStart] = useState<{ x: number; y: number; playerId: string; timestamp: number } | null>(null);
-  const [seatPickerModal, setSeatPickerModal] = useState<{ wl: TableWaitlist; availableTables: PokerTable[] } | null>(null);
+  const [seatPickerModal, setSeatPickerModal] = useState<{ wl: TableWaitlist; availableTables: PokerTable[]; sourceGroupKey: string } | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTableIdsRef = useRef<string>('');
@@ -1096,7 +1096,7 @@ export default function TabletPage() {
                                         className="tablet-quick-action-btn tablet-quick-seat"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          setSeatPickerModal({ wl, availableTables: tablesWithRoom });
+                                          setSeatPickerModal({ wl, availableTables: tablesWithRoom, sourceGroupKey: groupKey });
                                         }}
                                         disabled={actionInProgress !== null}
                                         title="Choose table to seat player"
@@ -1294,9 +1294,25 @@ export default function TabletPage() {
         ))}
       </div>
 
-      {/* Seat Picker Modal — choose which table to seat a waitlisted player */}
+      {/* Seat Picker Modal — choose which table to seat, or waitlist on another game type */}
       {seatPickerModal && (() => {
         const playerName = seatPickerModal.wl.player?.nick || seatPickerModal.wl.player?.name || 'Unknown';
+        const playerId = seatPickerModal.wl.player_id;
+
+        // Build other game type groups (excluding the source game type)
+        const otherGameTypes: { key: string; gameType: string; stakes: string; tables: PokerTable[] }[] = [];
+        const otherGroups = new Map<string, PokerTable[]>();
+        activeTables.forEach(t => {
+          const k = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
+          if (k === seatPickerModal.sourceGroupKey) return;
+          if (!otherGroups.has(k)) otherGroups.set(k, []);
+          otherGroups.get(k)!.push(t);
+        });
+        otherGroups.forEach((tbls, k) => {
+          const [gt, st] = k.split('||');
+          otherGameTypes.push({ key: k, gameType: gt, stakes: st, tables: tbls });
+        });
+
         return (
           <div className="tablet-seat-picker-overlay" onClick={() => setSeatPickerModal(null)}>
             <div className="tablet-seat-picker-modal" onClick={(e) => e.stopPropagation()}>
@@ -1328,6 +1344,54 @@ export default function TabletPage() {
                   );
                 })}
               </div>
+
+              {otherGameTypes.length > 0 && (
+                <>
+                  <p className="tablet-seat-picker-subtitle" style={{ marginTop: '1rem' }}>
+                    Also waitlist for another game type:
+                  </p>
+                  <div className="tablet-seat-picker-list">
+                    {otherGameTypes.map(({ key, gameType, stakes, tables: gtTables }) => {
+                      const totalWaiting = gtTables.reduce((sum, t) => {
+                        const d = tableData.get(t.id);
+                        return sum + (d?.waitlist.length || 0);
+                      }, 0);
+                      return (
+                        <button
+                          key={key}
+                          className="tablet-seat-picker-btn tablet-seat-picker-btn-waitlist"
+                          disabled={actionInProgress !== null}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            setActionInProgress(playerId);
+                            try {
+                              let added = 0;
+                              for (const t of gtTables) {
+                                try {
+                                  await addPlayerToWaitlist(t.id, playerId, clubDay!.id, adminUser);
+                                  added++;
+                                } catch { /* skip if already on waitlist */ }
+                              }
+                              showToast(`${playerName} added to ${gameType} ${stakes} waitlist (${added} table${added !== 1 ? 's' : ''})`, 'success');
+                              loadAllTableData();
+                            } catch (err: any) {
+                              showToast(err.message || 'Failed to add to waitlist', 'error');
+                            } finally {
+                              setActionInProgress(null);
+                            }
+                            setSeatPickerModal(null);
+                          }}
+                        >
+                          <span className="tablet-seat-picker-table">{gameType} {stakes}</span>
+                          <span className="tablet-seat-picker-info">
+                            {gtTables.length} table{gtTables.length !== 1 ? 's' : ''} · {totalWaiting} waiting
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         );

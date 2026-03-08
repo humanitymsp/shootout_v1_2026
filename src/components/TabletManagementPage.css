@@ -1349,6 +1349,16 @@
   color: var(--admin-secondary);
 }
 
+.tablet-seat-picker-btn-waitlist {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.tablet-seat-picker-btn-waitlist:hover {
+  border-color: rgba(251, 191, 36, 0.7);
+  background: rgba(251, 191, 36, 0.15);
+}
+
 /* Placeholder Cards */
 .tablet-placeholder-card {
   background: var(--admin-surface-elevated);
