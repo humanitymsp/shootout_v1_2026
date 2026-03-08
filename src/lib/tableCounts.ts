@@ -35,15 +35,15 @@ export interface TableCounts {
  * 
  * See docs/PAGINATION_CRITICAL_FIX.md for full documentation.
  */
-export async function getTableCounts(tableId: string, clubDayId?: string): Promise<TableCounts> {
+export async function getTableCounts(tableId: string, clubDayId?: string, authMode?: string): Promise<TableCounts> {
   try {
     // CRITICAL: These API calls MUST use pagination and high limits (1000)
     // If pagination is broken, counts will be inaccurate
     // CRITICAL: Pass clubDayId to prevent showing players from old club days after reset
     // Get seats and waitlist using the same function all views should use
     const [seats, waitlist] = await Promise.all([
-      getSeatedPlayersForTable(tableId, clubDayId),
-      getWaitlistForTable(tableId, clubDayId),
+      getSeatedPlayersForTable(tableId, clubDayId, authMode),
+      getWaitlistForTable(tableId, clubDayId, authMode),
     ]);
     
     // CRITICAL: Filter out temporary optimistic entries (IDs starting with 'temp-')

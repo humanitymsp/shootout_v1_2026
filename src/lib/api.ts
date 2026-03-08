@@ -591,12 +591,14 @@ export async function pruneInactivePlayers(adminUser: string, monthsInactive: nu
 }
 
 // ClubDay functions
-export async function getActiveClubDay(): Promise<ClubDay | null> {
-  const { data } = await getClient().models.ClubDay.list({
+export async function getActiveClubDay(authMode?: string): Promise<ClubDay | null> {
+  const opts: any = {
     filter: {
       status: { eq: 'active' },
     },
-  });
+  };
+  if (authMode) opts.authMode = authMode;
+  const { data } = await getClient().models.ClubDay.list(opts);
   if (!data || data.length === 0) return null;
   // Ensure we pick the most recent active club day if multiple exist
   const sorted = [...data].sort((a, b) => {
@@ -1200,12 +1202,14 @@ export async function createClubDay(preservedBuyInLimits?: Map<number, string>):
 }
 
 // Table functions
-export async function getTablesForClubDay(clubDayId: string): Promise<PokerTable[]> {
-  const { data } = await getClient().models.PokerTable.list({
+export async function getTablesForClubDay(clubDayId: string, authMode?: string): Promise<PokerTable[]> {
+  const opts: any = {
     filter: {
       clubDayId: { eq: clubDayId },
     },
-  });
+  };
+  if (authMode) opts.authMode = authMode;
+  const { data } = await getClient().models.PokerTable.list(opts);
   return (data || []).map(toPokerTable);
 }
 
@@ -1343,7 +1347,7 @@ export async function getSeatedPlayersForPlayer(playerId: string, clubDayId: str
  * 
  * See docs/PAGINATION_CRITICAL_FIX.md for full documentation.
  */
-export async function getSeatedPlayersForTable(tableId: string, clubDayId?: string): Promise<TableSeat[]> {
+export async function getSeatedPlayersForTable(tableId: string, clubDayId?: string, authMode?: string): Promise<TableSeat[]> {
   // CRITICAL: Fetch ALL seated players with explicit limit to ensure we get all results
   // Use a high limit (1000) to ensure we get all players even if there are many
   // DO NOT remove or reduce this limit - it will cause incorrect player counts
@@ -1365,12 +1369,14 @@ export async function getSeatedPlayersForTable(tableId: string, clubDayId?: stri
     filterConditions.push({ clubDayId: { eq: clubDayId } });
   }
   
-  const { data } = await getClient().models.TableSeat.list({
+  const listOpts: any = {
     filter: {
       and: filterConditions,
     },
     limit: PAGINATION_LIMIT, // CRITICAL: Explicitly set high limit to get all players - DO NOT REMOVE
-  });
+  };
+  if (authMode) listOpts.authMode = authMode;
+  const { data } = await getClient().models.TableSeat.list(listOpts);
   
   // Convert to TableSeat format
   const seats = (data || []).map(toTableSeat);
@@ -1862,7 +1868,7 @@ export async function removePlayerFromSeat(seatId: string, tableId: string, admi
  * 
  * See docs/PAGINATION_CRITICAL_FIX.md for full documentation.
  */
-export async function getWaitlistForTable(tableId: string, clubDayId?: string): Promise<TableWaitlist[]> {
+export async function getWaitlistForTable(tableId: string, clubDayId?: string, authMode?: string): Promise<TableWaitlist[]> {
   // CRITICAL: Fetch ALL waitlist players with explicit limit to ensure we get all results
   // DO NOT remove or reduce this limit - it will cause incorrect player counts
   const PAGINATION_LIMIT = 1000; // CRITICAL: Must be >= 100 to avoid pagination issues
@@ -1883,12 +1889,14 @@ export async function getWaitlistForTable(tableId: string, clubDayId?: string): 
     filterConditions.push({ clubDayId: { eq: clubDayId } });
   }
   
-  const { data } = await getClient().models.TableWaitlist.list({
+  const listOpts: any = {
     filter: {
       and: filterConditions,
     },
     limit: PAGINATION_LIMIT, // CRITICAL: Explicitly set high limit to get all players - DO NOT REMOVE
-  });
+  };
+  if (authMode) listOpts.authMode = authMode;
+  const { data } = await getClient().models.TableWaitlist.list(listOpts);
   
   // Convert to TableWaitlist format
   const waitlist = (data || []).map(toTableWaitlist);

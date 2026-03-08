@@ -246,8 +246,11 @@ export default function PublicPage() {
    */
   const loadData = async () => {
     try {
+      // Use apiKey auth so the public page works without login
+      const AUTH = 'apiKey';
+
       // Get active club day
-      const activeDay = await getActiveClubDay();
+      const activeDay = await getActiveClubDay(AUTH);
       if (!activeDay) {
         setLoading(false);
         return;
@@ -257,7 +260,7 @@ export default function PublicPage() {
       // ⚠️ CRITICAL: Get all tables and deduplicate by table_number
       // Multiple tables with same table_number can exist (different statuses)
       // Deduplication ensures only one table per number is displayed
-      const allTables = await getTablesForClubDay(activeDay.id);
+      const allTables = await getTablesForClubDay(activeDay.id, AUTH);
       log('Public: All tables fetched:', allTables.map(t => `Table ${t.table_number} (${t.status})`));
 
       const dedupedTables = Array.from(
@@ -287,7 +290,7 @@ export default function PublicPage() {
         // This ensures counts match Admin, TV, and Tablet views
         // CRITICAL: Pass clubDayId to prevent counting players from old club days
         // Removing this parameter will cause "Unknown" players to appear after day reset
-        const counts = await getTableCounts(table.id, activeDay.id);
+        const counts = await getTableCounts(table.id, activeDay.id, AUTH);
         const seatsFilled = counts.seatedCount;
         const waitlistCount = counts.waitlistCount;
 
@@ -300,6 +303,7 @@ export default function PublicPage() {
               playerId: { eq: seat.player_id },
               removedAt: { attributeExists: false },
             },
+            authMode: AUTH,
           });
           if (otherWaitlists && otherWaitlists.some((wl: { tableId: string }) => wl.tableId !== table.id)) {
             playersWaitingElsewhere++;
@@ -568,25 +572,31 @@ export default function PublicPage() {
 
                                 setSignupLoading(true);
                                 try {
-                                  // Guard: block signup if nickname/phone is already bought in for this club day
-                                  const players = await getAllPlayers();
-                                  const matchingPlayers = players.filter((player) => {
-                                    const playerName = (player.nick || player.name || '').toLowerCase();
-                                    const playerPhone = (player.phone || '').replace(/\D/g, '');
-                                    return playerName === normalizedName || (!!playerPhone && playerPhone === normalizedPhone);
-                                  });
+                                  // Guard: best-effort duplicate check (may fail for unauthenticated users
+                                  // since Player/CheckIn models require userPool auth — that's OK, admin
+                                  // will catch duplicates when confirming the pending signup)
+                                  try {
+                                    const players = await getAllPlayers();
+                                    const matchingPlayers = players.filter((player) => {
+                                      const playerName = (player.nick || player.name || '').toLowerCase();
+                                      const playerPhone = (player.phone || '').replace(/\D/g, '');
+                                      return playerName === normalizedName || (!!playerPhone && playerPhone === normalizedPhone);
+                                    });
 
-                                  if (matchingPlayers.length > 0) {
-                                    const checkIns = await Promise.all(
-                                      matchingPlayers.map((player) =>
-                                        getCheckInForPlayer(player.id, clubDay.id).catch(() => null)
-                                      )
-                                    );
+                                    if (matchingPlayers.length > 0) {
+                                      const checkIns = await Promise.all(
+                                        matchingPlayers.map((player) =>
+                                          getCheckInForPlayer(player.id, clubDay.id).catch(() => null)
+                                        )
+                                      );
 
-                                    if (checkIns.some(Boolean)) {
-                                      setSignupError('You are already on the list. Please check with the front counter.');
-                                      return;
+                                      if (checkIns.some(Boolean)) {
+                                        setSignupError('You are already on the list. Please check with the front counter.');
+                                        return;
+                                      }
                                     }
+                                  } catch {
+                                    // Unauthenticated — skip server-side duplicate check
                                   }
 
                                   const gameLabel = table.game_type === 'NLH' ? 'No Limit Hold\'em' : table.game_type === 'BigO' ? 'Big O' : table.game_type;
