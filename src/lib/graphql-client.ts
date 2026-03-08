@@ -103,12 +103,16 @@ function createModelHandler(modelName: string, apiClient: any) {
      * See docs/PAGINATION_CRITICAL_FIX.md for full documentation.
      */
     async list(options?: { filter?: any; limit?: number; nextToken?: string; authMode?: string }): Promise<{ data: any[] }> {
+      // When using apiKey auth, skip relationship fields (e.g. player { ... })
+      // because related models like Player may not allow publicApiKey reads,
+      // which causes the entire query to fail with "Not Authorized"
+      const includeRelationships = options?.authMode !== 'apiKey';
       const query = `
         query List${modelName}s($filter: Model${modelName}FilterInput, $limit: Int, $nextToken: String) {
           list${modelName}s(filter: $filter, limit: $limit, nextToken: $nextToken) {
             items {
               id
-              ${getFieldsForModel(modelName)}
+              ${getFieldsForModel(modelName, includeRelationships)}
             }
             nextToken
           }

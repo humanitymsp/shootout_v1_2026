@@ -194,7 +194,7 @@ async function syncPlayersToBackend(players: Player[], clubDayId?: string): Prom
  * Load players from backend sync (for TV/tablet/public views)
  * Fetches from PlayerSync model for cross-device access
  */
-export async function loadPlayersFromBackend(clubDayId: string): Promise<Player[]> {
+export async function loadPlayersFromBackend(clubDayId: string, authMode?: string): Promise<Player[]> {
   try {
     // Dynamically import to avoid circular dependency
     const { getClient } = await import('./api');
@@ -214,9 +214,11 @@ export async function loadPlayersFromBackend(clubDayId: string): Promise<Player[
     }
 
     // Try to fetch from backend PlayerSync model
-    const { data: syncEntries } = await client.models.PlayerSync.list({
+    const listOpts: any = {
       filter: { clubDayId: { eq: clubDayId } },
-    });
+    };
+    if (authMode) listOpts.authMode = authMode;
+    const { data: syncEntries } = await client.models.PlayerSync.list(listOpts);
     
     if (syncEntries && syncEntries.length > 0) {
       const latestSync = syncEntries[0]; // Should only be one per club day
@@ -285,12 +287,12 @@ export async function loadPlayersFromBackend(clubDayId: string): Promise<Player[
  * Start polling for player updates (for TV/tablet/public views)
  * Call this to keep players in sync with admin device
  */
-export function startPlayerSyncPolling(clubDayId: string, callback: (players: Player[]) => void, intervalMs = 2000): () => void {
+export function startPlayerSyncPolling(clubDayId: string, callback: (players: Player[]) => void, intervalMs = 2000, authMode?: string): () => void {
   let intervalId: number | null = null;
   
   const poll = async () => {
     if (typeof document !== 'undefined' && document.hidden) return;
-    const players = await loadPlayersFromBackend(clubDayId);
+    const players = await loadPlayersFromBackend(clubDayId, authMode);
     callback(players);
   };
   

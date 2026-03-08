@@ -90,7 +90,7 @@ export default function PublicPage() {
     // DO NOT modify polling intervals without testing impact on real-time updates
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       log(`📡 Public: Synced ${players.length} players from admin`);
-    }, 3000); // Poll every 3 seconds - CRITICAL: This interval affects sync speed
+    }, 3000, 'apiKey'); // Poll every 3 seconds with apiKey auth for public access
 
     // ⚠️ CRITICAL: Data refresh polling for near-realtime table updates
     // 2000ms interval balances responsiveness with server load
@@ -256,6 +256,14 @@ export default function PublicPage() {
         return;
       }
       setClubDay(activeDay);
+
+      // Pre-load player data from PlayerSync so enrichArrayWithPlayerData
+      // can resolve player names (Player model doesn't allow apiKey reads,
+      // so the nested player { ... } fields are skipped in apiKey queries)
+      try {
+        const { loadPlayersFromBackend } = await import('../lib/localStoragePlayers');
+        await loadPlayersFromBackend(activeDay.id, AUTH);
+      } catch { /* non-critical — names may show as Unknown */ }
 
       // ⚠️ CRITICAL: Get all tables and deduplicate by table_number
       // Multiple tables with same table_number can exist (different statuses)
