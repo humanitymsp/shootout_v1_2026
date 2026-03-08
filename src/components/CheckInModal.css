@@ -1266,3 +1266,76 @@
     gap: 8px;
   }
 }
+
+/* Game Type Lobby Buttons */
+.game-type-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.game-type-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-card-bg, rgba(255, 255, 255, 0.05));
+  color: var(--admin-text);
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  width: 100%;
+}
+
+.game-type-btn:hover {
+  border-color: var(--admin-primary);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.game-type-btn.active {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: white;
+}
+
+.game-type-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.game-type-info {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+
+.game-type-btn.active .game-type-info {
+  opacity: 0.9;
+}
+
+@media (max-width: 600px) {
+  .game-type-btn {
+    padding: 0.5rem 0.6rem;
+  }
+  .game-type-name {
+    font-size: 0.85rem;
+  }
+  .game-type-info {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .game-type-btn {
+    padding: 0.4rem 0.5rem;
+  }
+  .game-type-name {
+    font-size: 0.78rem;
+  }
+  .game-type-info {
+    font-size: 0.65rem;
+  }
+}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
 import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
-import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, reorderWaitlistPosition, removePlayerFromAllWaitlists, getCheckInForPlayer } from '../lib/api';
+import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
 import { showToast } from '../components/Toast';
@@ -32,6 +32,7 @@ export default function TabletPage() {
   const [undoTimeout, setUndoTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null);
   const [swipeStart, setSwipeStart] = useState<{ x: number; y: number; playerId: string; timestamp: number } | null>(null);
+  const [seatPickerModal, setSeatPickerModal] = useState<{ wl: TableWaitlist; availableTables: PokerTable[] } | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTableIdsRef = useRef<string>('');
@@ -345,11 +346,6 @@ export default function TabletPage() {
     handleTCPrompt(player, sourceTableId);
   };
 
-  const handleQuickRemove = (wl: TableWaitlist, tableId: string, tableNumber: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    handleRemoveFromWaitlist(wl, tableId, tableNumber);
-  };
-
   const handleQuickSeat = async (wl: TableWaitlist, tableId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!clubDay) return;
@@ -377,6 +373,21 @@ export default function TabletPage() {
       await removePlayerFromWaitlist(wl.id, adminUser);
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
+      // Auto-remove from other waitlists unless player is a TC (table change)
+      let wasTC = false;
+      try {
+        const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+        wasTC = tcList.some((entry: any) => entry.playerId === wl.player_id);
+      } catch {}
+      if (!wasTC) {
+        try {
+          const removedCount = await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
+          if (removedCount > 0) {
+            log(`Removed ${playerName} from ${removedCount} other waitlist(s) after seating`);
+          }
+        } catch { /* best effort */ }
+      }
+
       showToast(`${playerName} seated`, 'success');
       setSelectedPlayer(null);
       broadcastUpdate('seat', tableId, wl.player_id);
@@ -533,28 +544,6 @@ export default function TabletPage() {
     } catch (error: any) {
       logError('Error undoing bust:', error);
       showToast(error.message || 'Failed to undo bust', 'error');
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  const handleRemoveFromWaitlist = async (wl: TableWaitlist, tableId: string, tableNumber: number) => {
-    const playerName = wl.player?.nick || wl.player?.name || 'Unknown';
-    const confirmed = window.confirm(`Remove ${playerName} from Table ${tableNumber} waitlist?`);
-    if (!confirmed) return;
-
-    setActionInProgress(wl.id);
-    try {
-      await removePlayerFromWaitlist(wl.id, adminUser);
-      
-      broadcastUpdate('remove-waitlist', tableId, wl.player_id);
-      
-      showToast(`${playerName} removed from waitlist`, 'success');
-      setSelectedPlayer(null);
-      loadAllTableData();
-    } catch (error: any) {
-      logError('Error removing from waitlist:', error);
-      showToast(error.message || 'Failed to remove from waitlist', 'error');
     } finally {
       setActionInProgress(null);
     }
@@ -1035,73 +1024,130 @@ export default function TabletPage() {
 
       {/* Game Type Waitlist Lobby */}
       {activeTables.length > 0 && (() => {
-        // Group tables by game type
+        // Group tables by game type + stakes
         const gameTypeGroups = new Map<string, PokerTable[]>();
         activeTables.forEach(t => {
-          const key = t.game_type || 'Other';
+          const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
           if (!gameTypeGroups.has(key)) gameTypeGroups.set(key, []);
           gameTypeGroups.get(key)!.push(t);
         });
 
-        // Only show lobby if there's more than 1 game type
-        if (gameTypeGroups.size <= 1) return null;
-
         return (
           <div className="tablet-game-lobby">
-            <div className="tablet-game-lobby-title">Game Type Lobby</div>
+            <div className="tablet-game-lobby-title">Waitlist by Game Type</div>
             <div className="tablet-game-lobby-grid">
-              {Array.from(gameTypeGroups.entries()).map(([gameType, gameTables]) => {
-                const gameLabel = gameType === 'NLH' ? 'No Limit Hold\'em' : gameType === 'BigO' ? 'Big O' : gameType === 'PLO' ? 'Pot Limit Omaha' : gameType;
+              {Array.from(gameTypeGroups.entries()).map(([groupKey, gameTables]) => {
+                const [gameType, stakes] = groupKey.split('||');
                 const totalSeated = gameTables.reduce((sum, t) => sum + (tableData.get(t.id)?.seated.length || 0), 0);
-                const totalWaitlist = gameTables.reduce((sum, t) => sum + (tableData.get(t.id)?.waitlist.length || 0), 0);
                 const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 9), 0);
-                const stakesLabel = [...new Set(gameTables.map(t => t.stakes_text))].join(', ');
+
+                // Merge waitlists from all tables of this game type, deduplicating by player_id
+                const seenPlayerIds = new Set<string>();
+                const mergedWaitlist: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
+                for (const t of gameTables) {
+                  const data = tableData.get(t.id);
+                  if (data?.waitlist) {
+                    for (const wl of data.waitlist) {
+                      if (!seenPlayerIds.has(wl.player_id)) {
+                        seenPlayerIds.add(wl.player_id);
+                        mergedWaitlist.push({ wl, tableId: t.id, tableNumber: t.table_number });
+                      }
+                    }
+                  }
+                }
 
                 return (
-                  <div key={gameType} className="tablet-game-lobby-card">
+                  <div key={groupKey} className="tablet-game-lobby-card">
                     <div className="tablet-game-lobby-header">
-                      <div className="tablet-game-lobby-name">{gameLabel}</div>
-                      <div className="tablet-game-lobby-stakes">{stakesLabel}</div>
-                    </div>
-                    <div className="tablet-game-lobby-stats">
-                      <div className="tablet-game-lobby-stat">
-                        <span className="tablet-game-lobby-stat-value">{gameTables.length}</span>
-                        <span className="tablet-game-lobby-stat-label">Table{gameTables.length !== 1 ? 's' : ''}</span>
-                      </div>
-                      <div className="tablet-game-lobby-stat">
-                        <span className="tablet-game-lobby-stat-value">{totalSeated}/{totalSeats}</span>
-                        <span className="tablet-game-lobby-stat-label">Seated</span>
-                      </div>
-                      <div className="tablet-game-lobby-stat">
-                        <span className="tablet-game-lobby-stat-value">{totalWaitlist}</span>
-                        <span className="tablet-game-lobby-stat-label">Waiting</span>
+                      <div className="tablet-game-lobby-name">{gameType} {stakes}</div>
+                      <div className="tablet-game-lobby-stakes">
+                        {gameTables.length} table{gameTables.length !== 1 ? 's' : ''} · {totalSeated}/{totalSeats} seated · {mergedWaitlist.length} waiting
                       </div>
                     </div>
-                    {selectedPlayer && (
-                      <button
-                        className="tablet-game-lobby-add-btn"
-                        disabled={actionInProgress !== null}
-                        onClick={async () => {
-                          const targetTables = gameTables.filter(t => t.id !== selectedPlayer.sourceTableId);
-                          if (targetTables.length === 0) {
-                            showToast('No other tables of this game type', 'error');
-                            return;
-                          }
-                          for (const t of targetTables) {
-                            try {
-                              await addPlayerToWaitlist(t.id, selectedPlayer.player.player_id, clubDay!.id, adminUser);
-                            } catch (err: any) {
-                              logError(`Failed to add to Table ${t.table_number}:`, err);
-                            }
-                          }
-                          showToast(`Added to ${targetTables.length} ${gameLabel} waitlist${targetTables.length !== 1 ? 's' : ''}`, 'success');
-                          setSelectedPlayer(null);
-                          loadAllTableData();
-                        }}
-                      >
-                        Add to All {gameType} Waitlists ({gameTables.filter(t => t.id !== selectedPlayer.sourceTableId).length})
-                      </button>
-                    )}
+                    <div className="tablet-game-lobby-waitlist">
+                      {mergedWaitlist.length === 0 ? (
+                        <div className="tablet-empty-state">No players waiting</div>
+                      ) : (
+                        mergedWaitlist.map(({ wl, tableId }) => {
+                          const isHovered = hoveredPlayer === `lobby-${wl.id}`;
+                          const isPlayerSelected = selectedPlayer?.player.player_id === wl.player_id;
+                          return (
+                            <div
+                              key={wl.id}
+                              className={`tablet-player-item waitlist ${isPlayerSelected ? 'selected' : ''}`}
+                              onClick={() => handlePlayerClick(wl, tableId, true)}
+                              onMouseEnter={() => setHoveredPlayer(`lobby-${wl.id}`)}
+                              onMouseLeave={() => setHoveredPlayer(null)}
+                            >
+                              <span className="tablet-player-name">
+                                {wl.player?.nick || wl.player?.name || 'Unknown'}
+                                {wl.called_in && <span className="tablet-called-in">Called</span>}
+                              </span>
+                              {(isHovered || isPlayerSelected) && (
+                                <div className="tablet-quick-actions" onClick={(e) => e.stopPropagation()}>
+                                  {(() => {
+                                    const tablesWithRoom = gameTables.filter(t => {
+                                      const d = tableData.get(t.id);
+                                      return d && d.seated.length < (t.seats_total || 9);
+                                    });
+                                    if (tablesWithRoom.length === 0) return null;
+                                    return (
+                                      <button
+                                        className="tablet-quick-action-btn tablet-quick-seat"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setSeatPickerModal({ wl, availableTables: tablesWithRoom });
+                                        }}
+                                        disabled={actionInProgress !== null}
+                                        title="Choose table to seat player"
+                                      >
+                                        Seat
+                                      </button>
+                                    );
+                                  })()}
+                                  <button
+                                    className="tablet-quick-action-btn tablet-quick-tc"
+                                    onClick={(e) => handleQuickTC(wl, tableId, e)}
+                                    disabled={actionInProgress !== null}
+                                    title="Table Change"
+                                  >
+                                    TC
+                                  </button>
+                                  <button
+                                    className="tablet-quick-action-btn tablet-quick-remove"
+                                    onClick={async (e) => {
+                                      e.stopPropagation();
+                                      if (!clubDay) return;
+                                      setActionInProgress(wl.id);
+                                      try {
+                                        // Remove from ALL tables of this game type
+                                        for (const t of gameTables) {
+                                          const d = tableData.get(t.id);
+                                          const entry = d?.waitlist.find(w => w.player_id === wl.player_id);
+                                          if (entry) {
+                                            await removePlayerFromWaitlist(entry.id, adminUser);
+                                          }
+                                        }
+                                        showToast(`${wl.player?.nick || 'Player'} removed from waitlist`, 'success');
+                                        loadAllTableData();
+                                      } catch (err: any) {
+                                        showToast(err.message || 'Failed to remove', 'error');
+                                      } finally {
+                                        setActionInProgress(null);
+                                      }
+                                    }}
+                                    disabled={actionInProgress !== null}
+                                    title="Remove from all waitlists"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -1208,91 +1254,6 @@ export default function TabletPage() {
                 </div>
               </div>
 
-              <div className="tablet-waitlist-section">
-                <h3>Waitlist ({data.waitlist.length})</h3>
-                <div className="tablet-players-list">
-                  {data.waitlist.length === 0 ? (
-                    <div className="tablet-empty-state">No players waiting</div>
-                  ) : (
-                    data.waitlist.map((wl) => {
-                      const isHovered = hoveredPlayer === wl.id;
-                      const isSelected = selectedPlayer?.player.player_id === wl.player_id && selectedPlayer.sourceTableId === table.id;
-                      return (
-                        <div
-                          key={wl.id}
-                          className={`tablet-player-item waitlist ${isSelected ? 'selected' : ''}`}
-                          onClick={() => handlePlayerClick(wl, table.id, true)}
-                          onMouseEnter={() => setHoveredPlayer(wl.id)}
-                          onMouseLeave={() => setHoveredPlayer(null)}
-                          onTouchStart={(e) => handleTouchStart(e, wl.player_id)}
-                          onTouchEnd={(e) => handleTouchEnd(e, wl, table.id, true, table.table_number)}
-                          onTouchCancel={handleTouchCancel}
-                        >
-                          <div className="tablet-waitlist-reorder" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              className="tablet-reorder-btn"
-                              title="Move up"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await reorderWaitlistPosition(wl.id, table.id, clubDay!.id, 'up');
-                                  loadAllTableData();
-                                } catch (err: any) { showToast(err.message || 'Failed', 'error'); }
-                              }}
-                            >▲</button>
-                            <button
-                              className="tablet-reorder-btn"
-                              title="Move down"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                try {
-                                  await reorderWaitlistPosition(wl.id, table.id, clubDay!.id, 'down');
-                                  loadAllTableData();
-                                } catch (err: any) { showToast(err.message || 'Failed', 'error'); }
-                              }}
-                            >▼</button>
-                          </div>
-                          <span className="tablet-player-name">
-                            {wl.player?.nick || wl.player?.name || 'Unknown'}
-                            {wl.called_in && <span className="tablet-called-in">Called</span>}
-                          </span>
-                          {(isHovered || isSelected) && (
-                            <div className="tablet-quick-actions" onClick={(e) => e.stopPropagation()}>
-                              {!isFull && (
-                                <button
-                                  className="tablet-quick-action-btn tablet-quick-seat"
-                                  onClick={(e) => handleQuickSeat(wl, table.id, e)}
-                                  disabled={actionInProgress !== null}
-                                  title="Seat Player"
-                                >
-                                  Seat
-                                </button>
-                              )}
-                              <button
-                                className="tablet-quick-action-btn tablet-quick-tc"
-                                onClick={(e) => handleQuickTC(wl, table.id, e)}
-                                disabled={actionInProgress !== null}
-                                title="Table Change"
-                              >
-                                TC
-                              </button>
-                              <button
-                                className="tablet-quick-action-btn tablet-quick-remove"
-                                onClick={(e) => handleQuickRemove(wl, table.id, table.table_number, e)}
-                                disabled={actionInProgress !== null}
-                                title="Remove from Waitlist"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
               {selectedPlayer && selectedPlayer.sourceTableId !== table.id && (
                 <div className="tablet-move-actions">
                   <button
@@ -1302,55 +1263,18 @@ export default function TabletPage() {
                   >
                     Move to Seat
                   </button>
-                  <button
-                    className="tablet-action-btn tablet-move-waitlist"
-                    onClick={() => handleMovePlayer(table.id, 'waitlist')}
-                    disabled={movingPlayer !== null}
-                  >
-                    Move to Waitlist
-                  </button>
                 </div>
               )}
 
-              {selectedPlayer && selectedPlayer.sourceTableId === table.id && (
+              {selectedPlayer && selectedPlayer.sourceTableId === table.id && !selectedPlayer.isFromWaitlist && (
                 <div className="tablet-player-actions-row">
-                  {!selectedPlayer.isFromWaitlist ? (
-                    // Seated player → Show Bust button
-                    <button
-                      className="tablet-action-btn tablet-bust-btn"
-                      onClick={() => handleBustPlayer(selectedPlayer.player as TableSeat, table.id, table.table_number)}
-                      disabled={actionInProgress !== null}
-                    >
-                      Bust
-                    </button>
-                  ) : (
-                    // Waitlisted player → Show Seat, TC, and Remove buttons
-                    <>
-                      {!isFull && (
-                        <button
-                          className="tablet-action-btn tablet-move-seat"
-                          onClick={() => handleMovePlayer(table.id, 'seat')}
-                          disabled={movingPlayer !== null || actionInProgress !== null}
-                        >
-                          Seat
-                        </button>
-                      )}
-                      <button
-                        className="tablet-action-btn tablet-tc-btn"
-                        onClick={() => handleTCPrompt(selectedPlayer.player, table.id)}
-                        disabled={actionInProgress !== null}
-                      >
-                        TC
-                      </button>
-                      <button
-                        className="tablet-action-btn tablet-remove-btn"
-                        onClick={() => handleRemoveFromWaitlist(selectedPlayer.player as TableWaitlist, table.id, table.table_number)}
-                        disabled={actionInProgress !== null}
-                      >
-                        Remove
-                      </button>
-                    </>
-                  )}
+                  <button
+                    className="tablet-action-btn tablet-bust-btn"
+                    onClick={() => handleBustPlayer(selectedPlayer.player as TableSeat, table.id, table.table_number)}
+                    disabled={actionInProgress !== null}
+                  >
+                    Bust
+                  </button>
                 </div>
               )}
             </div>
@@ -1369,6 +1293,45 @@ export default function TabletPage() {
           </div>
         ))}
       </div>
+
+      {/* Seat Picker Modal — choose which table to seat a waitlisted player */}
+      {seatPickerModal && (() => {
+        const playerName = seatPickerModal.wl.player?.nick || seatPickerModal.wl.player?.name || 'Unknown';
+        return (
+          <div className="tablet-seat-picker-overlay" onClick={() => setSeatPickerModal(null)}>
+            <div className="tablet-seat-picker-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="tablet-seat-picker-header">
+                <h3>Seat {playerName}</h3>
+                <button className="tablet-seat-picker-close" onClick={() => setSeatPickerModal(null)}>✕</button>
+              </div>
+              <p className="tablet-seat-picker-subtitle">Choose a table:</p>
+              <div className="tablet-seat-picker-list">
+                {seatPickerModal.availableTables.map(t => {
+                  const d = tableData.get(t.id) || { seated: [], waitlist: [] };
+                  const seatsLeft = (t.seats_total || 9) - d.seated.length;
+                  return (
+                    <button
+                      key={t.id}
+                      className="tablet-seat-picker-btn"
+                      disabled={actionInProgress !== null}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        setSeatPickerModal(null);
+                        await handleQuickSeat(seatPickerModal.wl, t.id, e as any);
+                      }}
+                    >
+                      <span className="tablet-seat-picker-table">Table {t.table_number}</span>
+                      <span className="tablet-seat-picker-info">
+                        {d.seated.length}/{t.seats_total || 9} seated · {seatsLeft} open
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

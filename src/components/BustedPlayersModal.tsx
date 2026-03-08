@@ -23,7 +23,6 @@ export default function BustedPlayersModal({
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [waitlistTarget, setWaitlistTarget] = useState<string | null>(null);
-  const [selectedTableId, setSelectedTableId] = useState('');
   const [filterGameType, setFilterGameType] = useState('all');
 
   const activeTables = useMemo(
@@ -122,33 +121,6 @@ export default function BustedPlayersModal({
       onRefresh();
     } catch (error: any) {
       showToast(error.message || `Failed to re-seat ${playerName}`, 'error');
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  const handleAddToWaitlist = async (seat: TableSeat, tableId: string) => {
-    const playerName = seat.player?.nick || seat.player?.name || 'Unknown';
-    const targetTable = activeTables.find(t => t.id === tableId);
-
-    setActionInProgress(seat.player_id);
-    try {
-      await addPlayerToWaitlist(tableId, seat.player_id, clubDayId, adminUser);
-      showToast(`${playerName} added to waitlist at Table ${targetTable?.table_number || '?'}`, 'success');
-
-      // Remove from localStorage bust list
-      try {
-        const bustOuts = JSON.parse(localStorage.getItem('recent-bust-outs') || '[]')
-          .filter((b: any) => b.playerId !== seat.player_id);
-        localStorage.setItem('recent-bust-outs', JSON.stringify(bustOuts));
-      } catch { /* ignore */ }
-
-      setCurrentlySeatedIds(prev => new Set([...prev, seat.player_id]));
-      setWaitlistTarget(null);
-      setSelectedTableId('');
-      onRefresh();
-    } catch (error: any) {
-      showToast(error.message || `Failed to add ${playerName} to waitlist`, 'error');
     } finally {
       setActionInProgress(null);
     }
@@ -291,7 +263,6 @@ export default function BustedPlayersModal({
                             className="busted-action-btn busted-waitlist-btn"
                             onClick={() => {
                               setWaitlistTarget(seat.player_id);
-                              setSelectedTableId('');
                             }}
                             disabled={isProcessing}
                           >
@@ -300,40 +271,35 @@ export default function BustedPlayersModal({
                         </>
                       ) : (
                         <div className="busted-waitlist-picker">
-                          <select
-                            value={selectedTableId}
-                            onChange={(e) => setSelectedTableId(e.target.value)}
-                            className="busted-table-select"
-                          >
-                            <option value="">Select table...</option>
-                            {activeTables.map(t => (
-                              <option key={t.id} value={t.id}>
-                                Table {t.table_number} — {t.game_type} {t.stakes_text}
-                              </option>
-                            ))}
-                          </select>
                           <div className="busted-waitlist-actions">
-                            <button
-                              className="busted-action-btn busted-add-btn"
-                              onClick={() => selectedTableId && handleAddToWaitlist(seat, selectedTableId)}
-                              disabled={!selectedTableId || isProcessing}
-                            >
-                              Add
-                            </button>
-                            {gameTypes.map(gt => (
-                              <button
-                                key={gt}
-                                className="busted-action-btn busted-all-btn"
-                                onClick={() => handleAddToAllWaitlists(seat, gt)}
-                                disabled={isProcessing}
-                                title={`Add to all ${gt} waitlists`}
-                              >
-                                All {gt}
-                              </button>
-                            ))}
+                            {(() => {
+                              const groups = new Map<string, { gameType: string; stakes: string; tableCount: number }>();
+                              for (const t of activeTables) {
+                                const gt = t.game_type || 'Other';
+                                const stakes = t.stakes_text || '';
+                                const key = `${gt}||${stakes}`;
+                                const existing = groups.get(key);
+                                if (existing) {
+                                  existing.tableCount++;
+                                } else {
+                                  groups.set(key, { gameType: gt, stakes, tableCount: 1 });
+                                }
+                              }
+                              return Array.from(groups.entries()).map(([key, group]) => (
+                                <button
+                                  key={key}
+                                  className="busted-action-btn busted-all-btn"
+                                  onClick={() => handleAddToAllWaitlists(seat, group.gameType)}
+                                  disabled={isProcessing}
+                                  title={`Add to all ${group.gameType} ${group.stakes} waitlists (${group.tableCount} table${group.tableCount !== 1 ? 's' : ''})`}
+                                >
+                                  {group.gameType} {group.stakes}
+                                </button>
+                              ));
+                            })()}
                             <button
                               className="busted-action-btn busted-cancel-btn"
-                              onClick={() => { setWaitlistTarget(null); setSelectedTableId(''); }}
+                              onClick={() => setWaitlistTarget(null)}
                             >
                               ✕
                             </button>

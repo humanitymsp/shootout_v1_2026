@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type RefObject } from 'react';
-import { getCheckInForPlayer, createCheckIn, addPlayerToWaitlist, getSeatedPlayersForTable, seatPlayer, getWaitlistForTable, syncPlayerToDB } from '../lib/api';
+import { getCheckInForPlayer, createCheckIn, addPlayerToWaitlist, syncPlayerToDB } from '../lib/api';
 import { searchPlayersLocal, createPlayerLocal, updatePlayerLocal } from '../lib/localStoragePlayers';
 import { sendSMS, getSMSSettings } from '../lib/sms';
 import type { Player } from '../types';
@@ -19,16 +19,6 @@ interface CheckInModalProps {
 }
 
 const SAVED_DOOR_FEES_KEY = 'saved-door-fees';
-
-async function getWaitlistPosition(tableId: string, playerId: string, clubDayId: string): Promise<number | undefined> {
-  try {
-    const waitlist = await getWaitlistForTable(tableId, clubDayId);
-    const position = waitlist.findIndex((w: any) => w.player_id === playerId);
-    return position >= 0 ? position + 1 : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 function loadSavedDoorFees(): number[] {
   try {
@@ -72,8 +62,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
   const [doorFee, setDoorFee] = useState(20);
   const [customDoorFee, setCustomDoorFee] = useState('');
   const [savedDoorFees, setSavedDoorFees] = useState<number[]>([]);
-  const [selectedTableId, setSelectedTableId] = useState('');
-  const [assignmentMode, setAssignmentMode] = useState<'seat' | 'waitlist'>('seat');
+  const [selectedGameType, setSelectedGameType] = useState('');
   const [tableList, setTableList] = useState<any[]>([]);
   const [enrichedTables, setEnrichedTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -86,8 +75,6 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
   const [receipt, setReceipt] = useState<any>(null);
   const [useExistingBuyIn, setUseExistingBuyIn] = useState(false);
   const [playerNotFound, setPlayerNotFound] = useState(false);
-  const [isMultiTableMode, setIsMultiTableMode] = useState(false);
-  const [additionalTableIds, setAdditionalTableIds] = useState<string[]>([]);
   const [skipDoorFee, setSkipDoorFee] = useState(false);
   const [isPreviousPlayer, setIsPreviousPlayer] = useState(false);
   const [playerPhone, setPlayerPhone] = useState('');
@@ -95,9 +82,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
   const [smsSettings, setSmsSettings] = useState<any>(null);
   const [phoneRequired, setPhoneRequired] = useState(false);
   const [nicknameError, setNicknameError] = useState('');
-  const multiTableRef = useRef<HTMLDivElement>(null);
-  const assignmentSectionRef = useRef<HTMLDivElement>(null);
-  const tableSectionRef = useRef<HTMLDivElement>(null);
+  const gameTypeSectionRef = useRef<HTMLDivElement>(null);
   const footerRef = useRef<HTMLDivElement>(null);
   const modalBodyRef = useRef<HTMLDivElement>(null);
 
@@ -127,41 +112,24 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
     }
   }, [selectedPlayer]);
 
-  // Scroll to multi-table section when enabled
-  useEffect(() => {
-    if (isMultiTableMode && multiTableRef.current) {
-      setTimeout(() => {
-        multiTableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }, 100);
-    }
-  }, [isMultiTableMode]);
-
-  // When a player is confirmed, scroll to the door fee / assignment section
+  // When a player is confirmed, scroll to the game type section
   useEffect(() => {
     if (selectedPlayer) {
-      scrollToRef(assignmentSectionRef);
+      scrollToRef(gameTypeSectionRef);
     }
   }, [selectedPlayer]);
 
-  // When assignment mode changes, scroll to the table selector
+  // When a game type is selected, scroll to the footer so Submit is visible
   useEffect(() => {
-    scrollToRef(tableSectionRef);
-  }, [assignmentMode]);
-
-  // When a table is selected, scroll to the footer so Submit is visible
-  useEffect(() => {
-    if (selectedTableId) {
+    if (selectedGameType) {
       scrollToRef(footerRef);
     }
-  }, [selectedTableId]);
+  }, [selectedGameType]);
 
   useEffect(() => {
     setTableList(tables);
     enrichTablesWithCounts(tables);
-    if (selectedTableId && !tables.find(t => t.id === selectedTableId)) {
-      setSelectedTableId('');
-    }
-  }, [tables, selectedTableId]);
+  }, [tables]);
 
   useEffect(() => {
     if (tables.length === 0) return;
@@ -263,21 +231,6 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         if (exactMatch) {
           setSelectedPlayer(exactMatch);
           setPlayerNotFound(false);
-          
-          if (!selectedTableId && enrichedTables.length > 0) {
-            const firstAvailableTable = enrichedTables.find(t => {
-              const seatsFilled = t.seatsFilled ?? 0;
-              const seatsTotal = t.seats_total ?? t.seatsTotal ?? 9;
-              return seatsFilled < seatsTotal;
-            });
-            if (firstAvailableTable) {
-              setSelectedTableId(firstAvailableTable.id);
-              setAssignmentMode('seat');
-            } else if (enrichedTables.length > 0) {
-              setSelectedTableId(enrichedTables[0].id);
-              setAssignmentMode('waitlist');
-            }
-          }
         } else {
           setPlayerNotFound(true);
           setSelectedPlayer(null);
@@ -437,20 +390,30 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         return;
       }
 
-      if (!selectedTableId) {
-        setError('Please select a table');
+      if (!selectedGameType) {
+        setError('Please select a game type');
+        setLoading(false);
+        return;
+      }
+
+      // Find all tables matching the selected game type
+      const gameTypeTables = tables.filter((t: any) => {
+        const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
+        return key === selectedGameType && t.status !== 'CLOSED';
+      });
+
+      if (gameTypeTables.length === 0) {
+        setError('No active tables for this game type');
         setLoading(false);
         return;
       }
 
       let result: any = null;
-      let broadcastTableId = selectedTableId;
-      let broadcastAssignmentMode = assignmentMode;
 
       if (isPreviousPlayer) {
         log('Previous player - skipping door fee entirely');
-      } else if (assignmentMode === 'waitlist' && skipDoorFee) {
-        log('Waitlist mode - skipping door fee, player will pay when seated');
+      } else if (skipDoorFee) {
+        log('Lobby waitlist mode - skipping door fee, player will pay when seated');
       } else if (useExistingBuyIn && existingCheckIn) {
         log('Using existing buy-in for player:', player.id);
       } else {
@@ -481,117 +444,33 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         log('Check-in created:', result);
       }
 
-      if (assignmentMode === 'seat') {
-        log('Assigning to seat at table:', selectedTableId);
-
-        const selectedTable = tables.find(t => t.id === selectedTableId);
-        if (!selectedTable) {
-          setError('Selected table not found');
-          setLoading(false);
-          return;
-        }
-        
-        // CRITICAL: Pass clubDayId to prevent counting seats from old club days
-        const seatedPlayers = await getSeatedPlayersForTable(selectedTableId, clubDayId);
-        const maxSeats = (selectedTable as any).seatsTotal ?? selectedTable.seats_total ?? 9;
-        
-        if (seatedPlayers.length >= maxSeats) {
-          setError(`Table is full (${seatedPlayers.length}/${maxSeats} seats). Add player to waitlist instead.`);
-          setLoading(false);
-          return;
-        }
-        
-        if (seatedPlayers.length > maxSeats) {
-          setError(`Table capacity exceeded (${seatedPlayers.length}/${maxSeats} seats). Please remove excess players first.`);
-          setLoading(false);
-          return;
-        }
-
+      // Add player to waitlist of ALL tables matching the selected game type
+      log(`Adding player to ${gameTypeTables.length} table waitlists for game type: ${selectedGameType}`);
+      const waitlistResults: { tableId: string; tableNumber: number; success: boolean; error?: string }[] = [];
+      
+      for (const table of gameTypeTables) {
         try {
-          log('Seating player using seatPlayer API:', {
-            tableId: selectedTableId,
-            playerId: player.id,
-            clubDayId,
-          });
-
-          await seatPlayer(selectedTableId, player.id, clubDayId);
-          
-          log('Player seated successfully');
+          await addPlayerToWaitlist(table.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
+          waitlistResults.push({ tableId: table.id, tableNumber: table.table_number, success: true });
+          log(`Added to waitlist at Table ${table.table_number}`);
         } catch (err: any) {
-          logError('Seat creation failed:', err);
-          
-          if (err.message?.includes('already seated')) {
-            setError(err.message);
-            setLoading(false);
-            return;
-          } else if (err.message?.includes('full') || err.message?.includes('capacity')) {
-            log('Table full, trying waitlist instead');
-            try {
-              await addPlayerToWaitlist(selectedTableId, player.id, clubDayId, adminUser);
-              log('Player added to waitlist');
-              broadcastAssignmentMode = 'waitlist';
-            } catch (waitlistErr: any) {
-              logError('Waitlist assignment failed:', waitlistErr);
-              if (waitlistErr.message?.includes('already seated')) {
-                setError('Cannot add to waitlist: Player is already seated at this table');
-              } else {
-                setError(`Failed to add to waitlist: ${waitlistErr.message || 'Unknown error'}`);
-              }
-              setLoading(false);
-              return;
-            }
-          } else {
-            setError(err.message || 'Failed to seat player');
-            setLoading(false);
-            return;
-          }
-        }
-      } else if (assignmentMode === 'waitlist') {
-        log('Adding to waitlist at table:', selectedTableId);
-        try {
-          await addPlayerToWaitlist(selectedTableId, player.id, clubDayId, adminUser);
-          log('Player added to waitlist');
-          broadcastAssignmentMode = 'waitlist';
-        } catch (waitlistErr: any) {
-          logError('Waitlist assignment failed:', waitlistErr);
-          if (waitlistErr.message?.includes('already seated')) {
-            setError('Cannot add to waitlist: Player is already seated at this table');
-          } else {
-            setError(`Failed to add to waitlist: ${waitlistErr.message}`);
-          }
-          setLoading(false);
-          return;
+          logError(`Failed to add to waitlist at Table ${table.table_number}:`, err);
+          waitlistResults.push({ tableId: table.id, tableNumber: table.table_number, success: false, error: err.message });
         }
       }
-
-      // Handle multi-table mode: add player to additional table waitlists
-      if (isMultiTableMode && additionalTableIds.length > 0) {
-        log('Multi-table mode: adding to additional waitlists:', additionalTableIds);
-        const waitlistResults: { tableId: string; success: boolean; error?: string }[] = [];
-        
-        for (const tableId of additionalTableIds) {
-          // Skip if it's the same as the primary table
-          if (tableId === selectedTableId) continue;
-          
-          try {
-            await addPlayerToWaitlist(tableId, player.id, clubDayId, adminUser, { skipSeatCheck: true });
-            waitlistResults.push({ tableId, success: true });
-            log(`Added to waitlist at table ${tableId}`);
-          } catch (err: any) {
-            logError(`Failed to add to waitlist at table ${tableId}:`, err);
-            waitlistResults.push({ tableId, success: false, error: err.message });
-          }
-        }
-        
-        const successCount = waitlistResults.filter(r => r.success).length;
-        const failCount = waitlistResults.filter(r => !r.success).length;
-        
-        if (successCount > 0) {
-          showToast(`Added to ${successCount} additional waitlist${successCount > 1 ? 's' : ''}`, 'success');
-        }
-        if (failCount > 0) {
-          showToast(`Failed to add to ${failCount} waitlist${failCount > 1 ? 's' : ''}`, 'warning');
-        }
+      
+      const successCount = waitlistResults.filter(r => r.success).length;
+      const failCount = waitlistResults.filter(r => !r.success).length;
+      
+      if (successCount === 0 && failCount > 0) {
+        setError('Failed to add player to any waitlists. They may already be on all of them.');
+        setLoading(false);
+        return;
+      }
+      
+      const [gameLabel] = selectedGameType.split('||');
+      if (failCount > 0) {
+        showToast(`Added to ${successCount} of ${gameTypeTables.length} ${gameLabel} waitlists`, 'warning');
       }
 
       setReceipt(result?.receipt || existingCheckIn?.receipt);
@@ -600,9 +479,9 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         type: 'player-update', 
         action: 'checkin', 
         playerId: player.id,
-        tableId: broadcastTableId,
+        gameType: selectedGameType,
         clubDayId: clubDayId,
-        assignmentMode: broadcastAssignmentMode,
+        assignmentMode: 'waitlist',
         playerData: player,
       };
       try {
@@ -612,41 +491,23 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
       } catch {
         // BroadcastChannel not available
       }
-      // Same-tab dispatch so TableCard in this window gets the optimistic update immediately
-      // (BroadcastChannel only reaches other tabs)
       window.dispatchEvent(new CustomEvent('player-update', { detail: updatePayload }));
       
       // Send SMS notification if enabled and player has phone number
       const smsCfg = getSMSSettings();
       const smsPhone = player.phone || playerPhone.trim();
-      console.error('[CheckIn-SMS-DEBUG]', JSON.stringify({
-        enabled: smsCfg.enabled,
-        hasApiKey: !!smsCfg.apiKey,
-        apiKeyLength: smsCfg.apiKey?.length ?? 0,
-        smsPhone: smsPhone || '(empty)',
-        playerPhone: playerPhone || '(empty)',
-        playerDotPhone: player?.phone || '(empty)',
-      }));
       if (smsCfg.enabled && !smsCfg.apiKey) {
         showToast('SMS not sent: API key not saved. Open SMS Settings and click Save.', 'warning');
       }
       if (smsCfg.enabled && smsCfg.apiKey && smsPhone) {
         try {
-          const tableInfo = tables.find(t => t.id === selectedTableId);
-          const waitlistPosition = broadcastAssignmentMode === 'waitlist' ?
-            await getWaitlistPosition(selectedTableId, player.id, clubDayId) : undefined;
-
-          let smsMsg = `Hi ${player.nick}! You're checked in`;
-          if (tableInfo?.table_number && tableInfo?.stakes_text) {
-            smsMsg += ` at Table ${tableInfo.table_number} (${tableInfo.stakes_text})`;
-          } else if (waitlistPosition) {
-            smsMsg += ` and are #${waitlistPosition} on the waitlist`;
-          }
+          const [gameType, stakes] = selectedGameType.split('||');
+          let smsMsg = `Hi ${player.nick}! You're checked in for ${gameType} ${stakes}`;
+          smsMsg += ` and on the waitlist for ${successCount} table${successCount !== 1 ? 's' : ''}`;
           smsMsg += `. Good luck! - Final Table Poker Club`;
 
           showToast(`Sending SMS to ${smsPhone}…`, 'info');
           const smsResult = await sendSMS({ to: smsPhone, message: smsMsg }, smsCfg.apiKey);
-          console.error('[CheckIn-SMS-RESULT]', JSON.stringify(smsResult));
           if (smsResult.success) {
             showToast(`SMS sent ✓ (${smsPhone})`, 'success');
             log('[CheckIn] SMS sent to', smsPhone);
@@ -673,16 +534,13 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         setNick('');
         setDoorFee(20);
         setCustomDoorFee('');
-        setSelectedTableId('');
-        setAssignmentMode('seat');
+        setSelectedGameType('');
         setExistingCheckIn(null);
         setOverrideReason('');
         setShowOverride(false);
         setUseExistingBuyIn(false);
         setReceipt(null);
         setLoading(false);
-        setIsMultiTableMode(false);
-        setAdditionalTableIds([]);
       }
     } catch (err: any) {
       logError('Check-in error:', err);
@@ -720,7 +578,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                     }
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && selectedPlayer && selectedTableId) {
+                    if (e.key === 'Enter' && selectedPlayer && selectedGameType) {
                       handleSubmit(e);
                     }
                   }}
@@ -841,12 +699,10 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
               <div className="form-section">
                 <div className="door-fee-label-row">
                   <label className="form-label">Door Fee</label>
-                  {assignmentMode === 'waitlist' && (
-                    <label className="skip-fee-toggle">
-                      <input type="checkbox" checked={skipDoorFee} onChange={(e) => setSkipDoorFee(e.target.checked)} />
-                      <span>Skip — collect later</span>
-                    </label>
-                  )}
+                  <label className="skip-fee-toggle">
+                    <input type="checkbox" checked={skipDoorFee} onChange={(e) => setSkipDoorFee(e.target.checked)} />
+                    <span>Skip — collect later</span>
+                  </label>
                 </div>
                 <div className={`fee-buttons${skipDoorFee ? ' fee-buttons-hidden' : ''}`}>
                   <button type="button" className={`fee-btn ${doorFee === 20 ? 'active' : ''}`} onClick={() => { setDoorFee(20); setCustomDoorFee(''); }}>$20</button>
@@ -875,127 +731,50 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
               </div>
             )}
 
-            {/* Assignment Mode Section */}
-            <div className="form-section" ref={assignmentSectionRef}>
-              <label className="form-label">Assignment</label>
-              <div className="assignment-buttons">
-                <button
-                  type="button"
-                  className={`assignment-btn ${assignmentMode === 'seat' ? 'active' : ''}`}
-                  onClick={() => {
-                    setAssignmentMode('seat');
-                    setSkipDoorFee(false);
-                  }}
-                >
-                  Seat
-                </button>
-                <button
-                  type="button"
-                  className={`assignment-btn ${assignmentMode === 'waitlist' ? 'active' : ''}`}
-                  onClick={() => {
-                    setAssignmentMode('waitlist');
-                    setSkipDoorFee(false);
-                  }}
-                >
-                  Waitlist
-                </button>
-              </div>
-            </div>
-
-            {/* Table Selection */}
-            {(
-              <div className="form-section" ref={tableSectionRef}>
-                <label className="form-label required">Primary Table</label>
-                <select
-                  value={selectedTableId}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedTableId(value || '');
-                    // Remove from additional tables if selected as primary
-                    if (value) {
-                      setAdditionalTableIds(prev => prev.filter(id => id !== value));
-                    }
-                  }}
-                  className="table-select"
-                  required
-                >
-                  <option value="">Select table...</option>
-                  {(enrichedTables.length > 0 ? enrichedTables : tableList).map((table) => {
+            {/* Game Type Lobby Selection */}
+            <div className="form-section" ref={gameTypeSectionRef}>
+              <label className="form-label required">Game Type</label>
+              <p className="form-help">Player will be added to the waitlist for all tables of this game type.</p>
+              <div className="game-type-buttons">
+                {(() => {
+                  const activeTables = (enrichedTables.length > 0 ? enrichedTables : tableList).filter((t: any) => t.status !== 'CLOSED');
+                  const groups = new Map<string, { gameType: string; stakes: string; tableCount: number; totalSeats: number; totalSeated: number; totalWaiting: number }>();
+                  for (const table of activeTables) {
+                    const gameType = table.game_type || 'Other';
+                    const stakes = table.stakes_text || '';
+                    const groupKey = `${gameType}||${stakes}`;
+                    const existing = groups.get(groupKey);
                     const seatsFilled = table.seatsFilled ?? 0;
                     const waitlistCount = table.waitlistCount ?? 0;
-                    const tableNumber = table.table_number ?? (table as any).tableNumber;
-                    const stakesText = table.stakes_text ?? (table as any).stakesText;
                     const seatsTotal = (table as any).seatsTotal ?? table.seats_total ?? 9;
-                    return (
-                      <option key={table.id} value={table.id}>
-                        Table {tableNumber} — {stakesText} ({seatsFilled}/{seatsTotal} seats, {waitlistCount} waiting)
-                      </option>
-                    );
-                  })}
-                </select>
+                    if (existing) {
+                      existing.tableCount++;
+                      existing.totalSeats += seatsTotal;
+                      existing.totalSeated += seatsFilled;
+                      existing.totalWaiting += waitlistCount;
+                    } else {
+                      groups.set(groupKey, { gameType, stakes, tableCount: 1, totalSeats: seatsTotal, totalSeated: seatsFilled, totalWaiting: waitlistCount });
+                    }
+                  }
+                  if (groups.size === 0) {
+                    return <div className="info-badge">No active tables. Add tables in the admin panel first.</div>;
+                  }
+                  return Array.from(groups.entries()).map(([key, group]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className={`game-type-btn ${selectedGameType === key ? 'active' : ''}`}
+                      onClick={() => setSelectedGameType(key)}
+                    >
+                      <span className="game-type-name">{group.gameType} {group.stakes}</span>
+                      <span className="game-type-info">
+                        {group.tableCount} table{group.tableCount !== 1 ? 's' : ''} · {group.totalSeated}/{group.totalSeats} seats · {group.totalWaiting} waiting
+                      </span>
+                    </button>
+                  ));
+                })()}
               </div>
-            )}
-
-            {/* Multi-Table Waitlist Toggle */}
-            {(
-              <div className="form-section">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    checked={isMultiTableMode}
-                    onChange={(e) => {
-                      setIsMultiTableMode(e.target.checked);
-                      if (!e.target.checked) {
-                        setAdditionalTableIds([]);
-                      }
-                    }}
-                  />
-                  <span>Also add to other table waitlists</span>
-                </label>
-              </div>
-            )}
-
-            {/* Additional Tables Selection */}
-            {isMultiTableMode && (
-              <div className="form-section" ref={multiTableRef}>
-                <label className="form-label">Additional Waitlists</label>
-                <div className="multi-table-select">
-                  {(enrichedTables.length > 0 ? enrichedTables : tableList)
-                    .filter(table => table.id !== selectedTableId)
-                    .map((table) => {
-                      const seatsFilled = table.seatsFilled ?? 0;
-                      const waitlistCount = table.waitlistCount ?? 0;
-                      const tableNumber = table.table_number ?? (table as any).tableNumber;
-                      const stakesText = table.stakes_text ?? (table as any).stakesText;
-                      const seatsTotal = (table as any).seatsTotal ?? table.seats_total ?? 9;
-                      const isSelected = additionalTableIds.includes(table.id);
-                      return (
-                        <label key={table.id} className="multi-table-option">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                setAdditionalTableIds(prev => [...prev, table.id]);
-                              } else {
-                                setAdditionalTableIds(prev => prev.filter(id => id !== table.id));
-                              }
-                            }}
-                          />
-                          <span className={`multi-table-label ${seatsFilled >= seatsTotal ? 'full' : ''}`}>
-                            Table {tableNumber} — {stakesText} ({seatsFilled}/{seatsTotal}, {waitlistCount} waiting)
-                          </span>
-                        </label>
-                      );
-                    })}
-                </div>
-                {additionalTableIds.length > 0 && (
-                  <div className="multi-table-summary">
-                    Will also waitlist at {additionalTableIds.length} additional table{additionalTableIds.length > 1 ? 's' : ''}
-                  </div>
-                )}
-              </div>
-            )}
+            </div>
 
             {/* Error Message */}
             {error && (
@@ -1018,7 +797,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
             <button 
               type="submit" 
               form="checkin-form"
-              disabled={loading || nick.trim().length < 2 || !selectedTableId || !nick.trim()}
+              disabled={loading || nick.trim().length < 2 || !selectedGameType || !nick.trim()}
               className="submit-btn"
             >
               {loading ? 'Processing...' : playerNotFound ? `Create & Sign In "${nick.trim()}"` : 'Sign In Player'}

@@ -2868,9 +2868,11 @@ function TableCard({
               });
             }
             
-            // Step 5: Clean up TC list entry (player is being seated, TC is complete)
+            // Step 5: Check if player is a TC (table change) before cleaning up
+            let wasTC = false;
             try {
               const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+              wasTC = tcList.some((entry: any) => entry.playerId === playerId);
               const cleaned = tcList.filter((entry: any) => entry.playerId !== playerId);
               localStorage.setItem('tc-list', JSON.stringify(cleaned));
             } catch {}
@@ -2911,8 +2913,23 @@ function TableCard({
               ? seatPlayer(targetTableId, playerId, clubDayId)
               : seatCalledInPlayer(targetTableId, playerId, clubDayId, amount, adminUser);
             seatPromise
-              .then(() => {
+              .then(async () => {
                 log('✅ Server confirmed seat operation');
+
+                // Auto-remove from other waitlists if NOT a table change (TC)
+                if (!wasTC) {
+                  try {
+                    const removedCount = await removePlayerFromAllWaitlists(playerId, clubDayId);
+                    if (removedCount > 0) {
+                      log(`Removed ${playerData?.nick || playerId} from ${removedCount} other waitlist(s) after seating`);
+                    }
+                  } catch (err) {
+                    logWarn('Failed to auto-remove from other waitlists:', err);
+                  }
+                } else {
+                  log('Player was a TC — keeping other waitlist entries');
+                }
+
                 // NOW set localStorage and refresh - server has processed
                 localStorage.setItem('player-updated', new Date().toISOString());
                 // Refresh to replace optimistic entry with real server data
