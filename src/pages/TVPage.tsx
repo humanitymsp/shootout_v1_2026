@@ -620,7 +620,6 @@ export default function TVPage() {
             </>
           ) : highHand && (
             <>
-              <div className="tv-hh-icon">🃏</div>
               <div className="tv-hh-content">
                 <div className="tv-hh-label">CURRENT HIGH HAND</div>
                 <div className="tv-hh-player">
