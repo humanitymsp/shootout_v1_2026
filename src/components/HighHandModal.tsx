@@ -12,8 +12,9 @@ import {
   getRemainingTimeMs,
   isRoundExpired,
 } from '../lib/highHand';
-import type { HighHand, HighHandWinner } from '../lib/highHand';
+import type { HighHand, HighHandWinner, CardCode } from '../lib/highHand';
 import type { Player } from '../types';
+import PlayingCard, { CardPicker } from './PlayingCard';
 import { showToast } from './Toast';
 import { log } from '../lib/logger';
 import './HighHandModal.css';
@@ -43,6 +44,7 @@ export default function HighHandModal({ onClose }: HighHandModalProps) {
   const [handDescription, setHandDescription] = useState('');
   const [tableNumber, setTableNumber] = useState('');
   const [customDuration, setCustomDuration] = useState('60'); // minutes
+  const [selectedCards, setSelectedCards] = useState<CardCode[]>([]);
 
   // Countdown timer
   useEffect(() => {
@@ -97,6 +99,7 @@ export default function HighHandModal({ onClose }: HighHandModalProps) {
       const updated = updateCurrentHand(playerName, handDescription.trim(), {
         playerId: selectedPlayer?.id,
         tableNumber: tNum,
+        cards: selectedCards.length > 0 ? selectedCards : undefined,
       });
       if (updated) {
         setCurrentHand(updated);
@@ -109,6 +112,7 @@ export default function HighHandModal({ onClose }: HighHandModalProps) {
         playerId: selectedPlayer?.id,
         tableNumber: tNum,
         durationMs,
+        cards: selectedCards.length > 0 ? selectedCards : undefined,
       });
       setCurrentHand(hand);
       setRemaining(durationMs);
@@ -121,6 +125,7 @@ export default function HighHandModal({ onClose }: HighHandModalProps) {
     setSelectedPlayer(null);
     setHandDescription('');
     setTableNumber('');
+    setSelectedCards([]);
     setSearchResults([]);
   };
 
@@ -185,6 +190,11 @@ export default function HighHandModal({ onClose }: HighHandModalProps) {
                   <div className="hh-current-details">
                     <div className="hh-current-player">{currentHand.playerName}</div>
                     <div className="hh-current-hand">{currentHand.handDescription}</div>
+                    {currentHand.cards && currentHand.cards.length > 0 && (
+                      <div className="hh-current-cards">
+                        {currentHand.cards.map(c => <PlayingCard key={c} card={c} size="sm" />)}
+                      </div>
+                    )}
                     {currentHand.tableNumber && (
                       <div className="hh-current-table">Table {currentHand.tableNumber}</div>
                     )}
@@ -250,6 +260,8 @@ export default function HighHandModal({ onClose }: HighHandModalProps) {
                     className="hh-input"
                   />
                 </div>
+
+                <CardPicker selected={selectedCards} onChange={setSelectedCards} maxCards={5} />
 
                 <div className="hh-form-row">
                   <div className="hh-form-field hh-form-field-small">

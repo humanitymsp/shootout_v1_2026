@@ -114,6 +114,12 @@
   margin-top: 2px;
 }
 
+.hh-current-cards {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+}
+
 .hh-current-table {
   font-size: 0.82rem;
   color: rgba(255, 255, 255, 0.5);

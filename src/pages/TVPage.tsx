@@ -9,6 +9,7 @@ import type { HighHand, HighHandWinner } from '../lib/highHand';
 import { getPersistentTables } from '../lib/persistentTables';
 import type { ClubDay, PokerTable, TableSeat, TableWaitlist } from '../types';
 import Logo from '../components/Logo';
+import PlayingCard from '../components/PlayingCard';
 import './TVPage.css';
 
 const client = generateClient();
@@ -616,6 +617,11 @@ export default function TVPage() {
                 <div className="tv-hh-player">{recentWinner.playerName}</div>
                 <div className="tv-hh-hand">{recentWinner.handDescription}</div>
               </div>
+              {recentWinner.cards && recentWinner.cards.length > 0 && (
+                <div className="tv-hh-cards">
+                  {recentWinner.cards.map(c => <PlayingCard key={c} card={c} size="tv" />)}
+                </div>
+              )}
               <div className="tv-hh-trophy">🏆</div>
             </>
           ) : highHand && (
@@ -628,6 +634,11 @@ export default function TVPage() {
                 </div>
                 <div className="tv-hh-hand">{highHand.handDescription}</div>
               </div>
+              {highHand.cards && highHand.cards.length > 0 && (
+                <div className="tv-hh-cards">
+                  {highHand.cards.map(c => <PlayingCard key={c} card={c} size="tv" />)}
+                </div>
+              )}
               <div className="tv-hh-clock">
                 <div className="tv-hh-clock-label">{highHandRemaining <= 0 ? 'TIME UP' : 'Time Left'}</div>
                 <div className={`tv-hh-clock-value ${highHandRemaining <= 0 ? 'expired' : highHandRemaining < 300000 ? 'warning' : ''}`}>

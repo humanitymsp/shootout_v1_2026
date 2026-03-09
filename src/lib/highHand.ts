@@ -6,10 +6,16 @@
  * holder is declared the winner and a new round can be started.
  */
 
+// Card representation: rank + suit, e.g. "As" = Ace of spades, "Th" = Ten of hearts
+// Ranks: 2,3,4,5,6,7,8,9,T,J,Q,K,A
+// Suits: s(spades), h(hearts), d(diamonds), c(clubs)
+export type CardCode = string; // e.g. "As", "Kh", "Td"
+
 export interface HighHand {
   playerName: string;
   playerId?: string;
   handDescription: string;      // e.g. "Aces Full of Kings", "Quad Jacks"
+  cards?: CardCode[];           // up to 5 cards, e.g. ["As","Ks","Qs","Js","Ts"]
   tableNumber?: number;
   roundStartTime: string;       // ISO timestamp — when this hour started
   roundDurationMs: number;      // default 3600000 (1 hour)
@@ -20,6 +26,7 @@ export interface HighHand {
 export interface HighHandWinner {
   playerName: string;
   handDescription: string;
+  cards?: CardCode[];
   tableNumber?: number;
   wonAt: string;                // ISO timestamp
 }
@@ -84,12 +91,13 @@ export function addHighHandWinner(winner: HighHandWinner): void {
 export function startNewRound(
   playerName: string,
   handDescription: string,
-  options?: { playerId?: string; tableNumber?: number; durationMs?: number }
+  options?: { playerId?: string; tableNumber?: number; durationMs?: number; cards?: CardCode[] }
 ): HighHand {
   const now = new Date().toISOString();
   const hand: HighHand = {
     playerName,
     handDescription,
+    cards: options?.cards,
     playerId: options?.playerId,
     tableNumber: options?.tableNumber,
     roundStartTime: now,
@@ -107,7 +115,7 @@ export function startNewRound(
 export function updateCurrentHand(
   playerName: string,
   handDescription: string,
-  options?: { playerId?: string; tableNumber?: number }
+  options?: { playerId?: string; tableNumber?: number; cards?: CardCode[] }
 ): HighHand | null {
   const current = getHighHand();
   if (!current) return null;
@@ -116,6 +124,7 @@ export function updateCurrentHand(
     ...current,
     playerName,
     handDescription,
+    cards: options?.cards,
     playerId: options?.playerId,
     tableNumber: options?.tableNumber,
     assignedAt: new Date().toISOString(),
@@ -135,6 +144,7 @@ export function declareWinner(): HighHandWinner | null {
   const winner: HighHandWinner = {
     playerName: current.playerName,
     handDescription: current.handDescription,
+    cards: current.cards,
     tableNumber: current.tableNumber,
     wonAt: new Date().toISOString(),
   };

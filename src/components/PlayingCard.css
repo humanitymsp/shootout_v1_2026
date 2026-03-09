@@ -1,0 +1,145 @@
+/* Playing Card Component */
+.playing-card {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.playing-card-sm {
+  width: 32px;
+  height: 44px;
+  font-size: 0.75rem;
+  border-radius: 4px;
+  gap: 1px;
+}
+
+.playing-card-md {
+  width: 42px;
+  height: 58px;
+  font-size: 1rem;
+  gap: 2px;
+}
+
+.playing-card-lg {
+  width: 56px;
+  height: 78px;
+  font-size: 1.3rem;
+  gap: 2px;
+}
+
+.playing-card-tv {
+  width: 52px;
+  height: 72px;
+  font-size: 1.2rem;
+  gap: 2px;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+}
+
+.playing-card-rank {
+  font-weight: 900;
+}
+
+.playing-card-suit {
+  font-size: 0.85em;
+}
+
+.playing-card-sm .playing-card-suit { font-size: 0.8em; }
+.playing-card-tv .playing-card-rank { font-size: 1.4rem; font-weight: 900; }
+.playing-card-tv .playing-card-suit { font-size: 1.1rem; }
+
+/* Card Picker — admin modal */
+.card-picker {
+  margin-bottom: 10px;
+}
+
+.card-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.card-picker-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.card-picker-clear {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.card-picker-clear:hover {
+  text-decoration: underline;
+}
+
+.card-picker-selected {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  justify-content: center;
+}
+
+.card-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card-picker-suit-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.card-picker-suit-label {
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.card-picker-btn {
+  width: 30px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+
+.card-picker-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.card-picker-btn.active {
+  border-color: transparent;
+  font-weight: 800;
+}
+
+.card-picker-btn:disabled:not(.active) {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

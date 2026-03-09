@@ -2124,6 +2124,12 @@
   color: #fef3c7;
 }
 
+.tv-hh-cards {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .tv-hh-clock {
   text-align: center;
   min-width: 100px;
