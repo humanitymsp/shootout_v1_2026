@@ -15,6 +15,11 @@ const SUIT_COLOR: Record<string, string> = {
   s: '#1e293b', h: '#dc2626', d: '#2563eb', c: '#15803d',
 };
 
+// Lighter suit colors for picker buttons on dark backgrounds
+const SUIT_COLOR_LIGHT: Record<string, string> = {
+  s: '#cbd5e1', h: '#f87171', d: '#60a5fa', c: '#4ade80',
+};
+
 interface PlayingCardProps {
   card: CardCode;
   size?: 'sm' | 'md' | 'lg' | 'tv';
@@ -77,7 +82,7 @@ export function CardPicker({ selected, onChange, maxCards = 5 }: CardPickerProps
       <div className="card-picker-grid">
         {SUITS.map(suit => (
           <div key={suit} className="card-picker-suit-row">
-            <span className="card-picker-suit-label" style={{ color: SUIT_COLOR[suit] }}>
+            <span className="card-picker-suit-label" style={{ color: SUIT_COLOR_LIGHT[suit] }}>
               {SUIT_SYMBOL[suit]}
             </span>
             {RANKS.map(rank => {
@@ -88,7 +93,7 @@ export function CardPicker({ selected, onChange, maxCards = 5 }: CardPickerProps
                   key={code}
                   type="button"
                   className={`card-picker-btn ${isSelected ? 'active' : ''}`}
-                  style={isSelected ? { background: SUIT_COLOR[suit], color: '#fff' } : { color: SUIT_COLOR[suit] }}
+                  style={isSelected ? { background: SUIT_COLOR_LIGHT[suit], color: '#000' } : { color: SUIT_COLOR_LIGHT[suit] }}
                   onClick={() => toggle(code)}
                   disabled={!isSelected && selected.length >= maxCards}
                 >
