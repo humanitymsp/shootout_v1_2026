@@ -2008,3 +2008,163 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ========================================
+   HIGH HAND BANNER — bottom of TV screen
+   ======================================== */
+
+.tv-high-hand-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 32px;
+  background: linear-gradient(90deg, rgba(15, 22, 41, 0.95) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 22, 41, 0.95) 100%);
+  border-top: 2px solid rgba(245, 158, 11, 0.5);
+  z-index: 100;
+  animation: tv-hh-slide-up 0.5s ease-out;
+}
+
+@keyframes tv-hh-slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.tv-high-hand-banner.tv-hh-winner {
+  background: linear-gradient(90deg, rgba(120, 80, 0, 0.95) 0%, rgba(180, 120, 0, 0.9) 50%, rgba(120, 80, 0, 0.95) 100%);
+  border-top-color: #fbbf24;
+  animation: tv-hh-slide-up 0.5s ease-out, tv-hh-winner-glow 2s ease-in-out infinite;
+}
+
+@keyframes tv-hh-winner-glow {
+  0%, 100% { border-top-color: #fbbf24; box-shadow: 0 -4px 20px rgba(251, 191, 36, 0.2); }
+  50% { border-top-color: #f59e0b; box-shadow: 0 -4px 30px rgba(245, 158, 11, 0.4); }
+}
+
+.tv-high-hand-banner.tv-hh-expired {
+  border-top-color: rgba(239, 68, 68, 0.6);
+  animation: tv-hh-slide-up 0.5s ease-out, tv-hh-expired-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tv-hh-expired-pulse {
+  0%, 100% { border-top-color: rgba(239, 68, 68, 0.4); }
+  50% { border-top-color: rgba(239, 68, 68, 0.9); }
+}
+
+.tv-high-hand-banner.tv-hh-warning {
+  border-top-color: rgba(239, 68, 68, 0.5);
+}
+
+.tv-hh-icon,
+.tv-hh-trophy {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.tv-hh-trophy {
+  animation: tv-hh-bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes tv-hh-bounce {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.tv-hh-content {
+  text-align: center;
+  flex: 0 1 auto;
+}
+
+.tv-hh-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #f59e0b;
+  margin-bottom: 2px;
+}
+
+.tv-hh-winner .tv-hh-label {
+  color: #fef3c7;
+  font-size: 0.85rem;
+}
+
+.tv-hh-player {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.tv-hh-winner .tv-hh-player {
+  font-size: 1.8rem;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.tv-hh-table {
+  font-weight: 400;
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tv-hh-hand {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 1px;
+}
+
+.tv-hh-winner .tv-hh-hand {
+  font-size: 1.3rem;
+  color: #fef3c7;
+}
+
+.tv-hh-clock {
+  text-align: center;
+  min-width: 100px;
+}
+
+.tv-hh-clock-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 2px;
+}
+
+.tv-hh-clock-value {
+  font-family: 'Roboto Mono', 'Courier New', monospace;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #f59e0b;
+  line-height: 1;
+}
+
+.tv-hh-clock-value.warning {
+  color: #ef4444;
+  animation: tv-hh-clock-blink 1s ease-in-out infinite;
+}
+
+.tv-hh-clock-value.expired {
+  color: #ef4444;
+}
+
+@keyframes tv-hh-clock-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Responsive — smaller screens */
+@media (max-width: 1280px) {
+  .tv-hh-player { font-size: 1.2rem; }
+  .tv-hh-winner .tv-hh-player { font-size: 1.4rem; }
+  .tv-hh-hand { font-size: 0.95rem; }
+  .tv-hh-clock-value { font-size: 1.6rem; }
+  .tv-hh-icon, .tv-hh-trophy { font-size: 1.8rem; }
+  .tv-high-hand-banner { padding: 10px 20px; gap: 16px; }
+}

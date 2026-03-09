@@ -25,6 +25,7 @@ interface AdminHeaderProps {
   onRecoverState?: () => void;
   onCashRecon?: () => void;
   onSMSSettings?: () => void;
+  onHighHand?: () => void;
 }
 
 export default function AdminHeader(props: AdminHeaderProps) {
@@ -46,6 +47,7 @@ export default function AdminHeader(props: AdminHeaderProps) {
     onRecoverState,
     onCashRecon,
     onSMSSettings,
+    onHighHand,
   } = props;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showManagementMenu, setShowManagementMenu] = useState(false);
@@ -110,6 +112,13 @@ export default function AdminHeader(props: AdminHeaderProps) {
                     Refund
                   </button>
                 </Tooltip>
+                {onHighHand && (
+                  <Tooltip content="Manage hourly high hand promotion">
+                    <button className="btn-secondary btn-high-hand" onClick={onHighHand}>
+                      🃏 High Hand
+                    </button>
+                  </Tooltip>
+                )}
               </div>
             </div>
 

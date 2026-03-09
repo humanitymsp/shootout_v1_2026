@@ -33,6 +33,7 @@ import BulkBustOutModal from '../components/BulkBustOutModal';
 import BustedPlayersModal from '../components/BustedPlayersModal';
 import QRCodeModal from '../components/QRCodeModal';
 import SMSSettingsModal from '../components/SMSSettingsModal';
+import HighHandModal from '../components/HighHandModal';
 import { showToast } from '../components/Toast';
 import '../components/AddTableModal.css';
 import { log, logWarn, logError } from '../lib/logger';
@@ -97,6 +98,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   const [showBulkBustOut, setShowBulkBustOut] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [showSMSSettings, setShowSMSSettings] = useState(false);
+  const [showHighHand, setShowHighHand] = useState(false);
   const [showBustedPlayers, setShowBustedPlayers] = useState(false);
   const [pendingSignups, setPendingSignups] = useState<PendingSignup[]>([]);
   const dismissedTokensRef = useRef<Set<string>>(new Set());
@@ -961,6 +963,7 @@ export default function AdminPage({ user }: AdminPageProps) {
           onPurgeOldPlayers={isPurgingPlayers ? undefined : handlePurgeOldPlayers}
           onRecoverState={isRecoveringPlayers ? undefined : handleRecoverPlayers}
           onSMSSettings={() => setShowSMSSettings(true)}
+          onHighHand={() => setShowHighHand(true)}
         />
 
       {/* Dashboard Summary Bar */}
@@ -1562,6 +1565,12 @@ export default function AdminPage({ user }: AdminPageProps) {
       {showSMSSettings && (
         <SMSSettingsModal
           onClose={() => setShowSMSSettings(false)}
+        />
+      )}
+
+      {showHighHand && (
+        <HighHandModal
+          onClose={() => setShowHighHand(false)}
         />
       )}
 
