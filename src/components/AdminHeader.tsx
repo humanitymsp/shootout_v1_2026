@@ -26,6 +26,8 @@ interface AdminHeaderProps {
   onCashRecon?: () => void;
   onSMSSettings?: () => void;
   onHighHand?: () => void;
+  highHandVisible?: boolean;
+  onToggleHighHandVisible?: () => void;
 }
 
 export default function AdminHeader(props: AdminHeaderProps) {
@@ -48,6 +50,8 @@ export default function AdminHeader(props: AdminHeaderProps) {
     onCashRecon,
     onSMSSettings,
     onHighHand,
+    highHandVisible,
+    onToggleHighHandVisible,
   } = props;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showManagementMenu, setShowManagementMenu] = useState(false);
@@ -112,7 +116,7 @@ export default function AdminHeader(props: AdminHeaderProps) {
                     Refund
                   </button>
                 </Tooltip>
-                {onHighHand && (
+                {onHighHand && highHandVisible && (
                   <Tooltip content="Manage hourly high hand promotion">
                     <button className="btn-secondary btn-high-hand" onClick={onHighHand}>
                       🃏 High Hand
@@ -207,6 +211,11 @@ export default function AdminHeader(props: AdminHeaderProps) {
                   {onSMSSettings && (
                     <button className="management-menu-item" onClick={() => { onSMSSettings!(); setShowManagementMenu(false); }}>
                       📱 SMS Settings
+                    </button>
+                  )}
+                  {onToggleHighHandVisible && (
+                    <button className="management-menu-item" onClick={() => { onToggleHighHandVisible(); setShowManagementMenu(false); }}>
+                      🃏 {highHandVisible ? 'Hide' : 'Show'} High Hand
                     </button>
                   )}
                   <button className="management-menu-item" onClick={() => { onShowKnowledgeBase(); setShowManagementMenu(false); }}>

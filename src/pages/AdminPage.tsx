@@ -99,6 +99,9 @@ export default function AdminPage({ user }: AdminPageProps) {
   const [showQRCode, setShowQRCode] = useState(false);
   const [showSMSSettings, setShowSMSSettings] = useState(false);
   const [showHighHand, setShowHighHand] = useState(false);
+  const [highHandVisible, setHighHandVisible] = useState(() => {
+    return localStorage.getItem('high-hand-feature-visible') !== 'false';
+  });
   const [showBustedPlayers, setShowBustedPlayers] = useState(false);
   const [pendingSignups, setPendingSignups] = useState<PendingSignup[]>([]);
   const dismissedTokensRef = useRef<Set<string>>(new Set());
@@ -964,6 +967,12 @@ export default function AdminPage({ user }: AdminPageProps) {
           onRecoverState={isRecoveringPlayers ? undefined : handleRecoverPlayers}
           onSMSSettings={() => setShowSMSSettings(true)}
           onHighHand={() => setShowHighHand(true)}
+          highHandVisible={highHandVisible}
+          onToggleHighHandVisible={() => {
+            const next = !highHandVisible;
+            setHighHandVisible(next);
+            localStorage.setItem('high-hand-feature-visible', next ? 'true' : 'false');
+          }}
         />
 
       {/* Dashboard Summary Bar */}
