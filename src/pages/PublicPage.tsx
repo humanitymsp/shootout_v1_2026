@@ -46,9 +46,13 @@ import { getPersistentTables } from '../lib/persistentTables';
 import { createPendingSignup } from '../lib/pendingSignups';
 import { validatePhoneNumber } from '../lib/sms';
 import { log, logWarn, logError } from '../lib/logger';
+import { getHighHand, isHighHandEnabled, getRemainingTimeMs, getHighHandWinners } from '../lib/highHand';
+import type { HighHand, HighHandWinner } from '../lib/highHand';
 import type { ClubDay, PokerTable, TableSeat, TableWaitlist } from '../types';
 import Logo from '../components/Logo';
+import PlayingCard from '../components/PlayingCard';
 import './PublicPage.css';
+import '../components/HighHandBanner.css';
 
 const client = generateClient();
 
@@ -74,6 +78,10 @@ export default function PublicPage() {
   const [signupError, setSignupError] = useState('');
   const [signupSuccess, setSignupSuccess] = useState('');
   const [signupLoading, setSignupLoading] = useState(false);
+  const [highHand, setHighHand] = useState<HighHand | null>(getHighHand());
+  const [highHandEnabled, setHighHandEnabled] = useState(isHighHandEnabled());
+  const [highHandRemaining, setHighHandRemaining] = useState(getRemainingTimeMs());
+  const [recentWinner, setRecentWinner] = useState<HighHandWinner | null>(null);
 
 
   useEffect(() => {
@@ -107,13 +115,62 @@ export default function PublicPage() {
   }, [clubDay]);
 
   useEffect(() => {
-    // Update clock every second
+    // Update clock every second + high hand countdown
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
+      if (highHandEnabled) {
+        setHighHandRemaining(getRemainingTimeMs());
+      }
     }, 1000);
 
     return () => clearInterval(clockInterval);
-  }, []);
+  }, [highHandEnabled]);
+
+  // Listen for high hand updates
+  useEffect(() => {
+    const handleHHUpdate = (e: StorageEvent) => {
+      if (e.key === 'high-hand-updated') {
+        const hand = getHighHand();
+        const nowEnabled = isHighHandEnabled();
+        if (highHand && !hand && nowEnabled) {
+          const winners = getHighHandWinners();
+          if (winners.length > 0) {
+            setRecentWinner(winners[0]);
+            setTimeout(() => setRecentWinner(null), 30000);
+          }
+        }
+        setHighHandEnabled(nowEnabled);
+        setHighHand(hand);
+        if (hand) setHighHandRemaining(getRemainingTimeMs());
+      }
+    };
+    window.addEventListener('storage', handleHHUpdate);
+
+    let lastHHUpdate = localStorage.getItem('high-hand-updated');
+    const pollHH = setInterval(() => {
+      const current = localStorage.getItem('high-hand-updated');
+      if (current !== lastHHUpdate) {
+        lastHHUpdate = current;
+        const hand = getHighHand();
+        const nowEnabled = isHighHandEnabled();
+        if (highHand && !hand && nowEnabled) {
+          const winners = getHighHandWinners();
+          if (winners.length > 0) {
+            setRecentWinner(winners[0]);
+            setTimeout(() => setRecentWinner(null), 30000);
+          }
+        }
+        setHighHandEnabled(nowEnabled);
+        setHighHand(hand);
+        if (hand) setHighHandRemaining(getRemainingTimeMs());
+      }
+    }, 500);
+
+    return () => {
+      window.removeEventListener('storage', handleHHUpdate);
+      clearInterval(pollHH);
+    };
+  }, [highHand, highHandEnabled]);
 
   useEffect(() => {
     // ⚠️ CRITICAL: Multi-channel real-time update system
@@ -701,6 +758,56 @@ export default function PublicPage() {
           );
         })()}
       </div>
+
+      {/* High Hand Banner */}
+      {highHandEnabled && (highHand || recentWinner) && (
+        <div className={`tv-high-hand-banner ${recentWinner ? 'tv-hh-winner' : highHandRemaining <= 0 ? 'tv-hh-expired' : highHandRemaining < 300000 ? 'tv-hh-warning' : ''}`}>
+          {recentWinner ? (
+            <>
+              <div className="tv-hh-trophy">🏆</div>
+              <div className="tv-hh-content">
+                <div className="tv-hh-label">HIGH HAND WINNER</div>
+                <div className="tv-hh-player">{recentWinner.playerName}</div>
+                <div className="tv-hh-hand">{recentWinner.handDescription}</div>
+              </div>
+              {recentWinner.cards && recentWinner.cards.length > 0 && (
+                <div className="tv-hh-cards">
+                  {recentWinner.cards.map(c => <PlayingCard key={c} card={c} size="sm" />)}
+                </div>
+              )}
+              <div className="tv-hh-trophy">🏆</div>
+            </>
+          ) : highHand && (
+            <>
+              <div className="tv-hh-content">
+                <div className="tv-hh-label">CURRENT HIGH HAND</div>
+                <div className="tv-hh-player">
+                  {highHand.playerName}
+                  {highHand.tableNumber ? <span className="tv-hh-table"> — Table {highHand.tableNumber}</span> : null}
+                </div>
+                <div className="tv-hh-hand">{highHand.handDescription}</div>
+              </div>
+              {highHand.cards && highHand.cards.length > 0 && (
+                <div className="tv-hh-cards">
+                  {highHand.cards.map(c => <PlayingCard key={c} card={c} size="sm" />)}
+                </div>
+              )}
+              <div className="tv-hh-clock">
+                <div className="tv-hh-clock-label">{highHandRemaining <= 0 ? 'TIME UP' : 'Time Left'}</div>
+                <div className={`tv-hh-clock-value ${highHandRemaining <= 0 ? 'expired' : highHandRemaining < 300000 ? 'warning' : ''}`}>
+                  {(() => {
+                    if (highHandRemaining <= 0) return '00:00';
+                    const totalSec = Math.floor(highHandRemaining / 1000);
+                    const m = Math.floor(totalSec / 60);
+                    const s = totalSec % 60;
+                    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+                  })()}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

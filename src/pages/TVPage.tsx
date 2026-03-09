@@ -11,6 +11,7 @@ import type { ClubDay, PokerTable, TableSeat, TableWaitlist } from '../types';
 import Logo from '../components/Logo';
 import PlayingCard from '../components/PlayingCard';
 import './TVPage.css';
+import '../components/HighHandBanner.css';
 
 const client = generateClient();
 
