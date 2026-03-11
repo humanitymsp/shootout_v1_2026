@@ -1229,8 +1229,11 @@
 
 /* Game Type Waitlist Lobby */
 .tablet-game-lobby {
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--admin-border);
+  max-height: 50vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tablet-game-lobby-title {
@@ -1244,15 +1247,15 @@
 
 .tablet-game-lobby-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.5rem;
 }
 
 .tablet-game-lobby-card {
   background: var(--admin-surface-elevated);
   border: 1px solid var(--admin-border);
   border-radius: 10px;
-  padding: 0.75rem;
+  padding: 0.5rem 0.6rem;
   transition: all 0.2s ease;
 }
 
@@ -1275,15 +1278,15 @@
 .tablet-game-lobby-waitlist {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  max-height: 300px;
+  gap: 0.2rem;
+  max-height: 30vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
 .tablet-game-lobby-waitlist .tablet-player-item {
-  padding: 0.5rem 0.6rem;
-  font-size: 0.85rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.8rem;
 }
 
 .tablet-game-lobby-waitlist .tablet-empty-state {
