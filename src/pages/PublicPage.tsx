@@ -542,12 +542,12 @@ export default function PublicPage() {
                 return sortedGroups.map(({ gameType, stakes, displays }) => {
                   const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
-                  // Collect all waitlist players, sort by added_at (earliest first, newest at bottom)
+                  // Collect all waitlist players, sort by position for consistent ordering across all views
                   const allWaitlistEntries: typeof displays[0]['waitlistPlayers'] = [];
                   displays.forEach(d => {
                     d.waitlistPlayers.forEach(wl => allWaitlistEntries.push(wl));
                   });
-                  allWaitlistEntries.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
+                  allWaitlistEntries.sort((a, b) => (a.position || 0) - (b.position || 0));
                   const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
                   const seenPlayerIds = new Set<string>();
                   allWaitlistEntries.forEach(wl => {

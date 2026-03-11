@@ -1849,8 +1849,9 @@ export async function getWaitlistForTable(tableId: string, clubDayId?: string, a
   if (authMode) listOpts.authMode = authMode;
   const { data } = await getClient().models.TableWaitlist.list(listOpts);
   
-  // Convert to TableWaitlist format
-  const waitlist = (data || []).map(toTableWaitlist);
+  // Convert to TableWaitlist format and sort by position for consistent ordering across all views
+  const waitlist: TableWaitlist[] = (data || []).map(toTableWaitlist);
+  waitlist.sort((a, b) => (a.position || 0) - (b.position || 0));
   
   // Enrich with player data from localStorage (faster than backend lookup)
   try {
