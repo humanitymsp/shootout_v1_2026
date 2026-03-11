@@ -396,7 +396,7 @@ export default function AdminPage({ user }: AdminPageProps) {
         const filtered = fetched.filter(ps => ps.clubDayId === clubDay.id && !dismissedTokensRef.current.has(ps.token));
         setPendingSignups(filtered);
       }).catch(() => {});
-    }, 5000);
+    }, 3000); // 3s polling for near-realtime cross-device sync
 
     // Initial load of pending signups
     getPendingSignupsFromDB().then(fetched => {

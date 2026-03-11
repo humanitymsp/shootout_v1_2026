@@ -106,7 +106,7 @@ export default function PublicPage() {
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
       loadData();
-    }, 8000); // BroadcastChannel handles instant updates; this is a fallback
+    }, 3000); // 3s polling for near-realtime cross-device sync
 
     return () => {
       clearInterval(pollInterval);

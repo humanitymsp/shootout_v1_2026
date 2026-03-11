@@ -121,7 +121,7 @@ export default function TVPage() {
       // Skip polling if offline (will retry when online)
       if (isOffline) return;
       loadData();
-    }, 5000); // Slower polling - BroadcastChannel handles instant updates
+    }, 3000); // 3s polling for near-realtime cross-device sync
 
     return () => {
       clearInterval(pollInterval);
