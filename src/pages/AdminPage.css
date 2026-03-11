@@ -435,6 +435,80 @@
   margin: 0;
 }
 
+/* Admin FAB waitlist — side-by-side game-type panels */
+.admin-waitlist-fab-container {
+  position: fixed;
+  bottom: 4.5rem;
+  right: 1.5rem;
+  z-index: 1999;
+  display: flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  animation: popupSlideUp 0.18s ease-out;
+}
+
+.admin-waitlist-fab-panel {
+  width: 280px;
+  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.97);
+  border: 1px solid rgba(42, 58, 82, 0.8);
+  border-radius: 14px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(59, 130, 246, 0.1);
+  overflow: hidden;
+}
+
+.admin-waitlist-fab-panel-header {
+  flex-shrink: 0;
+  padding: 0.6rem 0.75rem;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.7) 100%);
+  border-bottom: 1px solid rgba(42, 58, 82, 0.6);
+}
+
+.admin-waitlist-fab-panel-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--admin-text, #f1f5f9);
+}
+
+.admin-waitlist-fab-panel-meta {
+  font-size: 0.6rem;
+  color: var(--admin-secondary, #94a3b8);
+  margin-top: 0.1rem;
+}
+
+.admin-waitlist-fab-panel-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.admin-waitlist-fab-panel-list::-webkit-scrollbar { width: 5px; }
+.admin-waitlist-fab-panel-list::-webkit-scrollbar-track { background: rgba(15,23,42,0.3); border-radius: 3px; }
+.admin-waitlist-fab-panel-list::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.35); border-radius: 3px; }
+
+.admin-fab-tc-badge {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.25);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+  margin-right: 0.3em;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.admin-fab-tc-player {
+  color: #fbbf24 !important;
+  font-weight: 700;
+}
+
 /* Needs Buy-In badge */
 .popup-needs-buyin-badge {
   background: rgba(251, 191, 36, 0.2);

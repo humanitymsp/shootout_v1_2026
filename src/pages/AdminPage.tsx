@@ -1640,11 +1640,31 @@ export default function AdminPage({ user }: AdminPageProps) {
         )}
       </div>
 
-      {/* Floating Players Popup — bottom-right FAB */}
+      {/* Floating Waitlist FAB — game-type panels */}
       {clubDay && (() => {
         const allWaitlist = Array.from(waitlistPlayersMap.values()).flat();
         const totalWaiting = allWaitlist.length;
         const totalBadge = totalWaiting + pendingSignups.length;
+
+        // Group active tables by game type + stakes
+        const gameTypeGroups = new Map<string, PokerTable[]>();
+        uniqueTables.filter(t => t.status !== 'CLOSED').forEach(t => {
+          const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
+          if (!gameTypeGroups.has(key)) gameTypeGroups.set(key, []);
+          gameTypeGroups.get(key)!.push(t);
+        });
+
+        // Build seated player IDs for TC detection
+        const seatedPlayerIds = new Set(
+          Array.from(seatedPlayersMap.values()).flat().map(s => s.player_id)
+        );
+        const tcPlayerIds = new Set<string>();
+        for (const [, wlist] of waitlistPlayersMap) {
+          for (const wl of wlist) {
+            if (seatedPlayerIds.has(wl.player_id)) tcPlayerIds.add(wl.player_id);
+          }
+        }
+
         return (
           <>
             {/* FAB button */}
@@ -1660,18 +1680,17 @@ export default function AdminPage({ user }: AdminPageProps) {
               )}
             </button>
 
-            {/* Popup panel */}
+            {/* Game-type waitlist panels */}
             {showPlayersPopup && (
-              <div className="players-popup">
-                <div className="players-popup-header">
-                  <div className="players-popup-title">Waitlist {totalWaiting > 0 && <span className="popup-tab-badge">{totalWaiting}</span>} {pendingSignups.length > 0 && <span className="popup-tab-badge popup-tab-badge-pending">{pendingSignups.length} pending</span>}</div>
-                </div>
-
-                <div className="players-popup-body">
-                  {/* Pending signups — awaiting SMS confirmation */}
-                  {pendingSignups.length > 0 && (
-                    <>
-                      <div className="popup-section-label popup-section-pending">📱 Pending Confirmation</div>
+              <div className="admin-waitlist-fab-container">
+                {/* Pending signups panel */}
+                {pendingSignups.length > 0 && (
+                  <div className="admin-waitlist-fab-panel">
+                    <div className="admin-waitlist-fab-panel-header">
+                      <div className="admin-waitlist-fab-panel-name">📱 Pending</div>
+                      <div className="admin-waitlist-fab-panel-meta">{pendingSignups.length} awaiting</div>
+                    </div>
+                    <div className="admin-waitlist-fab-panel-list">
                       {pendingSignups.map(ps => (
                         <div key={ps.token} className="popup-waitlist-item popup-waitlist-pending">
                           <div className="popup-waitlist-info">
@@ -1757,63 +1776,95 @@ export default function AdminPage({ user }: AdminPageProps) {
                           </div>
                         </div>
                       ))}
-                      {totalWaiting > 0 && <div className="popup-section-label">✅ Confirmed Waitlist</div>}
-                    </>
-                  )}
-                  {totalWaiting === 0 && pendingSignups.length === 0 ? (
-                    <div className="players-popup-empty">No players on waitlist</div>
-                  ) : (
-                    (Array.from(waitlistPlayersMap.entries()) as [string, TableWaitlist[]][]).flatMap(([tableId, wlist]) => {
-                      // Build set of seated player IDs to filter out stale waitlist entries
-                      const seatedPlayerIds = new Set(
-                        Array.from(seatedPlayersMap.values()).flat().map(s => s.player_id)
-                      );
-                      const filtered = wlist
-                        .filter((wl: TableWaitlist) => !seatedPlayerIds.has(wl.player_id))
-                        .filter((wl: TableWaitlist) => wl.club_day_id === clubDay.id);
-                      
-                      return filtered.map((wl: TableWaitlist) => {
-                        const table = uniqueTables.find((t: PokerTable) => t.id === tableId);
-                        const ciStatus = checkInStatusMap.get(wl.player_id);
-                        const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
-                        return (
-                          <div key={wl.id} className="popup-waitlist-item">
-                            <div className="popup-waitlist-info">
-                              <span className="popup-waitlist-name">
-                                <span className="popup-waitlist-name-text">{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
-                                {needsBuyIn && <span className="popup-needs-buyin-badge">Needs Buy-In</span>}
-                                {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="popup-previous-badge">Previous</span>}
-                                {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
-                              </span>
-                              <span className="popup-waitlist-meta">
-                                Table {table?.table_number ?? '?'} • #{wl.position ?? '?'}
-                              </span>
-                            </div>
-                            {needsBuyIn && (
-                              <button
-                                className="popup-buyin-btn"
-                                onClick={async () => {
-                                  let defaultAmount = 20;
-                                  try {
-                                    const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
-                                    if (checkIn?.door_fee_amount) defaultAmount = checkIn.door_fee_amount;
-                                  } catch { /* use default */ }
-                                  setBuyInModal({
-                                    entry: wl,
-                                    playerName: wl.player?.nick || wl.player?.name || 'Unknown',
-                                    defaultAmount,
-                                  });
-                                }}
-                              >
-                                Buy In
-                              </button>
-                            )}
-                          </div>
-                        );
-                      });
-                    })
-                  )}
-                </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Game-type panels */}
+                {Array.from(gameTypeGroups.entries()).map(([groupKey, gameTables]) => {
+                  const [gameType, stakes] = groupKey.split('||');
+                  const totalSeated = gameTables.reduce((sum, t) => sum + (seatedPlayersMap.get(t.id)?.length || 0), 0);
+                  const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 20), 0);
+
+                  // Merge waitlists from all tables of this game type, deduplicate by player_id
+                  const allEntries: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
+                  for (const t of gameTables) {
+                    const wlist = waitlistPlayersMap.get(t.id) || [];
+                    for (const wl of wlist) {
+                      if (wl.club_day_id === clubDay.id) {
+                        allEntries.push({ wl, tableId: t.id, tableNumber: t.table_number });
+                      }
+                    }
+                  }
+                  allEntries.sort((a, b) => (a.wl.position || 0) - (b.wl.position || 0));
+                  const seenPlayerIds = new Set<string>();
+                  const mergedWaitlist = allEntries.filter(({ wl }) => {
+                    if (seenPlayerIds.has(wl.player_id)) return false;
+                    seenPlayerIds.add(wl.player_id);
+                    return true;
+                  });
+
+                  return (
+                    <div key={groupKey} className="admin-waitlist-fab-panel">
+                      <div className="admin-waitlist-fab-panel-header">
+                        <div className="admin-waitlist-fab-panel-name">{gameType} {stakes}</div>
+                        <div className="admin-waitlist-fab-panel-meta">
+                          {gameTables.length} table{gameTables.length !== 1 ? 's' : ''} · {totalSeated}/{totalSeats} seated · {mergedWaitlist.length} waiting
+                        </div>
+                      </div>
+                      <div className="admin-waitlist-fab-panel-list">
+                        {mergedWaitlist.length === 0 ? (
+                          <div className="players-popup-empty">No players waiting</div>
+                        ) : (
+                          mergedWaitlist.map(({ wl, tableId }) => {
+                            const isTC = tcPlayerIds.has(wl.player_id);
+                            const ciStatus = checkInStatusMap.get(wl.player_id);
+                            const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
+                            return (
+                              <div key={wl.id} className="popup-waitlist-item">
+                                <div className="popup-waitlist-info">
+                                  <span className="popup-waitlist-name">
+                                    {isTC && <span className="admin-fab-tc-badge">TC</span>}
+                                    <span className={`popup-waitlist-name-text${isTC ? ' admin-fab-tc-player' : ''}`}>{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
+                                    {needsBuyIn && <span className="popup-needs-buyin-badge">Needs Buy-In</span>}
+                                    {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="popup-previous-badge">Previous</span>}
+                                    {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
+                                  </span>
+                                  <span className="popup-waitlist-meta">
+                                    #{wl.position ?? '?'}
+                                  </span>
+                                </div>
+                                {needsBuyIn && (
+                                  <button
+                                    className="popup-buyin-btn"
+                                    onClick={async () => {
+                                      let defaultAmount = 20;
+                                      try {
+                                        const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
+                                        if (checkIn?.door_fee_amount) defaultAmount = checkIn.door_fee_amount;
+                                      } catch { /* use default */ }
+                                      setBuyInModal({
+                                        entry: wl,
+                                        playerName: wl.player?.nick || wl.player?.name || 'Unknown',
+                                        defaultAmount,
+                                      });
+                                    }}
+                                  >
+                                    Buy In
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {totalWaiting === 0 && pendingSignups.length === 0 && gameTypeGroups.size === 0 && (
+                  <div className="players-popup-empty">No active tables</div>
+                )}
               </div>
             )}
           </>
