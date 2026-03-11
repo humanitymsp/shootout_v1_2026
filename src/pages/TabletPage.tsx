@@ -1162,66 +1162,64 @@ export default function TabletPage() {
                                 {wl.player?.nick || wl.player?.name || 'Unknown'}
                                 {wl.called_in && <span className="tablet-called-in">Called</span>}
                               </span>
-                              {(isHovered || isPlayerSelected) && (
-                                <div className="tablet-quick-actions" onClick={(e) => e.stopPropagation()}>
-                                  {(() => {
-                                    const tablesWithRoom = gameTables.filter(t => {
-                                      const d = tableData.get(t.id);
-                                      return d && d.seated.length < (t.seats_total || 20);
-                                    });
-                                    if (tablesWithRoom.length === 0) return null;
-                                    return (
-                                      <button
-                                        className="tablet-quick-action-btn tablet-quick-seat"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setSeatPickerModal({ wl, availableTables: tablesWithRoom, sourceGroupKey: groupKey });
-                                        }}
-                                        disabled={actionInProgress !== null}
-                                        title="Choose table to seat player"
-                                      >
-                                        Seat
-                                      </button>
-                                    );
-                                  })()}
-                                  <button
-                                    className="tablet-quick-action-btn tablet-quick-tc"
-                                    onClick={(e) => handleQuickTC(wl, tableId, e)}
-                                    disabled={actionInProgress !== null}
-                                    title="Table Change"
-                                  >
-                                    TC
-                                  </button>
-                                  <button
-                                    className="tablet-quick-action-btn tablet-quick-remove"
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      if (!clubDay) return;
-                                      setActionInProgress(wl.id);
-                                      try {
-                                        // Remove from ALL tables of this game type
-                                        for (const t of gameTables) {
-                                          const d = tableData.get(t.id);
-                                          const entry = d?.waitlist.find(w => w.player_id === wl.player_id);
-                                          if (entry) {
-                                            await removePlayerFromWaitlist(entry.id, adminUser);
-                                          }
+                              <div className="tablet-quick-actions" onClick={(e) => e.stopPropagation()}>
+                                {(() => {
+                                  const tablesWithRoom = gameTables.filter(t => {
+                                    const d = tableData.get(t.id);
+                                    return d && d.seated.length < (t.seats_total || 20);
+                                  });
+                                  if (tablesWithRoom.length === 0) return null;
+                                  return (
+                                    <button
+                                      className="tablet-quick-action-btn tablet-quick-seat"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSeatPickerModal({ wl, availableTables: tablesWithRoom, sourceGroupKey: groupKey });
+                                      }}
+                                      disabled={actionInProgress !== null}
+                                      title="Choose table to seat player"
+                                    >
+                                      Seat
+                                    </button>
+                                  );
+                                })()}
+                                <button
+                                  className="tablet-quick-action-btn tablet-quick-tc"
+                                  onClick={(e) => handleQuickTC(wl, tableId, e)}
+                                  disabled={actionInProgress !== null}
+                                  title="Table Change"
+                                >
+                                  TC
+                                </button>
+                                <button
+                                  className="tablet-quick-action-btn tablet-quick-remove"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!clubDay) return;
+                                    setActionInProgress(wl.id);
+                                    try {
+                                      // Remove from ALL tables of this game type
+                                      for (const t of gameTables) {
+                                        const d = tableData.get(t.id);
+                                        const entry = d?.waitlist.find(w => w.player_id === wl.player_id);
+                                        if (entry) {
+                                          await removePlayerFromWaitlist(entry.id, adminUser);
                                         }
-                                        showToast(`${wl.player?.nick || 'Player'} removed from waitlist`, 'success');
-                                        loadAllTableData();
-                                      } catch (err: any) {
-                                        showToast(err.message || 'Failed to remove', 'error');
-                                      } finally {
-                                        setActionInProgress(null);
                                       }
-                                    }}
-                                    disabled={actionInProgress !== null}
-                                    title="Remove from all waitlists"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              )}
+                                      showToast(`${wl.player?.nick || 'Player'} removed from waitlist`, 'success');
+                                      loadAllTableData();
+                                    } catch (err: any) {
+                                      showToast(err.message || 'Failed to remove', 'error');
+                                    } finally {
+                                      setActionInProgress(null);
+                                    }
+                                  }}
+                                  disabled={actionInProgress !== null}
+                                  title="Remove from all waitlists"
+                                >
+                                  ✕
+                                </button>
+                              </div>
                             </div>
                           );
                         })
