@@ -779,10 +779,102 @@ function TableCard({
         inFlightMovesRef.current.delete(playerId);
         return;
       }
+      // Previous player ($0 check-in): auto-seat without DoorFeeModal
+      if (checkIn.door_fee_amount === 0) {
+        autoSeatPreviousPlayer(firstWaitlistPlayer, table.id);
+        inFlightMovesRef.current.delete(playerId);
+        return;
+      }
       setDoorFeeModal({ player: firstWaitlistPlayer, playerName, defaultAmount });
       inFlightMovesRef.current.delete(playerId);
       return;
     }
+  };
+
+  const autoSeatPreviousPlayer = async (wlPlayer: TableWaitlist, targetTableId: string) => {
+    const playerId = wlPlayer.player_id;
+    const playerData = wlPlayer.player;
+
+    // Step 1: Remove from waitlist optimistically
+    setWaitlistPlayers(prev => prev.filter(w => w.id !== wlPlayer.id && w.player_id !== playerId));
+
+    // Step 2: Create optimistic seat entry
+    const uniqueId = `temp-seat-${playerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const optimisticSeat: TableSeat = {
+      id: uniqueId,
+      club_day_id: clubDayId,
+      table_id: targetTableId,
+      player_id: playerId,
+      player: playerData,
+      seated_at: new Date().toISOString(),
+      left_at: undefined,
+      created_at: new Date().toISOString(),
+    };
+
+    optimisticPlayersRef.current.seated.push(optimisticSeat);
+    optimisticUpdatesRef.current.add(playerId);
+
+    if (targetTableId === table.id) {
+      setSeatedPlayers(prev => {
+        if (prev.some(s => s.player_id === playerId)) return prev;
+        return [...prev, optimisticSeat];
+      });
+    }
+
+    // Check TC status
+    let wasTC = false;
+    try {
+      const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+      wasTC = tcList.some((entry: any) => entry.playerId === playerId);
+      const cleaned = tcList.filter((entry: any) => entry.playerId !== playerId);
+      localStorage.setItem('tc-list', JSON.stringify(cleaned));
+    } catch {}
+
+    // Broadcast
+    try {
+      const channel = new BroadcastChannel('admin-updates');
+      channel.postMessage({
+        type: 'player-update',
+        action: 'seat-next',
+        tableId: targetTableId,
+        playerId,
+        playerData,
+      });
+      channel.close();
+    } catch {}
+
+    // Seat via API (previous player: just seat, no accounting)
+    if (!inFlightMovesRef.current.has(playerId)) {
+      inFlightMovesRef.current.add(playerId);
+    }
+    seatPlayer(targetTableId, playerId, clubDayId)
+      .then(async () => {
+        log('✅ Previous player seated successfully');
+        if (!wasTC) {
+          try {
+            const removedCount = await removePlayerFromAllWaitlists(playerId, clubDayId);
+            if (removedCount > 0) log(`Removed previous player from ${removedCount} waitlist(s)`);
+          } catch {}
+        }
+        localStorage.setItem('player-updated', new Date().toISOString());
+        setTimeout(() => {
+          loadTableData(true);
+          inFlightMovesRef.current.delete(playerId);
+          onRefresh();
+        }, 300);
+      })
+      .catch((err: any) => {
+        logError('❌ Failed to seat previous player:', err);
+        if (targetTableId === table.id) {
+          setSeatedPlayers(prev => prev.filter(s => s.id !== optimisticSeat.id && s.player_id !== playerId));
+        }
+        optimisticPlayersRef.current.seated = optimisticPlayersRef.current.seated.filter(s => s.player_id !== playerId);
+        optimisticUpdatesRef.current.delete(playerId);
+        inFlightMovesRef.current.delete(playerId);
+        saveOptimisticPlayers();
+        showToast(err.message || 'Failed to seat previous player', 'error');
+        setTimeout(() => onRefresh(), 300);
+      });
   };
 
   const handleQuickSeat = async () => {
@@ -2737,6 +2829,11 @@ function TableCard({
                             } catch { /* use default */ }
                             if (!checkIn) {
                               showToast(`${playerName} must buy in before being seated`, 'error');
+                              return;
+                            }
+                            // Previous player ($0 check-in): auto-seat without DoorFeeModal
+                            if (checkIn.door_fee_amount === 0) {
+                              autoSeatPreviousPlayer(wl, table.id);
                               return;
                             }
                             setDoorFeeModal({ player: wl, playerName, defaultAmount });

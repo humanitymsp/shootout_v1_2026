@@ -399,7 +399,16 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
       let result: any = null;
 
       if (isPreviousPlayer) {
-        log('Previous player - skipping door fee entirely');
+        log('Previous player - creating $0 check-in for tracking');
+        result = await createCheckIn(
+          clubDayId,
+          player.id,
+          0,
+          'cash',
+          'Previous player - no door fee',
+          adminUser
+        );
+        log('Previous player check-in created:', result);
       } else if (skipDoorFee) {
         log('Lobby waitlist mode - skipping door fee, player will pay when seated');
       } else if (useExistingBuyIn && existingCheckIn) {
