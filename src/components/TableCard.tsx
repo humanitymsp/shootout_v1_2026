@@ -77,6 +77,7 @@ function TableCard({
   const [isEditingBuyIn, setIsEditingBuyIn] = useState(false);
   const [stakesText, setStakesText] = useState(table.stakes_text || '');
   const [isEditingStakes, setIsEditingStakes] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const [isEditingTableNumber, setIsEditingTableNumber] = useState(false);
   const [editTableNumber, setEditTableNumber] = useState(table.table_number.toString());
   const [draggedPlayer, setDraggedPlayer] = useState<(TableWaitlist | TableSeat) & { _sourceTableId?: string; _isFromWaitlist?: boolean } | null>(null);
@@ -2397,115 +2398,124 @@ function TableCard({
         </div>
       </div>
 
-      <div className="table-info">
-        <div className="info-badge game-type">
-          {highlightAllMatches(table.game_type || '', searchQuery)}
-        </div>
-        <div 
-          className="info-badge stakes clickable"
-          onClick={() => !loading && setIsEditingStakes(true)}
-          title="Click to edit stakes"
-        >
-          {isEditingStakes ? (
-            <input
-              type="text"
-              value={stakesText}
-              onChange={(e) => setStakesText(e.target.value)}
-              onBlur={() => handleStakesChange(stakesText)}
-              onKeyDown={handleStakesKeyDown}
-              className="stakes-input"
-              autoFocus
-              disabled={loading}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span className="stakes-text">
-              {highlightAllMatches(stakesLabel, searchQuery)}
-            </span>
-          )}
-        </div>
-        <div 
-          className="info-badge buy-in-limits clickable"
-          onClick={() => !loading && setIsEditingBuyIn(true)}
-          title="Click to edit buy-in limits"
-        >
-          {isEditingBuyIn ? (
-            <input
-              type="text"
-              value={buyInLimits}
-              onChange={(e) => setBuyInLimits(e.target.value)}
-              onBlur={() => handleBuyInLimitsChange(buyInLimits)}
-              onKeyDown={handleBuyInLimitsKeyDown}
-              className="buy-in-input"
-              autoFocus
-              disabled={loading}
-              onClick={(e) => e.stopPropagation()}
-            />
-          ) : (
-            <span className="buy-in-text">
-              {buyInLimits || 'Set buy-in limits'}
-            </span>
-          )}
-        </div>
-        <div className="info-badge bomb-pots">
-          Bomb Pots:
-          <select
-            value={bombPotCount}
-            onChange={(e) => handleBombPotChange(parseInt(e.target.value))}
-            className="bomb-pot-select"
-            disabled={loading}
-          >
-            {Array.from({ length: 4 }, (_, i) => i).map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="info-badge lockouts">
-          Lockouts:
-          <select
-            value={lockoutCount}
-            onChange={(e) => handleLockoutChange(parseInt(e.target.value))}
-            className="lockout-select"
-            disabled={loading}
-          >
-            {Array.from({ length: 4 }, (_, i) => i).map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <button className="table-options-toggle" onClick={() => setShowOptions(!showOptions)}>
+        <span className={`table-options-arrow ${showOptions ? '' : 'collapsed'}`}>▼</span>
+        {showOptions ? 'Hide Options' : 'Options'}
+      </button>
 
-      <div className="table-actions">
-        <Tooltip content={waitlistCount === 0 ? 'No players on waitlist' : tableIsFull ? 'Table is full' : 'Seat the next player from waitlist'}>
-          <button
-            onClick={handleSeatNext}
-            disabled={loading || waitlistCount === 0 || tableIsFull}
-            className="btn-seat-next"
-          >
-            Seat Next
-          </button>
-        </Tooltip>
-        <Tooltip content={waitlistCount === 0 ? 'No players on waitlist' : tableIsFull ? 'Table is full' : 'Seat all bought-in waitlist players (up to available seats)'}>
-          <button
-            onClick={handleQuickSeat}
-            disabled={loading || waitlistCount === 0 || tableIsFull}
-            className="btn-quick-seat"
-          >
-            Quick Seat
-          </button>
-        </Tooltip>
-        <button
-          onClick={handleRemoveTable}
-          disabled={loading}
-          className="btn-remove-table"
-        >
-          Remove Table
-        </button>
-      </div>
+      {showOptions && (
+        <>
+          <div className="table-info">
+            <div className="info-badge game-type">
+              {highlightAllMatches(table.game_type || '', searchQuery)}
+            </div>
+            <div 
+              className="info-badge stakes clickable"
+              onClick={() => !loading && setIsEditingStakes(true)}
+              title="Click to edit stakes"
+            >
+              {isEditingStakes ? (
+                <input
+                  type="text"
+                  value={stakesText}
+                  onChange={(e) => setStakesText(e.target.value)}
+                  onBlur={() => handleStakesChange(stakesText)}
+                  onKeyDown={handleStakesKeyDown}
+                  className="stakes-input"
+                  autoFocus
+                  disabled={loading}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span className="stakes-text">
+                  {highlightAllMatches(stakesLabel, searchQuery)}
+                </span>
+              )}
+            </div>
+            <div 
+              className="info-badge buy-in-limits clickable"
+              onClick={() => !loading && setIsEditingBuyIn(true)}
+              title="Click to edit buy-in limits"
+            >
+              {isEditingBuyIn ? (
+                <input
+                  type="text"
+                  value={buyInLimits}
+                  onChange={(e) => setBuyInLimits(e.target.value)}
+                  onBlur={() => handleBuyInLimitsChange(buyInLimits)}
+                  onKeyDown={handleBuyInLimitsKeyDown}
+                  className="buy-in-input"
+                  autoFocus
+                  disabled={loading}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span className="buy-in-text">
+                  {buyInLimits || 'Set buy-in limits'}
+                </span>
+              )}
+            </div>
+            <div className="info-badge bomb-pots">
+              Bomb Pots:
+              <select
+                value={bombPotCount}
+                onChange={(e) => handleBombPotChange(parseInt(e.target.value))}
+                className="bomb-pot-select"
+                disabled={loading}
+              >
+                {Array.from({ length: 4 }, (_, i) => i).map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="info-badge lockouts">
+              Lockouts:
+              <select
+                value={lockoutCount}
+                onChange={(e) => handleLockoutChange(parseInt(e.target.value))}
+                className="lockout-select"
+                disabled={loading}
+              >
+                {Array.from({ length: 4 }, (_, i) => i).map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="table-actions">
+            <Tooltip content={waitlistCount === 0 ? 'No players on waitlist' : tableIsFull ? 'Table is full' : 'Seat the next player from waitlist'}>
+              <button
+                onClick={handleSeatNext}
+                disabled={loading || waitlistCount === 0 || tableIsFull}
+                className="btn-seat-next"
+              >
+                Seat Next
+              </button>
+            </Tooltip>
+            <Tooltip content={waitlistCount === 0 ? 'No players on waitlist' : tableIsFull ? 'Table is full' : 'Seat all bought-in waitlist players (up to available seats)'}>
+              <button
+                onClick={handleQuickSeat}
+                disabled={loading || waitlistCount === 0 || tableIsFull}
+                className="btn-quick-seat"
+              >
+                Quick Seat
+              </button>
+            </Tooltip>
+            <button
+              onClick={handleRemoveTable}
+              disabled={loading}
+              className="btn-remove-table"
+            >
+              Remove Table
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="table-lists">
         <div
