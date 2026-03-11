@@ -859,7 +859,7 @@
   column-gap: var(--admin-grid-col-gap);
   row-gap: var(--admin-grid-row-gap);
   justify-content: start;
-  align-items: stretch;
+  align-items: start;
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
@@ -867,12 +867,13 @@
 
 .game-type-tables.center-few {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   column-gap: var(--admin-grid-col-gap);
   row-gap: var(--admin-grid-row-gap);
   justify-content: center;
+  align-items: start;
   width: 100%;
-  max-width: calc(560px * 2 + var(--admin-grid-col-gap));
+  max-width: calc(320px * 3 + var(--admin-grid-col-gap) * 2);
   margin: 0 auto;
 }
 
