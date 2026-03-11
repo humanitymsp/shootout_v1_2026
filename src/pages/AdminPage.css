@@ -423,6 +423,7 @@
   white-space: nowrap;
   min-width: 0;
   flex-shrink: 1;
+  text-transform: uppercase;
 }
 
 .popup-waitlist-meta {

@@ -572,9 +572,9 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                   type="text"
                   value={nick}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    // Limit to 9 characters
-                    if (value.length <= 9) {
+                    const value = e.target.value.toUpperCase();
+                    // Limit to 13 characters
+                    if (value.length <= 13) {
                       setNick(value);
                       if (value !== selectedPlayer?.nick) {
                         setSelectedPlayer(null);
