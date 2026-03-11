@@ -1916,20 +1916,12 @@ export async function addPlayerToWaitlist(
 
   // Determine addedAt: controls sort order in merged (cross-table) views.
   // For atTop (TC players): set to 1s before earliest existing entry so they appear first.
-  // For normal adds: use the player's check-in creation time to reflect arrival order.
-  // Falls back to current time if no check-in exists (e.g. public signups, called-in players).
+  // For normal adds: use current time so new players always go to the bottom.
   let addedAt = new Date().toISOString();
   if (options?.atTop && waitlist.length > 0) {
     const sorted = [...waitlist].sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
     const earliest = new Date(sorted[0].added_at).getTime();
     addedAt = new Date(earliest - 1000).toISOString();
-  } else {
-    try {
-      const checkIn = await getCheckInForPlayer(playerId, clubDayId);
-      if (checkIn?.created_at) {
-        addedAt = checkIn.created_at;
-      }
-    } catch { /* best effort - use current time */ }
   }
 
   const { data } = await getClient().models.TableWaitlist.create({

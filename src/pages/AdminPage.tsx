@@ -1852,7 +1852,6 @@ export default function AdminPage({ user }: AdminPageProps) {
                                   <span className="popup-waitlist-name">
                                     {isTC && <span className="admin-fab-tc-badge">TC</span>}
                                     <span className={`popup-waitlist-name-text${isTC ? ' admin-fab-tc-player' : ''}`}>{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
-                                    {needsBuyIn && <span className="popup-needs-buyin-badge">Needs Buy-In</span>}
                                     {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="popup-previous-badge">Previous</span>}
                                     {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
                                   </span>
