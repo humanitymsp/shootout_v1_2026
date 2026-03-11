@@ -593,7 +593,7 @@ export default function AdminPage({ user }: AdminPageProps) {
         lockoutCount: sourceTable.lockout_count ?? 0,
         buyInLimits: sourceTable.buy_in_limits,
       });
-      showToast(`Table ${nextNumber} created (duplicated from Table ${sourceTable.table_number})`, 'success');
+      // Toast removed per user request
       handleRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to duplicate table', 'error');
@@ -1320,10 +1320,10 @@ export default function AdminPage({ user }: AdminPageProps) {
             if (isPreviousPlayer) {
               // Previous player: create a $0 check-in to mark them as bought in, but no receipt/accounting
               await collectBuyIn(buyInModal.entry.player_id, clubDay.id, 0, adminUser);
-              showToast(`Previous player ${buyInModal.playerName} checked in (no door fee)`, 'success');
+              // Toast removed per user request
             } else {
               await collectBuyIn(buyInModal.entry.player_id, clubDay.id, amount, adminUser);
-              showToast(`Buy-in of $${amount} collected for ${buyInModal.playerName}`, 'success');
+              // Toast removed per user request
             }
             setBuyInModal(null);
             // Refresh check-in status map

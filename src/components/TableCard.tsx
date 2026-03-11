@@ -825,7 +825,7 @@ function TableCard({
     }
 
     if (seatedCount > 0) {
-      showToast(`Seated ${seatedCount} player${seatedCount !== 1 ? 's' : ''}${skippedCount > 0 ? ` (${skippedCount} skipped — not bought in)` : ''}`, 'success');
+      // Toast removed per user request
       await loadTableData(true);
       onRefresh();
     } else if (skippedCount > 0) {
@@ -878,7 +878,7 @@ function TableCard({
       
       await loadTableData();
       onRefresh();
-      showToast(`Removed ${waitlistEntry?.player?.nick || 'player'} from waitlist`, 'success');
+      // Toast removed per user request
     } catch (err: any) {
       logError('Error removing player from waitlist:', err);
       showToast(err.message || 'Failed to remove player', 'error');
@@ -1163,7 +1163,7 @@ function TableCard({
       
       await loadTableData();
       onRefresh();
-      showToast(`Removed ${waitlist?.player?.nick || 'player'} from waitlist`, 'success');
+      // Toast removed per user request
     } catch (err: any) {
       showToast(err.message || 'Failed to remove player', 'error');
     } finally {
@@ -1316,7 +1316,7 @@ function TableCard({
         // Refresh data in background to sync with server
         await loadTableData();
         onRefresh();
-        showToast(`Added ${player.player?.nick || 'player'} to Table ${targetTable.table_number} waitlist`, 'success');
+        // Toast removed per user request
       } catch (err: any) {
         // Rollback optimistic update on error
         await loadTableData();
@@ -1405,7 +1405,7 @@ function TableCard({
         // Refresh data in background to sync with server
         await loadTableData();
         onRefresh();
-        showToast(`Moved player to waitlist`, 'success');
+        // Toast removed per user request
       } catch (err: any) {
         // Rollback optimistic update on error
         await loadTableData();
@@ -3058,7 +3058,7 @@ function TableCard({
                         const lobbyTable = group.tables[0];
                         try {
                           await addPlayerToWaitlist(lobbyTable.id, playerId, clubDayId, adminUser, { skipSeatCheck: true });
-                          showToast(`${playerName} added to ${group.gameType} ${group.stakes} waitlist`, 'success');
+                          // Toast removed per user request
                           setWlGameTypeMenu(null);
                           onRefresh();
                         } catch (err: any) {
@@ -3162,7 +3162,7 @@ function TableCard({
             // This gives the optimistic update time to be visible before any refresh
             
             // Step 7: Show success message immediately
-            showToast(isPreviousPlayer ? 'Previous player seated (no door fee)' : 'Player seated and door fee charged', 'success');
+            // Toast removed per user request
             
             // Step 8: Call API in background (non-blocking) - player already visible
             // Track as in-flight move
