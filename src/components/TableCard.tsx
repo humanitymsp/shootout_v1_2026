@@ -863,7 +863,29 @@ function TableCard({
   };
 
   const handleBustOut = async (seatId: string) => {
-    const seat = seatedPlayers.find(s => s.id === seatId);
+    let seat = seatedPlayers.find(s => s.id === seatId);
+
+    // If this is a temp/optimistic seat, fetch real seats from API to get the actual DB seat ID
+    if (seatId.startsWith('temp-') && seat?.player_id) {
+      log('Bust out on temp seat, fetching real seat from API for player:', seat.player_id);
+      try {
+        const realSeats = await getSeatedPlayersForTable(table.id, clubDayId);
+        const realSeat = realSeats.find(s => s.player_id === seat!.player_id);
+        if (realSeat) {
+          seat = realSeat;
+          seatId = realSeat.id;
+          log('Resolved temp seat to real seat:', seatId);
+        } else {
+          showToast('Player seat not found — try refreshing first', 'error');
+          return;
+        }
+      } catch (err) {
+        logError('Failed to resolve temp seat:', err);
+        showToast('Could not verify seat — try refreshing first', 'error');
+        return;
+      }
+    }
+
     const confirmed = await showConfirmDialog({
       title: 'Bust Out Player',
       message: `Bust out ${seat?.player?.nick || 'this player'}?`,
