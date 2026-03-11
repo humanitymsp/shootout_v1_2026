@@ -437,6 +437,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
       // lobby view merges and deduplicates waitlists across all tables of the same game
       // type, so the player appears in the correct game-type lobby.
       const addedGameLabels: string[] = [];
+      const addedTableIds: string[] = [];
       for (const gameTypeKey of selectedGameTypes) {
         const gameTypeTables = tables.filter((t: any) => {
           const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
@@ -450,6 +451,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
           await addPlayerToWaitlist(lobbyTable.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
           log(`Added to ${gameLabel} lobby waitlist (Table ${lobbyTable.table_number})`);
           addedGameLabels.push(`${gameLabel}`);
+          addedTableIds.push(lobbyTable.id);
         } catch (err: any) {
           logError(`Failed to add to ${gameLabel} lobby waitlist:`, err);
           // Don't fail the whole operation — just skip this one
@@ -464,23 +466,28 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
 
       setReceipt(result?.receipt || existingCheckIn?.receipt);
 
-      const updatePayload = { 
-        type: 'player-update', 
-        action: 'checkin', 
-        playerId: player.id,
-        gameType: Array.from(selectedGameTypes).join(','),
-        clubDayId: clubDayId,
-        assignmentMode: 'waitlist',
-        playerData: player,
-      };
-      try {
-        const channel = new BroadcastChannel('admin-updates');
-        channel.postMessage(updatePayload);
-        channel.close();
-      } catch {
-        // BroadcastChannel not available
+      // Broadcast one update per table the player was actually added to
+      // so only the correct TableCard(s) react with optimistic updates
+      for (const addedTableId of addedTableIds) {
+        const updatePayload = { 
+          type: 'player-update', 
+          action: 'checkin', 
+          playerId: player.id,
+          tableId: addedTableId,
+          gameType: Array.from(selectedGameTypes).join(','),
+          clubDayId: clubDayId,
+          assignmentMode: 'waitlist',
+          playerData: player,
+        };
+        try {
+          const channel = new BroadcastChannel('admin-updates');
+          channel.postMessage(updatePayload);
+          channel.close();
+        } catch {
+          // BroadcastChannel not available
+        }
+        window.dispatchEvent(new CustomEvent('player-update', { detail: updatePayload }));
       }
-      window.dispatchEvent(new CustomEvent('player-update', { detail: updatePayload }));
       
       // Send SMS notification if enabled and player has phone number
       const smsCfg = getSMSSettings();
