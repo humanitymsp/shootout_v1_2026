@@ -1166,7 +1166,7 @@
 }
 
 .tv-game-title h2 {
-  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
   font-weight: 900;
   margin: 0 0 0.2rem 0;
   color: var(--admin-text);
@@ -1176,7 +1176,7 @@
 }
 
 .tv-table-number {
-  font-size: clamp(1.8rem, 3.5vw, 2.8rem) !important;
+  font-size: clamp(2.4rem, 5vw, 4.2rem) !important;
   font-weight: 900 !important;
   letter-spacing: 0.05em !important;
   background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 100%);
