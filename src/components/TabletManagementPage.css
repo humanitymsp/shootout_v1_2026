@@ -1284,40 +1284,48 @@
   font-size: 0.95rem;
 }
 
-/* Game Type Waitlist Lobby */
+/* Game Type Waitlist Lobby — side-by-side floating panels */
 .tablet-game-lobby {
+  display: flex;
+  flex-direction: column;
   padding: 0.5rem 0.75rem;
   border-bottom: 1px solid var(--admin-border);
-  max-height: 50vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .tablet-game-lobby-title {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.08em;
   color: var(--admin-secondary);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .tablet-game-lobby-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  display: flex;
+  flex-direction: row;
   gap: 0.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25rem;
 }
 
 .tablet-game-lobby-card {
   background: var(--admin-surface-elevated);
   border: 1px solid var(--admin-border);
   border-radius: 10px;
-  padding: 0.5rem 0.6rem;
-  transition: all 0.2s ease;
+  padding: 0.6rem 0.75rem;
+  min-width: 200px;
+  max-width: 280px;
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .tablet-game-lobby-header {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.4rem;
+  flex-shrink: 0;
 }
 
 .tablet-game-lobby-name {
@@ -1327,18 +1335,19 @@
 }
 
 .tablet-game-lobby-stakes {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--admin-secondary);
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
 }
 
 .tablet-game-lobby-waitlist {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  max-height: 30vh;
+  max-height: 35vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  flex: 1;
 }
 
 .tablet-game-lobby-waitlist .tablet-player-item {
