@@ -516,7 +516,23 @@ export default function TVPage() {
             groups.get(groupKey)!.displays.push(display);
           }
 
-          return Array.from(groups.values()).map(({ gameType, stakes, displays }) => {
+          // Sort groups: 1/2 stakes first, then by game type priority
+          const gameTypeOrder: Record<string, number> = {
+            'NLH': 1, 'PLO': 2, 'BigO': 3, 'PLO5': 4, 'Limit': 5, 'Mixed': 6, 'Other': 99
+          };
+          const sortedGroups = Array.from(groups.values()).sort((a, b) => {
+            const orderA = gameTypeOrder[a.gameType] || 50;
+            const orderB = gameTypeOrder[b.gameType] || 50;
+            if (orderA !== orderB) return orderA - orderB;
+            // Within same game type, prioritize 1/2 stakes
+            const aIs12 = a.stakes.includes('1/2');
+            const bIs12 = b.stakes.includes('1/2');
+            if (aIs12 && !bIs12) return -1;
+            if (!aIs12 && bIs12) return 1;
+            return a.stakes.localeCompare(b.stakes);
+          });
+
+          return sortedGroups.map(({ gameType, stakes, displays }) => {
             const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
             // Aggregate unique waitlisted players across all tables in this group

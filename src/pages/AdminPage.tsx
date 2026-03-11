@@ -28,7 +28,6 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import Tooltip from '../components/Tooltip';
 import DoorFeeModal from '../components/DoorFeeModal';
 import BulkAddTestPlayers from '../components/BulkAddTestPlayers';
-import ReseatPanel from '../components/ReseatPanel';
 import BulkBustOutModal from '../components/BulkBustOutModal';
 import BustedPlayersModal from '../components/BustedPlayersModal';
 import QRCodeModal from '../components/QRCodeModal';
@@ -674,11 +673,11 @@ export default function AdminPage({ user }: AdminPageProps) {
     };
   }, [uniqueTables, seatedPlayersMap, waitlistPlayersMap]);
 
-  // Filter out closed tables and sort by table number for individual display
+  // Filter out closed tables and sort by creation time (new tables at end)
   const activeTables = useMemo(() => {
     let filtered = uniqueTables
       .filter((table) => table.status !== 'CLOSED' && !hiddenTableIds.has(table.id))
-      .sort((a, b) => a.table_number - b.table_number);
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
     // Apply filters
     if (filterGameType !== 'all') {
@@ -737,15 +736,16 @@ export default function AdminPage({ user }: AdminPageProps) {
       return acc;
     }, {} as Record<string, typeof filteredTablesForSearch>);
     
-    // Sort tables within each group by table number
+    // Sort tables within each group by creation time (new tables at end)
     Object.keys(grouped).forEach(gameType => {
-      grouped[gameType].sort((a, b) => a.table_number - b.table_number);
+      grouped[gameType].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     });
     
     return grouped;
   }, [filteredTablesForSearch]);
   
   // Sort game types in a preferred order (NLH first, then PLO, BigO, etc.)
+  // Within NLH, 1/2 stakes get highest priority
   const sortedGameTypes = useMemo(() => {
     const gameTypeOrder: Record<string, number> = {
       'NLH': 1,
@@ -761,6 +761,11 @@ export default function AdminPage({ user }: AdminPageProps) {
       const orderA = gameTypeOrder[a] || 50;
       const orderB = gameTypeOrder[b] || 50;
       if (orderA !== orderB) return orderA - orderB;
+      // Within same game type, prioritize groups that have 1/2 tables
+      const aHas12 = tablesByGameType[a]?.some(t => (t.stakes_text || '').includes('1/2'));
+      const bHas12 = tablesByGameType[b]?.some(t => (t.stakes_text || '').includes('1/2'));
+      if (aHas12 && !bHas12) return -1;
+      if (!aHas12 && bHas12) return 1;
       return a.localeCompare(b);
     });
   }, [tablesByGameType]);
