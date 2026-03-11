@@ -28,6 +28,10 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  image-rendering: -webkit-optimize-contrast;
 }
 
 .tv-page.loading {
@@ -81,7 +85,6 @@
     rgba(42, 42, 47, 0.6) 50%,
     rgba(30, 58, 138, 0.3) 100%
   );
-  backdrop-filter: blur(15px);
   border-bottom: 2px solid rgba(251, 191, 36, 0.4);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.1);
   gap: 0.5rem;
@@ -211,7 +214,6 @@
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 6px;
-  backdrop-filter: blur(10px);
   animation: pulse-offline 2s ease-in-out infinite;
 }
 
@@ -316,7 +318,7 @@
 }
 
 .tv-column-buyin {
-  font-size: clamp(0.9rem, 1.4vh, 1.2rem);
+  font-size: clamp(1.8rem, 2.8vh, 2.4rem);
   font-weight: 700;
   color: #34d399;
   margin-bottom: 0.2vh;
@@ -497,7 +499,6 @@
   flex-direction: column;
   gap: 0.3vh;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   box-shadow: 
     0 4px 12px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(251, 191, 36, 0.1);
@@ -523,7 +524,6 @@
 }
 
 .tv-table-card:hover {
-  transform: translateY(-2px);
   box-shadow: 
     0 8px 20px rgba(0, 0, 0, 0.5),
     0 0 20px rgba(251, 191, 36, 0.2),
@@ -906,7 +906,6 @@
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
@@ -1031,7 +1030,6 @@
 /* Game Cards - Compact for casting */
 .tv-game-card {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(25px);
   border-radius: 16px;
   padding: clamp(0.75rem, 1.5vw, 1.25rem);
   border: 2px solid rgba(30, 64, 175, 0.15);
@@ -1054,7 +1052,6 @@
 }
 
 .tv-game-card:hover {
-  transform: translateY(-2px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
