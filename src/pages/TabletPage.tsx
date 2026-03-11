@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
 import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
-import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer, reorderWaitlistPosition } from '../lib/api';
+import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer, swapWaitlistAddedAt } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
 import { showToast } from '../components/Toast';
@@ -1098,7 +1098,7 @@ export default function TabletPage() {
                     }
                   }
                 }
-                allEntries.sort((a, b) => (a.wl.position || 0) - (b.wl.position || 0));
+                allEntries.sort((a, b) => new Date(a.wl.added_at).getTime() - new Date(b.wl.added_at).getTime());
                 const seenPlayerIds = new Set<string>();
                 const mergedWaitlist = allEntries.filter(({ wl }) => {
                   if (seenPlayerIds.has(wl.player_id)) return false;
@@ -1142,7 +1142,8 @@ export default function TabletPage() {
                                         e.stopPropagation();
                                         if (!clubDay) return;
                                         try {
-                                          await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'up', wl.player_id);
+                                          const prev = mergedWaitlist[idx - 1];
+                                          await swapWaitlistAddedAt(wl.id, prev.wl.id);
                                           loadAllTableData();
                                         } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
                                       }}
@@ -1155,7 +1156,8 @@ export default function TabletPage() {
                                         e.stopPropagation();
                                         if (!clubDay) return;
                                         try {
-                                          await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'down', wl.player_id);
+                                          const next = mergedWaitlist[idx + 1];
+                                          await swapWaitlistAddedAt(wl.id, next.wl.id);
                                           loadAllTableData();
                                         } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
                                       }}

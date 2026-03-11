@@ -1984,6 +1984,28 @@ export async function reorderWaitlistPosition(
   }
 }
 
+/**
+ * Swap addedAt timestamps between two waitlist entries.
+ * Used by merged (cross-table) views where position is per-table but addedAt is global.
+ */
+export async function swapWaitlistAddedAt(entryIdA: string, entryIdB: string): Promise<void> {
+  const client = getClient();
+  const { data: a } = await client.models.TableWaitlist.get({ id: entryIdA });
+  const { data: b } = await client.models.TableWaitlist.get({ id: entryIdB });
+  if (!a || !b) throw new Error('Waitlist entry not found');
+  const addedAtA = a.addedAt;
+  const addedAtB = b.addedAt;
+  // If timestamps are identical, offset by 1ms to ensure distinct ordering
+  if (addedAtA === addedAtB) {
+    const ts = new Date(addedAtA).getTime();
+    await client.models.TableWaitlist.update({ id: entryIdA, addedAt: new Date(ts + 1).toISOString() });
+    await client.models.TableWaitlist.update({ id: entryIdB, addedAt: new Date(ts - 1).toISOString() });
+  } else {
+    await client.models.TableWaitlist.update({ id: entryIdA, addedAt: addedAtB });
+    await client.models.TableWaitlist.update({ id: entryIdB, addedAt: addedAtA });
+  }
+}
+
 export type MoveTargetType = 'seat' | 'waitlist' | 'auto';
 
 export async function movePlayerEntry(params: {

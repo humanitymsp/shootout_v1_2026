@@ -1,6 +1,6 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, seatPlayer, createPlayer, createTable } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt } from '../lib/api';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
@@ -1796,7 +1796,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                       }
                     }
                   }
-                  allEntries.sort((a, b) => (a.wl.position || 0) - (b.wl.position || 0));
+                  allEntries.sort((a, b) => new Date(a.wl.added_at).getTime() - new Date(b.wl.added_at).getTime());
                   const seenPlayerIds = new Set<string>();
                   const mergedWaitlist = allEntries.filter(({ wl }) => {
                     if (seenPlayerIds.has(wl.player_id)) return false;
@@ -1816,12 +1816,38 @@ export default function AdminPage({ user }: AdminPageProps) {
                         {mergedWaitlist.length === 0 ? (
                           <div className="players-popup-empty">No players waiting</div>
                         ) : (
-                          mergedWaitlist.map(({ wl, tableId }) => {
+                          mergedWaitlist.map(({ wl, tableId }, idx) => {
                             const isTC = tcPlayerIds.has(wl.player_id);
                             const ciStatus = checkInStatusMap.get(wl.player_id);
                             const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
                             return (
                               <div key={wl.id} className="popup-waitlist-item">
+                                <div className="admin-fab-reorder-btns">
+                                  <button
+                                    className="admin-fab-reorder-btn"
+                                    disabled={idx === 0}
+                                    title="Move up"
+                                    onClick={async () => {
+                                      const prev = mergedWaitlist[idx - 1];
+                                      try {
+                                        await swapWaitlistAddedAt(wl.id, prev.wl.id);
+                                        handleRefresh();
+                                      } catch { showToast('Failed to reorder', 'error'); }
+                                    }}
+                                  >▲</button>
+                                  <button
+                                    className="admin-fab-reorder-btn"
+                                    disabled={idx === mergedWaitlist.length - 1}
+                                    title="Move down"
+                                    onClick={async () => {
+                                      const next = mergedWaitlist[idx + 1];
+                                      try {
+                                        await swapWaitlistAddedAt(wl.id, next.wl.id);
+                                        handleRefresh();
+                                      } catch { showToast('Failed to reorder', 'error'); }
+                                    }}
+                                  >▼</button>
+                                </div>
                                 <div className="popup-waitlist-info">
                                   <span className="popup-waitlist-name">
                                     {isTC && <span className="admin-fab-tc-badge">TC</span>}
@@ -1831,7 +1857,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                                     {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
                                   </span>
                                   <span className="popup-waitlist-meta">
-                                    #{wl.position ?? '?'}
+                                    #{idx + 1}
                                   </span>
                                 </div>
                                 <div className="admin-fab-actions">
@@ -1839,7 +1865,6 @@ export default function AdminPage({ user }: AdminPageProps) {
                                     className="admin-fab-seat-btn"
                                     title="Seat this player at the best available table"
                                     onClick={async () => {
-                                      // Find the best table of this game type with available seats
                                       const targetTable = gameTables
                                         .filter(t => {
                                           const seated = seatedPlayersMap.get(t.id)?.length || 0;
@@ -1848,7 +1873,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                                         .sort((a, b) => {
                                           const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
                                           const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
-                                          return seatedB - seatedA; // fullest table first
+                                          return seatedB - seatedA;
                                         })[0];
                                       if (!targetTable) {
                                         showToast('No available seats at any table for this game type', 'error');

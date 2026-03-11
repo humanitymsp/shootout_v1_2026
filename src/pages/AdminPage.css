@@ -510,6 +510,36 @@
   font-weight: 700;
 }
 
+.admin-fab-reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+  margin-right: 0.2rem;
+}
+
+.admin-fab-reorder-btn {
+  background: rgba(59, 130, 246, 0.15);
+  color: #94a3b8;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 3px;
+  font-size: 0.5rem;
+  line-height: 1;
+  padding: 0.05rem 0.15rem;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.admin-fab-reorder-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.35);
+  color: #e2e8f0;
+}
+
+.admin-fab-reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
 .admin-fab-actions {
   display: flex;
   gap: 0.25rem;

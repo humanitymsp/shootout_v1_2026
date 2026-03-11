@@ -612,14 +612,14 @@ export default function TVPage() {
             const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
             // Aggregate unique waitlisted players across all tables in this group
-            // Sort by position for consistent ordering across all views
+            // Sort by added_at for consistent ordering across all merged views
             const allWaitlistEntries: typeof displays[0]['waitlistPlayers'] = [];
             for (const d of displays) {
               for (const wl of d.waitlistPlayers) {
                 if (!wl.called_in) allWaitlistEntries.push(wl);
               }
             }
-            allWaitlistEntries.sort((a, b) => (a.position || 0) - (b.position || 0));
+            allWaitlistEntries.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
             const seenPlayerIds = new Set<string>();
             const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
             for (const wl of allWaitlistEntries) {
