@@ -1879,7 +1879,7 @@ export async function addPlayerToWaitlist(
   playerId: string,
   clubDayId: string,
   _adminUser: string,
-  options?: { skipSeatCheck?: boolean; calledIn?: boolean }
+  options?: { skipSeatCheck?: boolean; calledIn?: boolean; atTop?: boolean }
 ): Promise<TableWaitlist> {
   if (!options?.skipSeatCheck) {
     // Only check if player is already seated at THIS table - allow waitlisting at other tables
@@ -1898,7 +1898,20 @@ export async function addPlayerToWaitlist(
   if (existingEntry) {
     return existingEntry;
   }
-  const position = waitlist.length + 1;
+
+  let position: number;
+  if (options?.atTop) {
+    // Shift all existing entries down by 1
+    position = 1;
+    const sorted = [...waitlist].sort((a, b) => (a.position || 0) - (b.position || 0));
+    for (const entry of sorted) {
+      try {
+        await getClient().models.TableWaitlist.update({ id: entry.id, position: (entry.position || 0) + 1 });
+      } catch { /* best effort */ }
+    }
+  } else {
+    position = waitlist.length + 1;
+  }
 
   const { data } = await getClient().models.TableWaitlist.create({
     tableId,

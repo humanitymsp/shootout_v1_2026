@@ -1408,7 +1408,7 @@ function TableCard({
     (async () => {
       try {
         // Always add to waitlist for table change (don't remove from current seat/waitlist - let them stay until seated at new table)
-        await addPlayerToWaitlist(newTableId, player.player_id, clubDayId, adminUser, { skipSeatCheck: true });
+        await addPlayerToWaitlist(newTableId, player.player_id, clubDayId, adminUser, { skipSeatCheck: true, atTop: true });
 
         // Write TC entry to localStorage so PublicPage/TVPage can show TC indicator
         try {
@@ -2773,30 +2773,6 @@ function TableCard({
                   onDragEnd={handleDragEnd}
                   onContextMenu={(e) => handleContextMenu(e, wl, true)}
                 >
-                  <div className="waitlist-reorder-btns">
-                    <button
-                      className="waitlist-reorder-btn"
-                      title="Move up"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await reorderWaitlistPosition(wl.id, table.id, clubDayId, 'up', wl.player_id);
-                          loadTableData();
-                        } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
-                      }}
-                    >▲</button>
-                    <button
-                      className="waitlist-reorder-btn"
-                      title="Move down"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await reorderWaitlistPosition(wl.id, table.id, clubDayId, 'down', wl.player_id);
-                          loadTableData();
-                        } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
-                      }}
-                    >▼</button>
-                  </div>
                   <input
                     type="checkbox"
                     className="player-select"
@@ -2875,6 +2851,36 @@ function TableCard({
                     )}
                   </div>
                   <div className="player-actions">
+                    <Tooltip content="Move up in waitlist">
+                      <button
+                        className="player-reorder-btn"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await reorderWaitlistPosition(wl.id, table.id, clubDayId, 'up', wl.player_id);
+                            loadTableData();
+                          } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
+                        }}
+                        title="Move up"
+                      >
+                        ▲
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Move down in waitlist">
+                      <button
+                        className="player-reorder-btn"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            await reorderWaitlistPosition(wl.id, table.id, clubDayId, 'down', wl.player_id);
+                            loadTableData();
+                          } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
+                        }}
+                        title="Move down"
+                      >
+                        ▼
+                      </button>
+                    </Tooltip>
                     <Tooltip content="Add to another game type waitlist">
                       <button
                         className="player-wl-btn"

@@ -631,8 +631,8 @@ export default function TabletPage() {
 
     setActionInProgress(player.id);
     try {
-      // Add player to waitlist of target table (they stay seated at current table)
-      await addPlayerToWaitlist(targetTableId, player.player_id, clubDay.id, adminUser);
+      // Add player to waitlist of target table at TOP (they stay seated at current table)
+      await addPlayerToWaitlist(targetTableId, player.player_id, clubDay.id, adminUser, { atTop: true });
       
       broadcastUpdate('tc-waitlist', targetTableId, player.player_id);
       showToast(`${playerName} added to Table ${targetTableNumber} waitlist`, 'success');

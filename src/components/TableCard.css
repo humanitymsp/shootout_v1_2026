@@ -858,40 +858,35 @@
   }
 }
 
-.waitlist-reorder-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex-shrink: 0;
+.player-reorder-btn {
   width: 14px;
-}
-
-.waitlist-reorder-btn {
+  height: 14px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 11px;
   padding: 0;
   background: rgba(59, 130, 246, 0.12);
   border: 1px solid rgba(59, 130, 246, 0.25);
-  border-radius: 2px;
   color: var(--admin-muted, #94a3b8);
-  font-size: 0.45rem;
+  font-size: 0.5rem;
   cursor: pointer;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, transform 0.15s;
+  flex-shrink: 0;
 }
 
-.waitlist-reorder-btn:hover {
+.player-reorder-btn:hover {
   background: rgba(59, 130, 246, 0.3);
   color: var(--admin-text, #f1f5f9);
   border-color: rgba(59, 130, 246, 0.6);
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.3);
 }
 
 .player-item {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 0.3rem;
   padding: 0.22rem 0.45rem;
