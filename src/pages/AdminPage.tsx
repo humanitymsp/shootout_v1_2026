@@ -1910,6 +1910,21 @@ export default function AdminPage({ user }: AdminPageProps) {
                                       Buy In
                                     </button>
                                   )}
+                                  <button
+                                    className="admin-fab-remove-btn"
+                                    title="Remove from waitlist"
+                                    onClick={async () => {
+                                      try {
+                                        await removePlayerFromWaitlist(wl.id, adminUser);
+                                        showToast(`Removed ${wl.player?.nick || 'player'} from waitlist`, 'success');
+                                        handleRefresh();
+                                      } catch (err: any) {
+                                        showToast(err.message || 'Failed to remove', 'error');
+                                      }
+                                    }}
+                                  >
+                                    ✕
+                                  </button>
                                 </div>
                               </div>
                             );
