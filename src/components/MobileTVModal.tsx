@@ -279,7 +279,7 @@ function MobileTVTableCard({ display }: { display: TableDisplay }) {
   };
 
   const getStatusColor = () => {
-    const totalSeats = table.seats_total || 9;
+    const totalSeats = table.seats_total || 20;
     const filledPercent = (seatsFilled / totalSeats) * 100;
     if (filledPercent >= 90) return 'full';
     if (filledPercent >= 70) return 'busy';

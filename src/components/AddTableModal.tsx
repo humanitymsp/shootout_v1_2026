@@ -13,14 +13,14 @@ interface AddTableModalProps {
 }
 
 const TABLE_TEMPLATES = [
-  { name: 'NLH 1/2', gameType: 'NLH' as const, stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$400', bombPotCount: 1 },
-  { name: 'NLH 1/3', gameType: 'NLH' as const, stakesText: '$1/$3 No Limit', seatsTotal: 9, buyInLimits: '$300-$1000', bombPotCount: 1 },
-  { name: 'NLH 1/2/5', gameType: 'NLH' as const, stakesText: '$1/$2/$5 No Limit', seatsTotal: 9, buyInLimits: '$200-$1000', bombPotCount: 1 },
-  { name: 'NLH 2/5', gameType: 'NLH' as const, stakesText: '$2/$5 No Limit', seatsTotal: 9, buyInLimits: '$200-$1000', bombPotCount: 1 },
-  { name: 'PLO', gameType: 'PLO' as const, stakesText: 'PLO', seatsTotal: 9, buyInLimits: '$200-$1000', bombPotCount: 1 },
-  { name: 'Big-O', gameType: 'BigO' as const, stakesText: 'Big-O', seatsTotal: 9, buyInLimits: 'See Floor', bombPotCount: 1 },
-  { name: 'Limit', gameType: 'Limit' as const, stakesText: 'Limit', seatsTotal: 9, buyInLimits: 'See Floor', bombPotCount: 1 },
-  { name: 'Mixed', gameType: 'Mixed' as const, stakesText: 'Mixed', seatsTotal: 9, buyInLimits: 'See Floor', bombPotCount: 1 },
+  { name: 'NLH 1/2', gameType: 'NLH' as const, stakesText: '$1/$2 No Limit', seatsTotal: 20, buyInLimits: '$40-$400', bombPotCount: 1 },
+  { name: 'NLH 1/3', gameType: 'NLH' as const, stakesText: '$1/$3 No Limit', seatsTotal: 20, buyInLimits: '$300-$1000', bombPotCount: 1 },
+  { name: 'NLH 1/2/5', gameType: 'NLH' as const, stakesText: '$1/$2/$5 No Limit', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
+  { name: 'NLH 2/5', gameType: 'NLH' as const, stakesText: '$2/$5 No Limit', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
+  { name: 'PLO', gameType: 'PLO' as const, stakesText: 'PLO', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
+  { name: 'Big-O', gameType: 'BigO' as const, stakesText: 'Big-O', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
+  { name: 'Limit', gameType: 'Limit' as const, stakesText: 'Limit', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
+  { name: 'Mixed', gameType: 'Mixed' as const, stakesText: 'Mixed', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
 ];
 
 const STAKES_OPTIONS = [
@@ -74,7 +74,7 @@ export default function AddTableModal({
   const [stakesText, setStakesText] = useState('');
   const [selectedStakes, setSelectedStakes] = useState<string>('');
   const [showCustomStakes, setShowCustomStakes] = useState(false);
-  const [seatsTotal, setSeatsTotal] = useState(9);
+  const [seatsTotal, setSeatsTotal] = useState(20);
   const [bombPotCount, setBombPotCount] = useState(1);
   const [lockoutCount, setLockoutCount] = useState(0);
   const [buyInLimits, setBuyInLimits] = useState('');
@@ -147,7 +147,7 @@ export default function AddTableModal({
     setStakesText('');
     setSelectedStakes(''); // Start with empty selection so dropdown is visible
     setShowCustomStakes(false); // Don't show custom input until "Custom" is selected
-    setSeatsTotal(9);
+    setSeatsTotal(20);
     setBombPotCount(1);
     setLockoutCount(0);
     setBuyInLimits('');
@@ -425,7 +425,7 @@ export default function AddTableModal({
                             min="1"
                             max="20"
                             value={seatsTotal}
-                            onChange={(e) => setSeatsTotal(parseInt(e.target.value) || 9)}
+                            onChange={(e) => setSeatsTotal(parseInt(e.target.value) || 20)}
                             required
                           />
                         </div>
@@ -508,7 +508,7 @@ export default function AddTableModal({
                             min="1"
                             max="20"
                             value={seatsTotal}
-                            onChange={(e) => setSeatsTotal(parseInt(e.target.value) || 9)}
+                            onChange={(e) => setSeatsTotal(parseInt(e.target.value) || 20)}
                             required
                           />
                         </div>

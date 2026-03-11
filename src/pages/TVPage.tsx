@@ -634,7 +634,7 @@ export default function TVPage() {
 
             // Aggregate total seated / total seats for this group
             const totalSeated = displays.reduce((sum, d) => sum + d.seatsFilled, 0);
-            const totalSeats = displays.reduce((sum, d) => sum + (d.table.seats_total || 9), 0);
+            const totalSeats = displays.reduce((sum, d) => sum + (d.table.seats_total || 20), 0);
             const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
             return (
@@ -656,7 +656,7 @@ export default function TVPage() {
                     {displays.map((d) => (
                       <div key={d.table.id} className="tv-summary-table-row">
                         <span className="tv-summary-table-num">Table {d.table.table_number}</span>
-                        <span className="tv-summary-table-seats">{d.seatsFilled}/{d.table.seats_total || 9}</span>
+                        <span className="tv-summary-table-seats">{d.seatsFilled}/{d.table.seats_total || 20}</span>
                         {(d.table.bomb_pot_count || 0) > 0 && (
                           <span className="tv-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
                         )}
@@ -740,7 +740,7 @@ export default function TVPage() {
                     {displays.map((d) => (
                       <div key={d.table.id} className="tv-summary-table-row">
                         <span className="tv-summary-table-num">Table {d.table.table_number}</span>
-                        <span className="tv-summary-table-seats">0/{d.table.seats_total || 9}</span>
+                        <span className="tv-summary-table-seats">0/{d.table.seats_total || 20}</span>
                       </div>
                     ))}
                   </div>

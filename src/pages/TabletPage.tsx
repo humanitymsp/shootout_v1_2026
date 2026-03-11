@@ -354,7 +354,7 @@ export default function TabletPage() {
     const playerName = wl.player?.nick || wl.player?.name || 'Player';
     
     const data = tableData.get(tableId) || { seated: [], waitlist: [] };
-    const isFull = data.seated.length >= (tables.find(t => t.id === tableId)?.seats_total || 9);
+    const isFull = data.seated.length >= (tables.find(t => t.id === tableId)?.seats_total || 20);
     
     if (isFull) {
       showToast('Table is full', 'error');
@@ -688,7 +688,7 @@ export default function TabletPage() {
       filtered = filtered.filter(table => {
         const data = tableData.get(table.id) || { seated: [], waitlist: [] };
         const seatsFilled = data.seated.length;
-        const totalSeats = table.seats_total || 9;
+        const totalSeats = table.seats_total || 20;
         const filledPercent = (seatsFilled / totalSeats) * 100;
         
         if (filterStatus === 'open') return filledPercent < 70;
@@ -737,7 +737,7 @@ export default function TabletPage() {
   const getTableStatus = (table: PokerTable) => {
     const data = tableData.get(table.id) || { seated: [], waitlist: [] };
     const seatsFilled = data.seated.length;
-    const totalSeats = table.seats_total || 9;
+    const totalSeats = table.seats_total || 20;
     const filledPercent = (seatsFilled / totalSeats) * 100;
     
     if (filledPercent >= 90) return 'full';
@@ -894,7 +894,7 @@ export default function TabletPage() {
                     {activeTables
                       .filter(table => {
                         const data = tableData.get(table.id) || { seated: [], waitlist: [] };
-                        const isFull = data.seated.length >= (table.seats_total || 9);
+                        const isFull = data.seated.length >= (table.seats_total || 20);
                         return table.id !== movePlayer.sourceTableId && !isFull;
                       })
                       .map((table) => (
@@ -909,7 +909,7 @@ export default function TabletPage() {
                       ))}
                     {activeTables.filter(table => {
                       const data = tableData.get(table.id) || { seated: [], waitlist: [] };
-                      const isFull = data.seated.length >= (table.seats_total || 9);
+                      const isFull = data.seated.length >= (table.seats_total || 20);
                       return table.id !== movePlayer.sourceTableId && !isFull;
                     }).length === 0 && (
                       <div className="tablet-move-empty">No tables available</div>
@@ -1053,7 +1053,7 @@ export default function TabletPage() {
               {Array.from(gameTypeGroups.entries()).map(([groupKey, gameTables]) => {
                 const [gameType, stakes] = groupKey.split('||');
                 const totalSeated = gameTables.reduce((sum, t) => sum + (tableData.get(t.id)?.seated.length || 0), 0);
-                const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 9), 0);
+                const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 20), 0);
 
                 // Merge waitlists from all tables of this game type, deduplicating by player_id
                 // Sort by added_at so players appear in buy-in order (earliest first)
@@ -1134,7 +1134,7 @@ export default function TabletPage() {
                                   {(() => {
                                     const tablesWithRoom = gameTables.filter(t => {
                                       const d = tableData.get(t.id);
-                                      return d && d.seated.length < (t.seats_total || 9);
+                                      return d && d.seated.length < (t.seats_total || 20);
                                     });
                                     if (tablesWithRoom.length === 0) return null;
                                     return (
@@ -1223,7 +1223,7 @@ export default function TabletPage() {
       <div ref={gridRef} className="tablet-tables-grid">
         {filteredTables.map((table) => {
           const data = tableData.get(table.id) || { seated: [], waitlist: [] };
-          const isFull = data.seated.length >= (table.seats_total || 9);
+          const isFull = data.seated.length >= (table.seats_total || 20);
           const isSelected = selectedPlayer?.sourceTableId === table.id;
           const status = getTableStatus(table);
 
@@ -1237,7 +1237,7 @@ export default function TabletPage() {
                 <h2>Table {table.table_number}</h2>
                 <div className="tablet-table-stakes">{table.stakes_text}</div>
                 <div className="tablet-table-capacity">
-                  {data.seated.length} / {table.seats_total || 9} Seated
+                  {data.seated.length} / {table.seats_total || 20} Seated
                 </div>
               </div>
 
@@ -1370,7 +1370,7 @@ export default function TabletPage() {
               <div className="tablet-seat-picker-list">
                 {seatPickerModal.availableTables.map(t => {
                   const d = tableData.get(t.id) || { seated: [], waitlist: [] };
-                  const seatsLeft = (t.seats_total || 9) - d.seated.length;
+                  const seatsLeft = (t.seats_total || 20) - d.seated.length;
                   return (
                     <button
                       key={t.id}
@@ -1384,7 +1384,7 @@ export default function TabletPage() {
                     >
                       <span className="tablet-seat-picker-table">Table {t.table_number}</span>
                       <span className="tablet-seat-picker-info">
-                        {d.seated.length}/{t.seats_total || 9} seated · {seatsLeft} open
+                        {d.seated.length}/{t.seats_total || 20} seated · {seatsLeft} open
                       </span>
                     </button>
                   );

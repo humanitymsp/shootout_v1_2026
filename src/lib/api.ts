@@ -3460,7 +3460,7 @@ export async function resetClubDay(adminUser: string): Promise<void> {
       tableNumber: pt.table_number || table.table_number,
       gameType: (pt.game_type || table.game_type) as PokerTable['game_type'],
       stakesText: pt.stakes_text || table.stakes_text || '',
-      seatsTotal: pt.seats_total || table.seats_total || 9,
+      seatsTotal: pt.seats_total || table.seats_total || 20,
       bombPotCount: pt.bomb_pot_count || table.bomb_pot_count || 1,
       buyInLimits: pt.buy_in_limits || table.buy_in_limits,
       showOnTv: pt.show_on_tv ?? table.show_on_tv ?? true,

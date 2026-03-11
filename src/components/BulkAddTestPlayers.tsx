@@ -169,7 +169,7 @@ export default function BulkAddTestPlayers({
             try {
               // Check current seats to see if table has room
               const currentSeats = await getSeatedPlayersForTable(randomTable.id, clubDayId);
-              const maxSeats = randomTable.seats_total || 9;
+              const maxSeats = randomTable.seats_total || 20;
               if (currentSeats.length < maxSeats) {
                 await seatPlayer(randomTable.id, player.id, clubDayId);
                 successCount++;
@@ -180,7 +180,7 @@ export default function BulkAddTestPlayers({
                   let seated = false;
                   for (const table of activeTables) {
                     const seats = await getSeatedPlayersForTable(table.id, clubDayId);
-                    if (seats.length < (table.seats_total || 9)) {
+                    if (seats.length < (table.seats_total || 20)) {
                       await seatPlayer(table.id, player.id, clubDayId);
                       seated = true;
                       successCount++;

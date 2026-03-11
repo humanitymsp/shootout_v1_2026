@@ -648,7 +648,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       const seated = seatedPlayersMap.get(table.id) || [];
       const waitlist = (waitlistPlayersMap.get(table.id) || []).filter(w => !w.called_in);
       const seatedCount = seated.length;
-      const maxSeats = table.seats_total || 9;
+      const maxSeats = table.seats_total || 20;
 
       totalSeated += seatedCount;
       totalWaitlist += waitlist.length;
