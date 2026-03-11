@@ -883,6 +883,25 @@
   text-transform: uppercase;
 }
 
+.tablet-tc-badge {
+  font-size: 0.85em;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.25);
+  border: 1.5px solid rgba(251, 191, 36, 0.6);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+  margin-right: 0.3em;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
+  flex-shrink: 0;
+}
+
+.tablet-tc-player {
+  color: #fbbf24 !important;
+  font-weight: 700;
+}
+
 .tablet-empty-state {
   padding: 0.3rem;
   text-align: center;

@@ -371,22 +371,38 @@ export default function TabletPage() {
         return;
       }
 
+      // Check if player is already seated elsewhere (TC player) BEFORE seating
+      let wasTC = false;
+      try {
+        const { getSeatedPlayersForPlayer } = await import('../lib/api');
+        const existingSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
+        wasTC = existingSeats.length > 0;
+      } catch { /* best effort */ }
+
       await removePlayerFromWaitlist(wl.id, adminUser);
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
-      // Auto-remove from other waitlists unless player is a TC (table change)
-      let wasTC = false;
+      // Always remove from all other waitlists
       try {
-        const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-        wasTC = tcList.some((entry: any) => entry.playerId === wl.player_id);
-      } catch {}
-      if (!wasTC) {
+        const removedCount = await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
+        if (removedCount > 0) {
+          log(`Removed ${playerName} from ${removedCount} other waitlist(s) after seating`);
+        }
+      } catch { /* best effort */ }
+
+      // If TC player, remove from previous table seat(s)
+      if (wasTC) {
         try {
-          const removedCount = await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
-          if (removedCount > 0) {
-            log(`Removed ${playerName} from ${removedCount} other waitlist(s) after seating`);
+          const { getSeatedPlayersForPlayer, removePlayerFromSeat: removeSeat } = await import('../lib/api');
+          const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
+          const oldSeats = allSeats.filter(s => s.table_id !== tableId);
+          for (const oldSeat of oldSeats) {
+            await removeSeat(oldSeat.id, oldSeat.table_id, adminUser);
+            log(`Tablet: removed TC player from old seat at table ${oldSeat.table_id}`);
           }
-        } catch { /* best effort */ }
+        } catch (err) {
+          logError('Failed to remove TC player from previous table:', err);
+        }
       }
 
       showToast(`${playerName} seated`, 'success');
@@ -1038,6 +1054,22 @@ export default function TabletPage() {
 
       {/* Game Type Waitlist Lobby */}
       {activeTables.length > 0 && (() => {
+        // Compute TC player IDs: players who are seated at any table AND on a waitlist
+        const seatedPlayerIds = new Set<string>();
+        for (const [, data] of tableData) {
+          for (const seat of data.seated) {
+            seatedPlayerIds.add(seat.player_id);
+          }
+        }
+        const tcPlayerIds = new Set<string>();
+        for (const [, data] of tableData) {
+          for (const wl of data.waitlist) {
+            if (seatedPlayerIds.has(wl.player_id)) {
+              tcPlayerIds.add(wl.player_id);
+            }
+          }
+        }
+
         // Group tables by game type + stakes
         const gameTypeGroups = new Map<string, PokerTable[]>();
         activeTables.forEach(t => {
@@ -1125,7 +1157,8 @@ export default function TabletPage() {
                                   }}
                                 >▼</button>
                               </div>
-                              <span className="tablet-player-name">
+                              <span className={`tablet-player-name${tcPlayerIds.has(wl.player_id) ? ' tablet-tc-player' : ''}`}>
+                                {tcPlayerIds.has(wl.player_id) && <span className="tablet-tc-badge">TC</span>}
                                 {wl.player?.nick || wl.player?.name || 'Unknown'}
                                 {wl.called_in && <span className="tablet-called-in">Called</span>}
                               </span>
