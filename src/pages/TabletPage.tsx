@@ -1119,107 +1119,108 @@ export default function TabletPage() {
                         <div className="tablet-empty-state">No players waiting</div>
                       ) : (
                         mergedWaitlist.map(({ wl, tableId }, idx) => {
-                          const isHovered = hoveredPlayer === `lobby-${wl.id}`;
                           const isPlayerSelected = selectedPlayer?.player.player_id === wl.player_id;
                           return (
                             <div
                               key={wl.id}
                               className={`tablet-player-item waitlist ${isPlayerSelected ? 'selected' : ''}`}
                               onClick={() => handlePlayerClick(wl, tableId, true)}
-                              onMouseEnter={() => setHoveredPlayer(`lobby-${wl.id}`)}
-                              onMouseLeave={() => setHoveredPlayer(null)}
                             >
-                              <div className="tablet-reorder-btns" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                  className="tablet-reorder-btn"
-                                  title="Move up"
-                                  disabled={idx === 0 || actionInProgress !== null}
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (!clubDay) return;
-                                    try {
-                                      await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'up', wl.player_id);
-                                      loadAllTableData();
-                                    } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
-                                  }}
-                                >▲</button>
-                                <button
-                                  className="tablet-reorder-btn"
-                                  title="Move down"
-                                  disabled={idx === mergedWaitlist.length - 1 || actionInProgress !== null}
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (!clubDay) return;
-                                    try {
-                                      await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'down', wl.player_id);
-                                      loadAllTableData();
-                                    } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
-                                  }}
-                                >▼</button>
-                              </div>
                               <span className={`tablet-player-name${tcPlayerIds.has(wl.player_id) ? ' tablet-tc-player' : ''}`}>
                                 {tcPlayerIds.has(wl.player_id) && <span className="tablet-tc-badge">TC</span>}
                                 {wl.player?.nick || wl.player?.name || 'Unknown'}
                                 {wl.called_in && <span className="tablet-called-in">Called</span>}
                               </span>
-                              <div className="tablet-quick-actions" onClick={(e) => e.stopPropagation()}>
-                                {(() => {
-                                  const tablesWithRoom = gameTables.filter(t => {
-                                    const d = tableData.get(t.id);
-                                    return d && d.seated.length < (t.seats_total || 20);
-                                  });
-                                  if (tablesWithRoom.length === 0) return null;
-                                  return (
+                              {isPlayerSelected && (
+                                <div className="tablet-selected-actions" onClick={(e) => e.stopPropagation()}>
+                                  <div className="tablet-reorder-btns">
                                     <button
-                                      className="tablet-quick-action-btn tablet-quick-seat"
-                                      onClick={(e) => {
+                                      className="tablet-reorder-btn"
+                                      title="Move up"
+                                      disabled={idx === 0 || actionInProgress !== null}
+                                      onClick={async (e) => {
                                         e.stopPropagation();
-                                        setSeatPickerModal({ wl, availableTables: tablesWithRoom, sourceGroupKey: groupKey });
+                                        if (!clubDay) return;
+                                        try {
+                                          await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'up', wl.player_id);
+                                          loadAllTableData();
+                                        } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
+                                      }}
+                                    >▲</button>
+                                    <button
+                                      className="tablet-reorder-btn"
+                                      title="Move down"
+                                      disabled={idx === mergedWaitlist.length - 1 || actionInProgress !== null}
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!clubDay) return;
+                                        try {
+                                          await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'down', wl.player_id);
+                                          loadAllTableData();
+                                        } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
+                                      }}
+                                    >▼</button>
+                                  </div>
+                                  <div className="tablet-quick-actions">
+                                    {(() => {
+                                      const tablesWithRoom = gameTables.filter(t => {
+                                        const d = tableData.get(t.id);
+                                        return d && d.seated.length < (t.seats_total || 20);
+                                      });
+                                      if (tablesWithRoom.length === 0) return null;
+                                      return (
+                                        <button
+                                          className="tablet-quick-action-btn tablet-quick-seat"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSeatPickerModal({ wl, availableTables: tablesWithRoom, sourceGroupKey: groupKey });
+                                          }}
+                                          disabled={actionInProgress !== null}
+                                          title="Choose table to seat player"
+                                        >
+                                          Seat
+                                        </button>
+                                      );
+                                    })()}
+                                    <button
+                                      className="tablet-quick-action-btn tablet-quick-tc"
+                                      onClick={(e) => handleQuickTC(wl, tableId, e)}
+                                      disabled={actionInProgress !== null}
+                                      title="Table Change"
+                                    >
+                                      TC
+                                    </button>
+                                    <button
+                                      className="tablet-quick-action-btn tablet-quick-remove"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (!clubDay) return;
+                                        setActionInProgress(wl.id);
+                                        try {
+                                          // Remove from ALL tables of this game type
+                                          for (const t of gameTables) {
+                                            const d = tableData.get(t.id);
+                                            const entry = d?.waitlist.find(w => w.player_id === wl.player_id);
+                                            if (entry) {
+                                              await removePlayerFromWaitlist(entry.id, adminUser);
+                                            }
+                                          }
+                                          showToast(`${wl.player?.nick || 'Player'} removed from waitlist`, 'success');
+                                          loadAllTableData();
+                                        } catch (err: any) {
+                                          showToast(err.message || 'Failed to remove', 'error');
+                                        } finally {
+                                          setActionInProgress(null);
+                                        }
                                       }}
                                       disabled={actionInProgress !== null}
-                                      title="Choose table to seat player"
+                                      title="Remove from all waitlists"
                                     >
-                                      Seat
+                                      ✕
                                     </button>
-                                  );
-                                })()}
-                                <button
-                                  className="tablet-quick-action-btn tablet-quick-tc"
-                                  onClick={(e) => handleQuickTC(wl, tableId, e)}
-                                  disabled={actionInProgress !== null}
-                                  title="Table Change"
-                                >
-                                  TC
-                                </button>
-                                <button
-                                  className="tablet-quick-action-btn tablet-quick-remove"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (!clubDay) return;
-                                    setActionInProgress(wl.id);
-                                    try {
-                                      // Remove from ALL tables of this game type
-                                      for (const t of gameTables) {
-                                        const d = tableData.get(t.id);
-                                        const entry = d?.waitlist.find(w => w.player_id === wl.player_id);
-                                        if (entry) {
-                                          await removePlayerFromWaitlist(entry.id, adminUser);
-                                        }
-                                      }
-                                      showToast(`${wl.player?.nick || 'Player'} removed from waitlist`, 'success');
-                                      loadAllTableData();
-                                    } catch (err: any) {
-                                      showToast(err.message || 'Failed to remove', 'error');
-                                    } finally {
-                                      setActionInProgress(null);
-                                    }
-                                  }}
-                                  disabled={actionInProgress !== null}
-                                  title="Remove from all waitlists"
-                                >
-                                  ✕
-                                </button>
-                              </div>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })

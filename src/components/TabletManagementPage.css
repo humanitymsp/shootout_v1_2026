@@ -902,6 +902,13 @@
   font-weight: 700;
 }
 
+.tablet-selected-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
 .tablet-empty-state {
   padding: 0.3rem;
   text-align: center;
