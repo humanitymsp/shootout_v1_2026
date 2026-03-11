@@ -77,7 +77,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   const [waitlistPlayersMap, setWaitlistPlayersMap] = useState<Map<string, TableWaitlist[]>>(new Map());
   const [quickFilter, setQuickFilter] = useState<'all' | 'empty' | 'full' | 'waitlist'>('all');
   const [showPlayersPopup, setShowPlayersPopup] = useState(false);
-  const [checkInStatusMap, setCheckInStatusMap] = useState<Map<string, boolean>>(new Map()); // playerId -> hasPaid
+  const [checkInStatusMap, setCheckInStatusMap] = useState<Map<string, { hasPaid: boolean; amount: number; isPrevious: boolean }>>(new Map());
   const [buyInModal, setBuyInModal] = useState<{ entry: TableWaitlist; playerName: string; defaultAmount: number } | null>(null);
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
   
@@ -446,11 +446,16 @@ export default function AdminPage({ user }: AdminPageProps) {
     Promise.all(
       uniquePlayerIds.map(async (playerId) => {
         const checkIn = await getCheckInForPlayer(playerId, clubDay.id).catch(() => null);
-        return { playerId, hasPaid: !!checkIn };
+        return {
+          playerId,
+          hasPaid: !!checkIn,
+          amount: checkIn?.door_fee_amount ?? 0,
+          isPrevious: checkIn ? checkIn.door_fee_amount === 0 : false,
+        };
       })
     ).then(results => {
-      const map = new Map<string, boolean>();
-      results.forEach(({ playerId, hasPaid }) => map.set(playerId, hasPaid));
+      const map = new Map<string, { hasPaid: boolean; amount: number; isPrevious: boolean }>();
+      results.forEach(({ playerId, hasPaid, amount, isPrevious }) => map.set(playerId, { hasPaid, amount, isPrevious }));
       setCheckInStatusMap(map);
     });
   }, [showPlayersPopup, waitlistPlayersMap, clubDay]);
@@ -1322,9 +1327,9 @@ export default function AdminPage({ user }: AdminPageProps) {
             }
             setBuyInModal(null);
             // Refresh check-in status map
-            setCheckInStatusMap((prev: Map<string, boolean>) => {
+            setCheckInStatusMap((prev) => {
               const next = new Map(prev);
-              next.set(buyInModal.entry.player_id, true);
+              next.set(buyInModal.entry.player_id, { hasPaid: true, amount: buyInModal.defaultAmount, isPrevious: false });
               return next;
             });
           }}
@@ -1769,14 +1774,16 @@ export default function AdminPage({ user }: AdminPageProps) {
                       
                       return filtered.map((wl: TableWaitlist) => {
                         const table = uniqueTables.find((t: PokerTable) => t.id === tableId);
-                        const hasPaid = checkInStatusMap.get(wl.player_id) ?? true;
-                        const needsBuyIn = checkInStatusMap.has(wl.player_id) && !hasPaid;
+                        const ciStatus = checkInStatusMap.get(wl.player_id);
+                        const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
                         return (
                           <div key={wl.id} className="popup-waitlist-item">
                             <div className="popup-waitlist-info">
                               <span className="popup-waitlist-name">
                                 <span className="popup-waitlist-name-text">{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
                                 {needsBuyIn && <span className="popup-needs-buyin-badge">Needs Buy-In</span>}
+                                {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="popup-previous-badge">Previous</span>}
+                                {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
                               </span>
                               <span className="popup-waitlist-meta">
                                 Table {table?.table_number ?? '?'} • #{wl.position ?? '?'}
