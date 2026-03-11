@@ -75,19 +75,12 @@ export default function RefundModal({ clubDayId, adminUser, onClose, onSuccess }
           `Table ${tables[idx]?.table_number}: ${seated.length} players`
         ));
         
-        // Collect all unique player IDs who are eligible
+        // Collect only player IDs who actually paid a door fee (exclude $0 previous players and already refunded)
         const eligiblePlayerIds = new Set<string>();
         clubDayCheckIns.forEach(ci => {
-          if (ci.player_id) {
+          if (ci.player_id && ci.door_fee_amount > 0 && !ci.refunded_at) {
             eligiblePlayerIds.add(ci.player_id);
           }
-        });
-        allSeatedResults.forEach(seated => {
-          seated.forEach(seat => {
-            if (seat.player_id) {
-              eligiblePlayerIds.add(seat.player_id);
-            }
-          });
         });
         
         log('📋 Total unique eligible player IDs:', eligiblePlayerIds.size);
@@ -330,7 +323,7 @@ export default function RefundModal({ clubDayId, adminUser, onClose, onSuccess }
           {/* List of all signed-in players for the day */}
           {!selectedPlayer && (
             <div className="eligible-players-section">
-              <h4>All Signed-In Players Today ({allEligiblePlayers.length})</h4>
+              <h4>Players With Paid Buy-In ({allEligiblePlayers.length})</h4>
               {loadingEligiblePlayers ? (
                 <div className="loading-players">Loading players...</div>
               ) : allEligiblePlayers.length > 0 ? (
