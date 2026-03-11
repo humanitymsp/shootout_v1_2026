@@ -439,8 +439,8 @@ export default function TVPage() {
       });
     }
 
-    // Sort by table number
-    displays.sort((a, b) => a.table.table_number - b.table.table_number);
+    // Sort by creation time so new tables appear at the end
+    displays.sort((a, b) => new Date(a.table.created_at).getTime() - new Date(b.table.created_at).getTime());
 
     setTableDisplays(displays);
     
