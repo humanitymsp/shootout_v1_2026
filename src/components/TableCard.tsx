@@ -87,6 +87,7 @@ function TableCard({
   const [tcSameGameOnly, setTcSameGameOnly] = useState(true);
   const [doorFeeModal, setDoorFeeModal] = useState<{ player: TableWaitlist; playerName: string; defaultAmount: number } | null>(null);
   const [wlGameTypeMenu, setWlGameTypeMenu] = useState<{ player: TableSeat | TableWaitlist } | null>(null);
+  const [checkinCache, setCheckinCache] = useState<Map<string, { amount: number; isPrevious: boolean }>>(new Map());
   const inFlightMovesRef = useRef<Set<string>>(new Set());
   const lastRefreshRef = useRef<number>(0);
   const refreshCooldownRef = useRef<number>(500); // 500ms cooldown between refreshes
@@ -154,6 +155,30 @@ function TableCard({
   const activeWaitlistPlayers = waitlistPlayers
     .filter((wl) => !wl.called_in)
     .sort((a, b) => (a.position || 0) - (b.position || 0));
+
+  // Load check-in data for waitlist players to show buy-in amounts
+  useEffect(() => {
+    const loadCheckins = async () => {
+      const newCache = new Map<string, { amount: number; isPrevious: boolean }>();
+      for (const wl of activeWaitlistPlayers) {
+        if (checkinCache.has(wl.player_id)) {
+          newCache.set(wl.player_id, checkinCache.get(wl.player_id)!);
+          continue;
+        }
+        try {
+          const checkIn = await getCheckInForPlayer(wl.player_id, clubDayId);
+          if (checkIn) {
+            newCache.set(wl.player_id, {
+              amount: checkIn.door_fee_amount,
+              isPrevious: checkIn.door_fee_amount === 0,
+            });
+          }
+        } catch { /* skip */ }
+      }
+      if (newCache.size > 0) setCheckinCache(newCache);
+    };
+    if (activeWaitlistPlayers.length > 0) loadCheckins();
+  }, [waitlistPlayers.length, clubDayId]);
   
   useEffect(() => {
     // Restore optimistic players from localStorage on mount (survives page refresh)
@@ -2687,6 +2712,12 @@ function TableCard({
                           @ T{assignment.seated}
                         </span>
                       )}
+                      {(() => {
+                        const ci = checkinCache.get(wl.player_id);
+                        if (!ci) return null;
+                        if (ci.isPrevious) return <span className="wl-buyin-badge previous" title="Previous player - no door fee">Previous</span>;
+                        return <span className="wl-buyin-badge" title={`Bought in for $${ci.amount}`}>${ci.amount}</span>;
+                      })()}
                     </span>
                     {wl.called_in && (
                       <div className="called-in-row">
