@@ -1,6 +1,6 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, createPlayer, createTable } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, seatPlayer, createPlayer, createTable } from '../lib/api';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
@@ -1834,25 +1834,58 @@ export default function AdminPage({ user }: AdminPageProps) {
                                     #{wl.position ?? '?'}
                                   </span>
                                 </div>
-                                {needsBuyIn && (
+                                <div className="admin-fab-actions">
                                   <button
-                                    className="popup-buyin-btn"
+                                    className="admin-fab-seat-btn"
+                                    title="Seat this player at the best available table"
                                     onClick={async () => {
-                                      let defaultAmount = 20;
+                                      // Find the best table of this game type with available seats
+                                      const targetTable = gameTables
+                                        .filter(t => {
+                                          const seated = seatedPlayersMap.get(t.id)?.length || 0;
+                                          return seated < (t.seats_total || 20) && t.status !== 'CLOSED';
+                                        })
+                                        .sort((a, b) => {
+                                          const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
+                                          const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
+                                          return seatedB - seatedA; // fullest table first
+                                        })[0];
+                                      if (!targetTable) {
+                                        showToast('No available seats at any table for this game type', 'error');
+                                        return;
+                                      }
                                       try {
-                                        const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
-                                        if (checkIn?.door_fee_amount) defaultAmount = checkIn.door_fee_amount;
-                                      } catch { /* use default */ }
-                                      setBuyInModal({
-                                        entry: wl,
-                                        playerName: wl.player?.nick || wl.player?.name || 'Unknown',
-                                        defaultAmount,
-                                      });
+                                        await seatPlayer(targetTable.id, wl.player_id, clubDay.id, adminUser);
+                                        await removePlayerFromWaitlist(wl.id, adminUser);
+                                        showToast(`Seated ${wl.player?.nick || 'player'} at Table ${targetTable.table_number}`, 'success');
+                                        handleRefresh();
+                                      } catch (err: any) {
+                                        showToast(err.message || 'Failed to seat player', 'error');
+                                      }
                                     }}
                                   >
-                                    Buy In
+                                    Seat
                                   </button>
-                                )}
+                                  {needsBuyIn && (
+                                    <button
+                                      className="popup-buyin-btn"
+                                      onClick={async () => {
+                                        let defaultAmount = 20;
+                                        try {
+                                          const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
+                                          if (checkIn?.door_fee_amount) defaultAmount = checkIn.door_fee_amount;
+                                        } catch { /* use default */ }
+                                        setBuyInModal({
+                                          entry: wl,
+                                          playerName: wl.player?.nick || wl.player?.name || 'Unknown',
+                                          defaultAmount,
+                                        });
+                                      }}
+                                    >
+                                      Buy In
+                                    </button>
+                                  )}
+                                </div>
                               </div>
                             );
                           })

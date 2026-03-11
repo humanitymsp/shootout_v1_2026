@@ -510,6 +510,31 @@
   font-weight: 700;
 }
 
+.admin-fab-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.admin-fab-seat-btn {
+  padding: 0.15rem 0.4rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.admin-fab-seat-btn:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+}
+
 /* Needs Buy-In badge */
 .popup-needs-buyin-badge {
   background: rgba(251, 191, 36, 0.2);
