@@ -1110,6 +1110,121 @@
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
 }
 
+.player-wl-btn {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(22, 163, 74, 0.4);
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+  font-size: 0.55rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.player-wl-btn:hover {
+  background: rgba(22, 163, 74, 0.2);
+  border-color: #16a34a;
+  transform: scale(1.1);
+  box-shadow: 0 0 8px rgba(22, 163, 74, 0.3);
+}
+
+.wl-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+}
+
+.wl-game-type-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--admin-surface-elevated, #1e1e2e);
+  border: 1px solid var(--admin-border, #333);
+  border-radius: 12px;
+  min-width: 260px;
+  max-width: 340px;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.wl-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--admin-border, #333);
+  font-size: 0.85rem;
+}
+
+.wl-popup-close {
+  background: none;
+  border: none;
+  color: var(--admin-text-muted, #888);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.wl-popup-close:hover {
+  color: var(--admin-text, #fff);
+}
+
+.wl-popup-body {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.wl-popup-empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--admin-text-muted, #888);
+  font-size: 0.8rem;
+}
+
+.wl-game-type-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  background: rgba(22, 163, 74, 0.08);
+  border: 1px solid rgba(22, 163, 74, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--admin-text, #fff);
+}
+
+.wl-game-type-item:hover {
+  background: rgba(22, 163, 74, 0.2);
+  border-color: #16a34a;
+  transform: translateY(-1px);
+}
+
+.wl-game-name {
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.wl-game-info {
+  font-size: 0.7rem;
+  color: var(--admin-text-muted, #888);
+}
+
 .player-table-change {
   width: 14px;
   height: 14px;

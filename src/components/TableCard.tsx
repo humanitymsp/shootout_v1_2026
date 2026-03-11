@@ -86,6 +86,7 @@ function TableCard({
   const [tcAddAll, setTcAddAll] = useState(false);
   const [tcSameGameOnly, setTcSameGameOnly] = useState(true);
   const [doorFeeModal, setDoorFeeModal] = useState<{ player: TableWaitlist; playerName: string; defaultAmount: number } | null>(null);
+  const [wlGameTypeMenu, setWlGameTypeMenu] = useState<{ player: TableSeat | TableWaitlist } | null>(null);
   const inFlightMovesRef = useRef<Set<string>>(new Set());
   const lastRefreshRef = useRef<number>(0);
   const refreshCooldownRef = useRef<number>(500); // 500ms cooldown between refreshes
@@ -2494,6 +2495,18 @@ function TableCard({
                     </span>
                   </div>
                   <div className="player-actions">
+                    <Tooltip content="Add to another game type waitlist">
+                      <button
+                        className="player-wl-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWlGameTypeMenu({ player: seat });
+                        }}
+                        title="Add to game type waitlist"
+                      >
+                        WL
+                      </button>
+                    </Tooltip>
                     <Tooltip content="Table Change - Add to another table's waitlist">
                       <button
                         className="player-table-change"
@@ -2684,6 +2697,18 @@ function TableCard({
                     )}
                   </div>
                   <div className="player-actions">
+                    <Tooltip content="Add to another game type waitlist">
+                      <button
+                        className="player-wl-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setWlGameTypeMenu({ player: wl });
+                        }}
+                        title="Add to game type waitlist"
+                      >
+                        WL
+                      </button>
+                    </Tooltip>
                     <Tooltip content="Table Change - Add to another table's waitlist">
                       <button
                         className="player-table-change"
@@ -2935,6 +2960,66 @@ function TableCard({
                   </div>
                 </>
               )}
+            </div>
+          </>
+        );
+      })()}
+
+      {wlGameTypeMenu && (() => {
+        const playerId = wlGameTypeMenu.player.player_id;
+        const playerName = wlGameTypeMenu.player.player?.nick || 'Unknown';
+        const currentGameType = table.game_type || 'Other';
+        const currentStakes = table.stakes_text || '';
+        const currentKey = `${currentGameType}||${currentStakes}`;
+
+        // Group all other tables by game type (excluding current game type)
+        const gameGroups = new Map<string, { gameType: string; stakes: string; tables: typeof allTables }>();
+        for (const t of allTables) {
+          if (t.status === 'CLOSED') continue;
+          const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
+          if (key === currentKey) continue;
+          const existing = gameGroups.get(key);
+          if (existing) {
+            existing.tables.push(t);
+          } else {
+            gameGroups.set(key, { gameType: t.game_type || 'Other', stakes: t.stakes_text || '', tables: [t] });
+          }
+        }
+
+        return (
+          <>
+            <div className="wl-overlay" onClick={() => setWlGameTypeMenu(null)} />
+            <div className="wl-game-type-popup">
+              <div className="wl-popup-header">
+                <strong>Add {playerName} to waitlist</strong>
+                <button className="wl-popup-close" onClick={() => setWlGameTypeMenu(null)}>×</button>
+              </div>
+              <div className="wl-popup-body">
+                {gameGroups.size === 0 ? (
+                  <div className="wl-popup-empty">No other game types available</div>
+                ) : (
+                  Array.from(gameGroups.entries()).map(([key, group]) => (
+                    <button
+                      key={key}
+                      className="wl-game-type-item"
+                      onClick={async () => {
+                        const lobbyTable = group.tables[0];
+                        try {
+                          await addPlayerToWaitlist(lobbyTable.id, playerId, clubDayId, adminUser, { skipSeatCheck: true });
+                          showToast(`${playerName} added to ${group.gameType} ${group.stakes} waitlist`, 'success');
+                          setWlGameTypeMenu(null);
+                          onRefresh();
+                        } catch (err: any) {
+                          showToast(err.message || `Failed to add to ${group.gameType} waitlist`, 'error');
+                        }
+                      }}
+                    >
+                      <span className="wl-game-name">{group.gameType} {group.stakes}</span>
+                      <span className="wl-game-info">{group.tables.length} table{group.tables.length !== 1 ? 's' : ''}</span>
+                    </button>
+                  ))
+                )}
+              </div>
             </div>
           </>
         );
