@@ -587,8 +587,70 @@ export function enrichWithPlayerData<T extends { player_id: string; player?: Pla
 }
 
 /**
- * Enrich an array of TableSeat or TableWaitlist items with player data
+ * Enrich an array of TableSeat or TableWaitlist items with player data.
+ * First tries localStorage, then fetches any missing players from DynamoDB
+ * and caches them locally for future lookups.
  */
-export function enrichArrayWithPlayerData<T extends { player_id: string; player?: Player }>(items: T[]): T[] {
-  return items.map(enrichWithPlayerData);
+export async function enrichArrayWithPlayerData<T extends { player_id: string; player?: Player }>(items: T[]): Promise<T[]> {
+  // First pass: enrich from localStorage
+  let enriched = items.map(enrichWithPlayerData);
+  
+  // Find items still missing player data
+  const missing = enriched.filter(item => !item.player && item.player_id);
+  if (missing.length === 0) return enriched;
+  
+  // Deduplicate missing player IDs
+  const missingIds = [...new Set(missing.map(item => item.player_id))];
+  
+  // Batch-fetch from DynamoDB Player table
+  try {
+    const { getClient } = await import('./api');
+    const client = getClient();
+    if (!client?.models?.Player) return enriched;
+    
+    const fetchedMap = new Map<string, Player>();
+    // Fetch in parallel (max 10 concurrent to avoid throttling)
+    const batchSize = 10;
+    for (let i = 0; i < missingIds.length; i += batchSize) {
+      const batch = missingIds.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(async (pid) => {
+          const { data } = await client.models.Player.get({ id: pid }, { authMode: 'apiKey' });
+          return data;
+        })
+      );
+      for (const result of results) {
+        if (result.status === 'fulfilled' && result.value) {
+          const raw = result.value as any;
+          const player: Player = {
+            id: raw.id,
+            name: raw.name || '',
+            nick: raw.nick || raw.name || '',
+            phone: raw.phone || undefined,
+            email: raw.email || undefined,
+            created_at: raw.createdAt || raw.created_at || '',
+            updated_at: raw.updatedAt || raw.updated_at || '',
+          };
+          fetchedMap.set(player.id, player);
+          // Cache locally so future lookups are instant
+          upsertPlayerLocal(player);
+        }
+      }
+    }
+    
+    if (fetchedMap.size > 0) {
+      log(`📥 Fetched ${fetchedMap.size} missing player(s) from DynamoDB for enrichment`);
+      // Second pass: enrich items that were missing
+      enriched = enriched.map(item => {
+        if (!item.player && fetchedMap.has(item.player_id)) {
+          return { ...item, player: fetchedMap.get(item.player_id)! };
+        }
+        return item;
+      });
+    }
+  } catch (error) {
+    logWarn('Failed to fetch missing players from DynamoDB:', error);
+  }
+  
+  return enriched;
 }
