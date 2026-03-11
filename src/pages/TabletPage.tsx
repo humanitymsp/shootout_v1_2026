@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
 import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
-import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer } from '../lib/api';
+import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer, reorderWaitlistPosition } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
 import { showToast } from '../components/Toast';
@@ -1042,19 +1042,23 @@ export default function TabletPage() {
                 const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 9), 0);
 
                 // Merge waitlists from all tables of this game type, deduplicating by player_id
-                const seenPlayerIds = new Set<string>();
-                const mergedWaitlist: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
+                // Sort by added_at so players appear in buy-in order (earliest first)
+                const allEntries: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
                 for (const t of gameTables) {
                   const data = tableData.get(t.id);
                   if (data?.waitlist) {
                     for (const wl of data.waitlist) {
-                      if (!seenPlayerIds.has(wl.player_id)) {
-                        seenPlayerIds.add(wl.player_id);
-                        mergedWaitlist.push({ wl, tableId: t.id, tableNumber: t.table_number });
-                      }
+                      allEntries.push({ wl, tableId: t.id, tableNumber: t.table_number });
                     }
                   }
                 }
+                allEntries.sort((a, b) => (a.wl.position || 0) - (b.wl.position || 0));
+                const seenPlayerIds = new Set<string>();
+                const mergedWaitlist = allEntries.filter(({ wl }) => {
+                  if (seenPlayerIds.has(wl.player_id)) return false;
+                  seenPlayerIds.add(wl.player_id);
+                  return true;
+                });
 
                 return (
                   <div key={groupKey} className="tablet-game-lobby-card">
@@ -1068,7 +1072,7 @@ export default function TabletPage() {
                       {mergedWaitlist.length === 0 ? (
                         <div className="tablet-empty-state">No players waiting</div>
                       ) : (
-                        mergedWaitlist.map(({ wl, tableId }) => {
+                        mergedWaitlist.map(({ wl, tableId }, idx) => {
                           const isHovered = hoveredPlayer === `lobby-${wl.id}`;
                           const isPlayerSelected = selectedPlayer?.player.player_id === wl.player_id;
                           return (
@@ -1079,6 +1083,34 @@ export default function TabletPage() {
                               onMouseEnter={() => setHoveredPlayer(`lobby-${wl.id}`)}
                               onMouseLeave={() => setHoveredPlayer(null)}
                             >
+                              <div className="tablet-reorder-btns" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                  className="tablet-reorder-btn"
+                                  title="Move up"
+                                  disabled={idx === 0 || actionInProgress !== null}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!clubDay) return;
+                                    try {
+                                      await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'up', wl.player_id);
+                                      loadAllTableData();
+                                    } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
+                                  }}
+                                >▲</button>
+                                <button
+                                  className="tablet-reorder-btn"
+                                  title="Move down"
+                                  disabled={idx === mergedWaitlist.length - 1 || actionInProgress !== null}
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (!clubDay) return;
+                                    try {
+                                      await reorderWaitlistPosition(wl.id, tableId, clubDay.id, 'down', wl.player_id);
+                                      loadAllTableData();
+                                    } catch (err: any) { showToast(err.message || 'Failed to reorder', 'error'); }
+                                  }}
+                                >▼</button>
+                              </div>
                               <span className="tablet-player-name">
                                 {wl.player?.nick || wl.player?.name || 'Unknown'}
                                 {wl.called_in && <span className="tablet-called-in">Called</span>}

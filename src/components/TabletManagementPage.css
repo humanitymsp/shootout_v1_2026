@@ -806,6 +806,42 @@
   text-transform: uppercase;
 }
 
+.tablet-reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-right: 0.4rem;
+  flex-shrink: 0;
+}
+
+.tablet-reorder-btn {
+  width: 20px;
+  height: 14px;
+  border: 1px solid var(--admin-border, #333);
+  background: var(--admin-surface-elevated, #1e1e2e);
+  color: var(--admin-text-muted, #888);
+  font-size: 0.55rem;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: all 0.15s ease;
+}
+
+.tablet-reorder-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--admin-primary, #3b82f6);
+  color: var(--admin-primary, #3b82f6);
+}
+
+.tablet-reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
 .tablet-called-in {
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
