@@ -62,7 +62,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
   const [doorFee, setDoorFee] = useState(20);
   const [customDoorFee, setCustomDoorFee] = useState('');
   const [savedDoorFees, setSavedDoorFees] = useState<number[]>([]);
-  const [selectedGameType, setSelectedGameType] = useState('');
+  const [selectedGameTypes, setSelectedGameTypes] = useState<Set<string>>(new Set());
   const [tableList, setTableList] = useState<any[]>([]);
   const [enrichedTables, setEnrichedTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -121,10 +121,10 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
 
   // When a game type is selected, scroll to the footer so Submit is visible
   useEffect(() => {
-    if (selectedGameType) {
+    if (selectedGameTypes.size > 0) {
       scrollToRef(footerRef);
     }
-  }, [selectedGameType]);
+  }, [selectedGameTypes]);
 
   useEffect(() => {
     setTableList(tables);
@@ -390,20 +390,8 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         return;
       }
 
-      if (!selectedGameType) {
-        setError('Please select a game type');
-        setLoading(false);
-        return;
-      }
-
-      // Find all tables matching the selected game type
-      const gameTypeTables = tables.filter((t: any) => {
-        const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
-        return key === selectedGameType && t.status !== 'CLOSED';
-      });
-
-      if (gameTypeTables.length === 0) {
-        setError('No active tables for this game type');
+      if (selectedGameTypes.size === 0) {
+        setError('Please select at least one game type');
         setLoading(false);
         return;
       }
@@ -444,20 +432,32 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         log('Check-in created:', result);
       }
 
-      // Add player to the lobby waitlist for this game type.
-      // We add to ONE table (first active table) — the tablet/admin lobby view
-      // merges and deduplicates waitlists across all tables of the same game type,
-      // so the player appears in the correct game-type lobby regardless of which
-      // specific table holds the waitlist entry.
-      const lobbyTable = gameTypeTables[0];
-      const [gameLabel] = selectedGameType.split('||');
-      log(`Adding player to ${gameLabel} lobby waitlist via Table ${lobbyTable.table_number}`);
-      try {
-        await addPlayerToWaitlist(lobbyTable.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
-        log(`Added to ${gameLabel} lobby waitlist (Table ${lobbyTable.table_number})`);
-      } catch (err: any) {
-        logError(`Failed to add to ${gameLabel} lobby waitlist:`, err);
-        setError(err.message || 'Failed to add player to waitlist. They may already be on it.');
+      // Add player to the lobby waitlist for each selected game type.
+      // For each game type we add to ONE table (first active table) — the tablet/admin
+      // lobby view merges and deduplicates waitlists across all tables of the same game
+      // type, so the player appears in the correct game-type lobby.
+      const addedGameLabels: string[] = [];
+      for (const gameTypeKey of selectedGameTypes) {
+        const gameTypeTables = tables.filter((t: any) => {
+          const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
+          return key === gameTypeKey && t.status !== 'CLOSED';
+        });
+        if (gameTypeTables.length === 0) continue;
+        const lobbyTable = gameTypeTables[0];
+        const [gameLabel] = gameTypeKey.split('||');
+        log(`Adding player to ${gameLabel} lobby waitlist via Table ${lobbyTable.table_number}`);
+        try {
+          await addPlayerToWaitlist(lobbyTable.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
+          log(`Added to ${gameLabel} lobby waitlist (Table ${lobbyTable.table_number})`);
+          addedGameLabels.push(`${gameLabel}`);
+        } catch (err: any) {
+          logError(`Failed to add to ${gameLabel} lobby waitlist:`, err);
+          // Don't fail the whole operation — just skip this one
+          showToast(`Could not add to ${gameLabel} waitlist: ${err.message || 'already on it'}`, 'warning');
+        }
+      }
+      if (addedGameLabels.length === 0) {
+        setError('Failed to add player to any waitlists.');
         setLoading(false);
         return;
       }
@@ -468,7 +468,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         type: 'player-update', 
         action: 'checkin', 
         playerId: player.id,
-        gameType: selectedGameType,
+        gameType: Array.from(selectedGameTypes).join(','),
         clubDayId: clubDayId,
         assignmentMode: 'waitlist',
         playerData: player,
@@ -490,8 +490,8 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
       }
       if (smsCfg.enabled && smsCfg.apiKey && smsPhone) {
         try {
-          const [gameType, stakes] = selectedGameType.split('||');
-          let smsMsg = `Hi ${player.nick}! You're checked in for ${gameType} ${stakes}`;
+          const gameLabelsForSMS = addedGameLabels.join(', ');
+          let smsMsg = `Hi ${player.nick}! You're checked in for ${gameLabelsForSMS}`;
           smsMsg += ` and on the waitlist`;
           smsMsg += `. Good luck! - Final Table Poker Club`;
 
@@ -523,7 +523,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         setNick('');
         setDoorFee(20);
         setCustomDoorFee('');
-        setSelectedGameType('');
+        setSelectedGameTypes(new Set());
         setExistingCheckIn(null);
         setOverrideReason('');
         setShowOverride(false);
@@ -567,7 +567,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                     }
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && selectedPlayer && selectedGameType) {
+                    if (e.key === 'Enter' && selectedPlayer && selectedGameTypes.size > 0) {
                       handleSubmit(e);
                     }
                   }}
@@ -722,8 +722,8 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
 
             {/* Game Type Lobby Selection */}
             <div className="form-section" ref={gameTypeSectionRef}>
-              <label className="form-label required">Game Type</label>
-              <p className="form-help">Player will be added to the waitlist lobby for this game type.</p>
+              <label className="form-label required">Game Type{selectedGameTypes.size > 1 ? 's' : ''}</label>
+              <p className="form-help">Select one or more game types to add player to those waitlist lobbies.</p>
               <div className="game-type-buttons">
                 {(() => {
                   const activeTables = (enrichedTables.length > 0 ? enrichedTables : tableList).filter((t: any) => t.status !== 'CLOSED');
@@ -752,8 +752,15 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                     <button
                       key={key}
                       type="button"
-                      className={`game-type-btn ${selectedGameType === key ? 'active' : ''}`}
-                      onClick={() => setSelectedGameType(key)}
+                      className={`game-type-btn ${selectedGameTypes.has(key) ? 'active' : ''}`}
+                      onClick={() => {
+                        setSelectedGameTypes(prev => {
+                          const next = new Set(prev);
+                          if (next.has(key)) next.delete(key);
+                          else next.add(key);
+                          return next;
+                        });
+                      }}
                     >
                       <span className="game-type-name">{group.gameType} {group.stakes}</span>
                       <span className="game-type-info">
@@ -786,7 +793,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
             <button 
               type="submit" 
               form="checkin-form"
-              disabled={loading || nick.trim().length < 2 || !selectedGameType || !nick.trim()}
+              disabled={loading || nick.trim().length < 2 || selectedGameTypes.size === 0 || !nick.trim()}
               className="submit-btn"
             >
               {loading ? 'Processing...' : playerNotFound ? `Create & Sign In "${nick.trim()}"` : 'Sign In Player'}
