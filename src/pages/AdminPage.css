@@ -402,7 +402,6 @@
   gap: 0.15rem;
   min-width: 0;
   flex: 1 1 0;
-  overflow: hidden;
 }
 
 .popup-waitlist-name {
@@ -446,7 +445,7 @@
 }
 
 .admin-waitlist-fab-panel {
-  width: 280px;
+  width: 360px;
   max-height: 520px;
   display: flex;
   flex-direction: column;
