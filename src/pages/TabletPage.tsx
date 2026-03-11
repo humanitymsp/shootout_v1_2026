@@ -1028,8 +1028,8 @@ export default function TabletPage() {
         )}
       </div>
 
-      {/* Quick Table Navigation */}
-      {activeTables.length > 0 && (
+      {/* Quick Table Navigation - hidden when search bar is collapsed */}
+      {!searchBarCollapsed && activeTables.length > 0 && (
         <div className="tablet-quick-nav">
           <div className="tablet-quick-nav-label">Jump to:</div>
           <div className="tablet-quick-nav-buttons">
