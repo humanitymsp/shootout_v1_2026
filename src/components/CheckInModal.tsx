@@ -588,14 +588,14 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                     }
                   }}
                   required
-                  placeholder="Enter player nickname (max 9 characters)"
+                  placeholder="Enter player nickname (max 13 characters)"
                   autoComplete="off"
                   autoFocus
-                  className={`player-input ${nick.length > 9 ? 'error' : ''}`}
-                  maxLength={9}
+                  className={`player-input ${nick.length > 13 ? 'error' : ''}`}
+                  maxLength={13}
                 />
-                <span className={`character-counter ${nick.length > 9 ? 'error' : ''}`}>
-                  {nick.length}/9
+                <span className={`character-counter ${nick.length > 13 ? 'error' : ''}`}>
+                  {nick.length}/13
                 </span>
                 {isSearching && <span className="search-indicator">...</span>}
               </div>
