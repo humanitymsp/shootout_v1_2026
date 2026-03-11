@@ -327,7 +327,7 @@
 
 .tv-column-title {
   margin: 0 0 0.3vh;
-  font-size: clamp(1.5rem, 2.7vh, 2.25rem);
+  font-size: clamp(2.25rem, 4vh, 3.4rem);
   font-weight: 800;
   color: #fbbf24;
   text-transform: uppercase;
