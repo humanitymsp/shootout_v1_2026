@@ -600,6 +600,14 @@ export default function TVPage() {
             return a.stakes.localeCompare(b.stakes);
           });
 
+          // Build global set of seated player IDs across ALL tables for TC detection
+          const allSeatedPlayerIds = new Set<string>();
+          for (const d of tableDisplays) {
+            for (const seat of d.seatedPlayers) {
+              allSeatedPlayerIds.add(seat.player_id);
+            }
+          }
+
           const regularColumns = sortedGroups.map(({ gameType, stakes, displays }) => {
             const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
@@ -625,12 +633,13 @@ export default function TVPage() {
               }
             }
 
-            // Read TC list from localStorage
-            let tcPlayerIds: Set<string>;
-            try {
-              const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-              tcPlayerIds = new Set(tcList.map((entry: any) => entry.playerId));
-            } catch { tcPlayerIds = new Set(); }
+            // TC detection: player is on waitlist AND seated at any table (live data, not localStorage)
+            const tcPlayerIds = new Set<string>();
+            for (const wl of allWaitlistEntries) {
+              if (allSeatedPlayerIds.has(wl.player_id)) {
+                tcPlayerIds.add(wl.player_id);
+              }
+            }
 
             // Aggregate total seated / total seats for this group
             const totalSeated = displays.reduce((sum, d) => sum + d.seatsFilled, 0);

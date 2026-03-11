@@ -539,6 +539,16 @@ export default function PublicPage() {
                   return a.stakes.localeCompare(b.stakes);
                 });
 
+                // Build global set of seated player IDs across ALL tables for TC detection
+                const allSeatedPlayerIds = new Set<string>();
+                for (const group of sortedGroups) {
+                  for (const d of group.displays) {
+                    for (const seat of d.seatedPlayers) {
+                      allSeatedPlayerIds.add(seat.player_id);
+                    }
+                  }
+                }
+
                 return sortedGroups.map(({ gameType, stakes, displays }) => {
                   const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
@@ -561,12 +571,13 @@ export default function PublicPage() {
                     }
                   });
 
-                  // Read TC list from localStorage
-                  let tcPlayerIds: Set<string>;
-                  try {
-                    const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-                    tcPlayerIds = new Set(tcList.map((entry: any) => entry.playerId));
-                  } catch { tcPlayerIds = new Set(); }
+                  // TC detection: player is on waitlist AND seated at any table (live data, not localStorage)
+                  const tcPlayerIds = new Set<string>();
+                  for (const wl of allWaitlistEntries) {
+                    if (allSeatedPlayerIds.has(wl.player_id)) {
+                      tcPlayerIds.add(wl.player_id);
+                    }
+                  }
 
                   const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
