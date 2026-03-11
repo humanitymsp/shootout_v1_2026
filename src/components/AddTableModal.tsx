@@ -99,10 +99,14 @@ export default function AddTableModal({
   // Toggle a specific table number selection
   const toggleTableNumber = (num: number) => {
     if (selectedTableNumbers.includes(num)) {
+      // Don't allow deselecting the last one
       if (selectedTableNumbers.length > 1) {
         setSelectedTableNumbers(prev => prev.filter(n => n !== num));
         setTableQuantity(prev => prev - 1);
       }
+    } else if (tableQuantity === 1) {
+      // When quantity is 1, replace the current selection instead of adding
+      setSelectedTableNumbers([num]);
     } else {
       setSelectedTableNumbers(prev => [...prev, num].sort((a, b) => a - b));
       setTableQuantity(prev => prev + 1);

@@ -243,6 +243,43 @@
   content: '';
 }
 
+.table-number-clickable {
+  cursor: pointer;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.2s;
+}
+
+.table-number-clickable:hover {
+  border-bottom-color: var(--admin-primary);
+  color: var(--admin-primary);
+}
+
+.table-number-edit-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.table-number-input {
+  width: 42px;
+  padding: 1px 4px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  border: 1px solid var(--admin-primary);
+  border-radius: 4px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.table-number-input::-webkit-outer-spin-button,
+.table-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 /* Persistent / Pre-Sign Up table indicator — bright red border, orange text */
 .table-card.persistent {
   border-color: #ef4444;

@@ -77,6 +77,8 @@ function TableCard({
   const [isEditingBuyIn, setIsEditingBuyIn] = useState(false);
   const [stakesText, setStakesText] = useState(table.stakes_text || '');
   const [isEditingStakes, setIsEditingStakes] = useState(false);
+  const [isEditingTableNumber, setIsEditingTableNumber] = useState(false);
+  const [editTableNumber, setEditTableNumber] = useState(table.table_number.toString());
   const [draggedPlayer, setDraggedPlayer] = useState<(TableWaitlist | TableSeat) & { _sourceTableId?: string; _isFromWaitlist?: boolean } | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; player: TableSeat | TableWaitlist; isFromWaitlist: boolean } | null>(null);
   const [dragOverTarget, setDragOverTarget] = useState<'seated' | 'waitlist' | null>(null);
@@ -2089,7 +2091,70 @@ function TableCard({
     <div className={`table-card ${table.status.toLowerCase()} ${tableIsEmpty ? 'empty-table' : ''} ${tableIsFull ? 'full-table' : ''} game-type-${gameTypeClass}${(isPersistent || table.is_persistent) ? ' persistent' : ''}`}>
       <div className="table-header">
         <div className="table-number">
-          Table {table.table_number}
+          {isEditingTableNumber ? (
+            <span className="table-number-edit-inline">
+              Table{' '}
+              <input
+                type="number"
+                className="table-number-input"
+                value={editTableNumber}
+                onChange={(e) => setEditTableNumber(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter') {
+                    const newNum = parseInt(editTableNumber, 10);
+                    if (!newNum || newNum < 1) {
+                      showToast('Invalid table number', 'error');
+                      setEditTableNumber(table.table_number.toString());
+                      setIsEditingTableNumber(false);
+                      return;
+                    }
+                    if (newNum === table.table_number) {
+                      setIsEditingTableNumber(false);
+                      return;
+                    }
+                    const conflict = allTables.find(t => t.table_number === newNum && t.id !== table.id);
+                    if (conflict) {
+                      showToast(`Table ${newNum} already exists`, 'error');
+                      setEditTableNumber(table.table_number.toString());
+                      setIsEditingTableNumber(false);
+                      return;
+                    }
+                    try {
+                      await updateTable(table.id, { table_number: newNum });
+                      showToast(`Table ${table.table_number} → Table ${newNum}`, 'success');
+                      setIsEditingTableNumber(false);
+                      onRefresh();
+                    } catch (err: any) {
+                      showToast(err.message || 'Failed to update table number', 'error');
+                      setEditTableNumber(table.table_number.toString());
+                      setIsEditingTableNumber(false);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setEditTableNumber(table.table_number.toString());
+                    setIsEditingTableNumber(false);
+                  }
+                }}
+                onBlur={() => {
+                  setEditTableNumber(table.table_number.toString());
+                  setIsEditingTableNumber(false);
+                }}
+                autoFocus
+                min="1"
+                max="99"
+              />
+            </span>
+          ) : (
+            <span
+              className="table-number-clickable"
+              title="Click to change table number"
+              onClick={() => {
+                setEditTableNumber(table.table_number.toString());
+                setIsEditingTableNumber(true);
+              }}
+            >
+              Table {table.table_number}
+            </span>
+          )}
           <span className="seated-count">({seatedCountForDisplay})</span>
           {(isPersistent || table.is_persistent) && <span className="persistent-label">Pre-Sign Up</span>}
           {(isPersistent || table.is_persistent) && (
