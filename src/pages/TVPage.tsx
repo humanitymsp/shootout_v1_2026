@@ -112,7 +112,7 @@ export default function TVPage() {
       // Players are synced, but we don't need to do anything here
       // The player data will be used when displaying seats/waitlists
       log(`📡 TV: Synced ${players.length} players from admin`);
-    }, 3000); // Poll every 3 seconds for player updates
+    }, 1000); // Poll every 1 second for faster updates
 
     // Reduced polling frequency - use BroadcastChannel for instant updates instead
     const pollInterval = setInterval(() => {
@@ -121,7 +121,7 @@ export default function TVPage() {
       // Skip polling if offline (will retry when online)
       if (isOffline) return;
       loadData();
-    }, 3000); // 3s polling for near-realtime cross-device sync
+    }, 1000); // 1s polling for near-realtime cross-device sync
 
     return () => {
       clearInterval(pollInterval);

@@ -28,10 +28,10 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  image-rendering: -webkit-optimize-contrast;
+  -webkit-font-smoothing: subpixel-antialiased;
+  -moz-osx-font-smoothing: auto;
+  text-rendering: geometricPrecision;
+  image-rendering: crisp-edges;
 }
 
 .tv-page.loading {
@@ -523,7 +523,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.3vh;
-  transition: all 0.3s ease;
+  transition: none;
   box-shadow: 
     0 4px 12px rgba(0, 0, 0, 0.4),
     inset 0 1px 0 rgba(251, 191, 36, 0.1);
@@ -545,7 +545,7 @@
     transparent 100%
   );
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: none;
 }
 
 .tv-table-card:hover {
@@ -792,7 +792,7 @@
 
 .tv-card-player-name.waiting {
   color: #ffffff;
-  animation: playerSlideIn 0.6s ease-out both;
+  animation: none;
 }
 
 .tv-card-player-name.waiting + .tv-card-player-name.waiting::before {
@@ -930,7 +930,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  transition: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
@@ -1058,12 +1058,11 @@
   border-radius: 16px;
   padding: clamp(0.75rem, 1.5vw, 1.25rem);
   border: 2px solid rgba(30, 64, 175, 0.15);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: none;
   position: relative;
   overflow: visible;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-  animation: cardFadeIn 0.6s ease-out;
-  animation-fill-mode: both;
+  animation: none;
   display: flex;
   flex-direction: column;
   height: auto; /* Allow card to grow based on content */
@@ -1073,7 +1072,7 @@
 }
 
 .tv-game-card * {
-  transition: all 0.3s ease;
+  transition: none;
 }
 
 .tv-game-card:hover {
@@ -1217,7 +1216,7 @@
   color: var(--admin-text);
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
   letter-spacing: 0.02em;
-  transition: all 0.3s ease;
+  transition: none;
 }
 
 .tv-table-number {
@@ -1290,7 +1289,7 @@
   flex-direction: column;
   align-items: center;
   gap: 0.05rem;
-  transition: all 0.3s ease;
+  transition: none;
 }
 
 .tv-game-buyin:hover {
@@ -1487,7 +1486,7 @@
   max-width: 100%;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 .tv-player-name:hover {
@@ -1659,7 +1658,7 @@
   color: white;
   margin-bottom: 0.15rem;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  transition: all 0.3s ease;
+  transition: none;
   letter-spacing: 0.02em;
 }
 
