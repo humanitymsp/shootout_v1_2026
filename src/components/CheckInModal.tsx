@@ -191,7 +191,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
 
   useEffect(() => {
     const query = nick.trim();
-    if (query.length < 2) {
+    if (query.length < 1) {
       setIsSearching(false);
       setSelectedPlayer(null);
       setPlayerNotFound(false);
@@ -593,10 +593,10 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                   <button type="button" className="clear-btn" onClick={() => { setSelectedPlayer(null); setNick(''); setPlayerNotFound(false); }} title="Clear selection">×</button>
                 </div>
               )}
-              {playerNotFound && nick.trim().length >= 2 && (
+              {playerNotFound && nick.trim().length >= 1 && (
                 <div className="info-badge">Player not found. Click "Sign In Player" to create them.</div>
               )}
-              {isSearching && nick.trim().length >= 2 && !selectedPlayer && (
+              {isSearching && nick.trim().length >= 1 && !selectedPlayer && (
                 <div className="searching-indicator">Looking up player...</div>
               )}
             </div>
@@ -792,7 +792,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
             <button 
               type="submit" 
               form="checkin-form"
-              disabled={loading || nick.trim().length < 2 || selectedGameTypes.size === 0 || !nick.trim()}
+              disabled={loading || nick.trim().length < 1 || selectedGameTypes.size === 0 || !nick.trim()}
               className="submit-btn"
             >
               {loading ? 'Processing...' : playerNotFound ? `Create & Sign In "${nick.trim()}"` : 'Sign In Player'}
