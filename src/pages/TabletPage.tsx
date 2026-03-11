@@ -27,6 +27,7 @@ export default function TabletPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [gridColumns, setGridColumns] = useState(2);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchBarCollapsed, setSearchBarCollapsed] = useState(false);
   const [filterStatus, setFilterStatus] = useState<'all' | 'open' | 'busy' | 'full'>('all');
   const [lastBustAction, setLastBustAction] = useState<{ seat: TableSeat; tableId: string; tableNumber: number } | null>(null);
   const [undoTimeout, setUndoTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -960,42 +961,55 @@ export default function TabletPage() {
       </div>
 
       {/* Search and Filter Bar */}
-      <div className="tablet-search-filter-bar">
-        <div className="tablet-search-container">
-          <input
-            type="text"
-            className="tablet-search-input"
-            placeholder="Search player or table..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <div className="tablet-filter-buttons">
-          <button
-            className={`tablet-filter-btn ${filterStatus === 'all' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('all')}
-          >
-            All
-          </button>
-          <button
-            className={`tablet-filter-btn ${filterStatus === 'open' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('open')}
-          >
-            Open
-          </button>
-          <button
-            className={`tablet-filter-btn ${filterStatus === 'busy' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('busy')}
-          >
-            Busy
-          </button>
-          <button
-            className={`tablet-filter-btn ${filterStatus === 'full' ? 'active' : ''}`}
-            onClick={() => setFilterStatus('full')}
-          >
-            Full
-          </button>
-        </div>
+      <div className={`tablet-search-filter-bar ${searchBarCollapsed ? 'collapsed' : ''}`}>
+        <button
+          className="tablet-search-toggle"
+          onClick={() => {
+            setSearchBarCollapsed(!searchBarCollapsed);
+            if (!searchBarCollapsed) { setSearchQuery(''); setFilterStatus('all'); }
+          }}
+        >
+          {searchBarCollapsed ? '🔍 Search & Filter' : '✕ Hide'}
+        </button>
+        {!searchBarCollapsed && (
+          <>
+            <div className="tablet-search-container">
+              <input
+                type="text"
+                className="tablet-search-input"
+                placeholder="Search player or table..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="tablet-filter-buttons">
+              <button
+                className={`tablet-filter-btn ${filterStatus === 'all' ? 'active' : ''}`}
+                onClick={() => setFilterStatus('all')}
+              >
+                All
+              </button>
+              <button
+                className={`tablet-filter-btn ${filterStatus === 'open' ? 'active' : ''}`}
+                onClick={() => setFilterStatus('open')}
+              >
+                Open
+              </button>
+              <button
+                className={`tablet-filter-btn ${filterStatus === 'busy' ? 'active' : ''}`}
+                onClick={() => setFilterStatus('busy')}
+              >
+                Busy
+              </button>
+              <button
+                className={`tablet-filter-btn ${filterStatus === 'full' ? 'active' : ''}`}
+                onClick={() => setFilterStatus('full')}
+              >
+                Full
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Quick Table Navigation */}
