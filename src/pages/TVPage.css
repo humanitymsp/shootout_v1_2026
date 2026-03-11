@@ -298,7 +298,7 @@
 
 /* Column header — game type + stakes */
 .tv-column-header {
-  padding: 0.5vh 0.75rem 0.4vh;
+  padding: 0.75vh 0.75rem 0.6vh;
   background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.04) 100%);
   border-bottom: 2px solid rgba(251, 191, 36, 0.25);
   text-align: center;
@@ -306,13 +306,21 @@
 }
 
 .tv-column-title {
-  margin: 0 0 0.2vh;
-  font-size: clamp(1rem, 1.8vh, 1.5rem);
+  margin: 0 0 0.3vh;
+  font-size: clamp(1.5rem, 2.7vh, 2.25rem);
   font-weight: 800;
   color: #fbbf24;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.tv-column-buyin {
+  font-size: clamp(0.9rem, 1.4vh, 1.2rem);
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 0.2vh;
+  letter-spacing: 0.03em;
 }
 
 .tv-column-stats {
@@ -322,7 +330,7 @@
 }
 
 .tv-column-stat {
-  font-size: clamp(0.6rem, 0.9vh, 0.8rem);
+  font-size: clamp(0.8rem, 1.2vh, 1.1rem);
   font-weight: 600;
   color: rgba(148, 163, 184, 0.8);
   background: rgba(251, 191, 36, 0.08);
@@ -355,10 +363,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.15vh 0.5rem;
+  padding: 0.25vh 0.5rem;
   background: rgba(30, 41, 59, 0.5);
   border-radius: 6px;
-  font-size: clamp(0.85rem, 1.8vh, 1.3rem);
+  font-size: clamp(1.1rem, 2.4vh, 1.7rem);
 }
 
 .tv-summary-table-num {

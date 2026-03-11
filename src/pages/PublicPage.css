@@ -787,6 +787,18 @@
   padding: 0.5rem 0 0.5rem 0;
   border-bottom: 2px solid rgba(96, 165, 250, 0.3);
   margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.public-game-group-buyin {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #34d399;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 /* Table info summary inside group */

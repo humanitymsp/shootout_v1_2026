@@ -559,11 +559,15 @@ export default function TVPage() {
             // Aggregate total seated / total seats for this group
             const totalSeated = displays.reduce((sum, d) => sum + d.seatsFilled, 0);
             const totalSeats = displays.reduce((sum, d) => sum + (d.table.seats_total || 9), 0);
+            const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
             return (
               <div key={`${gameType}||${stakes}`} className="tv-column">
                 <div className="tv-column-header">
                   <h2 className="tv-column-title">{headerLabel}</h2>
+                  {buyInLimits && (
+                    <div className="tv-column-buyin">Buy-in: {buyInLimits}</div>
+                  )}
                   <div className="tv-column-stats">
                     <span className="tv-column-stat">{displays.length} Table{displays.length !== 1 ? 's' : ''}</span>
                     <span className="tv-column-stat">{totalSeated}/{totalSeats} Seats</span>

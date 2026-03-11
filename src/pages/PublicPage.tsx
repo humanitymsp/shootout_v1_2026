@@ -503,10 +503,15 @@ export default function PublicPage() {
                     });
                   });
 
+                  const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
+
                   return (
                     <div key={`${gameType}||${stakes}`} className="public-game-group">
                       <div className="public-game-group-header">
                         {headerLabel}
+                        {buyInLimits && (
+                          <span className="public-game-group-buyin">Buy-in: {buyInLimits}</span>
+                        )}
                       </div>
                       {/* Table info summary */}
                       <div className="public-group-table-summary">
