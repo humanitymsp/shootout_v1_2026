@@ -489,7 +489,7 @@ export default function PublicPage() {
                   const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
                   // Collect all waitlist player names across tables in this group
-                  const groupWaitlist: { id: string; name: string }[] = [];
+                  const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
                   const seenPlayerIds = new Set<string>();
                   displays.forEach(d => {
                     d.waitlistPlayers.forEach(wl => {
@@ -498,10 +498,18 @@ export default function PublicPage() {
                         groupWaitlist.push({
                           id: wl.id,
                           name: wl.player?.nick || wl.player?.name || 'Unknown',
+                          playerId: wl.player_id,
                         });
                       }
                     });
                   });
+
+                  // Read TC list from localStorage
+                  let tcPlayerIds: Set<string>;
+                  try {
+                    const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                    tcPlayerIds = new Set(tcList.map((entry: any) => entry.playerId));
+                  } catch { tcPlayerIds = new Set(); }
 
                   const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
@@ -536,14 +544,17 @@ export default function PublicPage() {
                           </div>
                           <div className="public-group-waitlist-names">
                             {(() => {
-                              const cols: { id: string; name: string }[][] = [];
+                              const cols: { id: string; name: string; playerId: string }[][] = [];
                               for (let i = 0; i < groupWaitlist.length; i += 10) {
                                 cols.push(groupWaitlist.slice(i, i + 10));
                               }
                               return cols.map((col, ci) => (
                                 <div key={ci} className="public-waitlist-col">
                                   {col.map((p) => (
-                                    <span key={p.id} className="public-group-waitlist-name">{p.name}</span>
+                                    <span key={p.id} className="public-group-waitlist-name">
+                                      {p.name}
+                                      {tcPlayerIds.has(p.playerId) && <span className="public-tc-badge">TC</span>}
+                                    </span>
                                   ))}
                                 </div>
                               ));

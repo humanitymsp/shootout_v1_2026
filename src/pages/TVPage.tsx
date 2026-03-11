@@ -545,16 +545,24 @@ export default function TVPage() {
             }
             allWaitlistEntries.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
             const seenPlayerIds = new Set<string>();
-            const groupWaitlist: { id: string; name: string }[] = [];
+            const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
             for (const wl of allWaitlistEntries) {
               if (!seenPlayerIds.has(wl.player_id)) {
                 seenPlayerIds.add(wl.player_id);
                 groupWaitlist.push({
                   id: wl.player_id,
                   name: wl.player?.nick || wl.player?.name || 'Unknown',
+                  playerId: wl.player_id,
                 });
               }
             }
+
+            // Read TC list from localStorage
+            let tcPlayerIds: Set<string>;
+            try {
+              const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+              tcPlayerIds = new Set(tcList.map((entry: any) => entry.playerId));
+            } catch { tcPlayerIds = new Set(); }
 
             // Aggregate total seated / total seats for this group
             const totalSeated = displays.reduce((sum, d) => sum + d.seatsFilled, 0);
@@ -599,14 +607,17 @@ export default function TVPage() {
                     {groupWaitlist.length > 0 ? (
                       <div className="tv-column-waitlist-names">
                         {(() => {
-                          const cols: { id: string; name: string }[][] = [];
+                          const cols: { id: string; name: string; playerId: string }[][] = [];
                           for (let i = 0; i < groupWaitlist.length; i += 10) {
                             cols.push(groupWaitlist.slice(i, i + 10));
                           }
                           return cols.map((col, ci) => (
                             <div key={ci} className="tv-waitlist-col">
                               {col.map((p) => (
-                                <span key={p.id} className="tv-column-waitlist-name">{p.name}</span>
+                                <span key={p.id} className="tv-column-waitlist-name">
+                                  {p.name}
+                                  {tcPlayerIds.has(p.playerId) && <span className="tv-tc-badge">TC</span>}
+                                </span>
                               ))}
                             </div>
                           ));
