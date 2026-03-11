@@ -636,6 +636,30 @@
   cursor: not-allowed;
 }
 
+.btn-quick-seat {
+  flex: 1;
+  width: 100%;
+  padding: 0.22rem;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.btn-quick-seat:hover:not(:disabled) {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.btn-quick-seat:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-remove-table {
   flex: 1;
   padding: 0.22rem;

@@ -759,6 +759,58 @@ function TableCard({
     }
   };
 
+  const handleQuickSeat = async () => {
+    if (activeWaitlistPlayers.length === 0) {
+      showToast('Waitlist is empty', 'info');
+      return;
+    }
+
+    const realSeatedCount = seatedPlayers.filter(s => !s.id.startsWith('temp-')).length;
+    const availableSeats = Math.max(0, table.seats_total - realSeatedCount);
+    if (availableSeats === 0) {
+      showToast(`Table is full (${realSeatedCount}/${table.seats_total} seats)`, 'error');
+      return;
+    }
+
+    setLoading(true);
+    let seatedCount = 0;
+    let skippedCount = 0;
+
+    for (const wl of activeWaitlistPlayers) {
+      if (seatedCount >= availableSeats) break;
+
+      const playerName = wl.player?.nick || 'Unknown';
+      let checkIn = null;
+      try {
+        checkIn = await getCheckInForPlayer(wl.player_id, clubDayId);
+      } catch { /* skip */ }
+
+      if (!checkIn) {
+        skippedCount++;
+        continue;
+      }
+
+      try {
+        await seatPlayer(table.id, wl.player_id, clubDayId);
+        seatedCount++;
+      } catch (err: any) {
+        logError(`Failed to seat ${playerName}:`, err);
+      }
+    }
+
+    if (seatedCount > 0) {
+      showToast(`Seated ${seatedCount} player${seatedCount !== 1 ? 's' : ''}${skippedCount > 0 ? ` (${skippedCount} skipped — not bought in)` : ''}`, 'success');
+      await loadTableData(true);
+      onRefresh();
+    } else if (skippedCount > 0) {
+      showToast(`No players seated — ${skippedCount} player${skippedCount !== 1 ? 's' : ''} haven't bought in yet`, 'warning');
+    } else {
+      showToast('No players could be seated', 'info');
+    }
+
+    setLoading(false);
+  };
+
   const handleRemoveFromWaitlist = async (waitlistId: string) => {
     const waitlistEntry = waitlistPlayers.find(w => w.id === waitlistId);
     const confirmed = await showConfirmDialog({
@@ -2316,6 +2368,15 @@ function TableCard({
             className="btn-seat-next"
           >
             Seat Next
+          </button>
+        </Tooltip>
+        <Tooltip content={waitlistCount === 0 ? 'No players on waitlist' : tableIsFull ? 'Table is full' : 'Seat all bought-in waitlist players (up to available seats)'}>
+          <button
+            onClick={handleQuickSeat}
+            disabled={loading || waitlistCount === 0 || tableIsFull}
+            className="btn-quick-seat"
+          >
+            Quick Seat
           </button>
         </Tooltip>
         <button
