@@ -1771,88 +1771,39 @@ export async function fixDoubleSeatingIssue(
 export async function removePlayerFromSeat(seatId: string, tableId: string, adminUser: string): Promise<void> {
   log('Attempting to remove player from seat:', { seatId, tableId, adminUser });
 
-  // First, check if the seat exists
-  const { data: existingSeat } = await getClient().models.TableSeat.get({ id: seatId });
-  log('Existing seat:', existingSeat);
-
-  if (!existingSeat) {
-    throw new Error(`Seat with ID ${seatId} not found`);
-  }
-
-  if (existingSeat.leftAt) {
-    log('Seat already has leftAt, skipping update');
-    return; // Already left, nothing to do
-  }
-
-  // Validate that the player still exists
-  try {
-    const { data: playerData } = await getClient().models.Player.get({ id: existingSeat.playerId });
-    if (!playerData) {
-      logWarn(`Player ${existingSeat.playerId} not found, but proceeding with seat removal`);
+  // Use direct GraphQL mutation to avoid Player relationship resolution issues
+  // (localStorage-only players don't exist in DynamoDB, causing .get()/.update() to fail)
+  const mutation = `
+    mutation UpdateTableSeat($input: UpdateTableSeatInput!) {
+      updateTableSeat(input: $input) {
+        id
+        leftAt
+      }
     }
-  } catch (error) {
-    logWarn('Could not verify player exists:', error);
-  }
-
-  // Try the same approach as deleteTable function
-  log('Updating seat with minimal data (same as deleteTable):', { id: seatId, leftAt: new Date().toISOString() });
+  `;
 
   try {
-    await getClient().models.TableSeat.update({
-      id: seatId,
-      leftAt: new Date().toISOString(),
-    });
-    log('TableSeat update successful');
-  } catch (error: any) {
-    logError('GraphQL update error:', error);
-
-    // Check if it's a GraphQL error with details
-    if (error.errors && Array.isArray(error.errors)) {
-      logError('GraphQL validation errors:', error.errors);
-      const errorMessages = error.errors.map((e: any) => e.message || e.errorType || e).join('; ');
-
-      // If the error is about null player fields, try a different approach
-      if (errorMessages.includes('Cannot return null for non-nullable type') && errorMessages.includes('Player')) {
-        logWarn('Player relationship issue, attempting direct database update...');
-
-        // Try to update without expecting the full response with relationships
-        // This is a workaround for the relationship resolution issue
-        try {
-          // Use raw GraphQL mutation without the full fragment
-          const mutation = `
-            mutation UpdateTableSeat($input: UpdateTableSeatInput!) {
-              updateTableSeat(input: $input) {
-                id
-                leftAt
-              }
-            }
-          `;
-
-          const result = await getClient().graphql({
-            query: mutation,
-            variables: {
-              input: {
-                id: seatId,
-                leftAt: new Date().toISOString(),
-              }
-            }
-          });
-
-          log('Direct GraphQL update result:', result);
-          return;
-        } catch (directError) {
-          logError('Direct update also failed:', directError);
+    const result = await getClient().graphql({
+      query: mutation,
+      variables: {
+        input: {
+          id: seatId,
+          leftAt: new Date().toISOString(),
         }
       }
+    });
+    log('TableSeat removal successful:', result);
+  } catch (error: any) {
+    logError('GraphQL seat removal error:', error);
 
-      throw new Error(`Failed to update TableSeat: ${errorMessages}`);
+    // Extract meaningful error message
+    if (error.errors && Array.isArray(error.errors)) {
+      const errorMessages = error.errors.map((e: any) => e.message || e.errorType || e).join('; ');
+      throw new Error(`Failed to remove player from seat: ${errorMessages}`);
     }
-
-    // Check if error has a message
     if (error.message) {
-      throw new Error(`Failed to update TableSeat: ${error.message}`);
+      throw new Error(`Failed to remove player from seat: ${error.message}`);
     }
-
     throw error;
   }
 }
