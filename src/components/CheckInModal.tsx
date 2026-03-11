@@ -755,10 +755,9 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                       className={`game-type-btn ${selectedGameTypes.has(key) ? 'active' : ''}`}
                       onClick={() => {
                         setSelectedGameTypes(prev => {
-                          const next = new Set(prev);
-                          if (next.has(key)) next.delete(key);
-                          else next.add(key);
-                          return next;
+                          // Single-select: clicking the active one deselects it, otherwise replace
+                          if (prev.has(key)) return new Set();
+                          return new Set([key]);
                         });
                       }}
                     >
