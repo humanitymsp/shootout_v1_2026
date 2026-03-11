@@ -42,7 +42,7 @@ import { getActiveClubDay, getTablesForClubDay, getAllPlayers, getCheckInForPlay
 import { getTableCounts } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
-import { getPersistentTables } from '../lib/persistentTables';
+import { getPersistentTables, getTableWaitlist as getPersistentWaitlistForTable } from '../lib/persistentTables';
 import { createPendingSignup } from '../lib/pendingSignups';
 import { validatePhoneNumber } from '../lib/sms';
 import { log, logWarn, logError } from '../lib/logger';
@@ -416,6 +416,44 @@ export default function PublicPage() {
           playersWaitingElsewhere,
           seatedPlayers,
           waitlistPlayers,
+        });
+      }
+
+      // Add pre-sign up persistent tables (without api_table_id) from localStorage
+      const persistentOnly = pts.filter(pt => !pt.api_table_id && pt.status !== 'CLOSED');
+      for (const pt of persistentOnly) {
+        const wl = getPersistentWaitlistForTable(pt.id);
+        const syntheticTable: PokerTable = {
+          id: pt.id,
+          club_day_id: activeDay.id,
+          table_number: pt.table_number,
+          game_type: pt.game_type,
+          stakes_text: pt.stakes_text,
+          seats_total: pt.seats_total,
+          bomb_pot_count: pt.bomb_pot_count,
+          lockout_count: pt.lockout_count || 0,
+          buy_in_limits: pt.buy_in_limits || '',
+          status: pt.status || 'OPEN',
+          created_at: pt.created_at,
+          is_persistent: true,
+        };
+        const syntheticWaitlist: TableWaitlist[] = wl.map(w => ({
+          id: w.id,
+          club_day_id: activeDay.id,
+          table_id: pt.id,
+          player_id: w.id,
+          position: w.position,
+          added_at: w.added_at,
+          created_at: w.created_at,
+          player: { id: w.id, name: w.player_name, nick: w.player_name, created_at: w.created_at, updated_at: w.created_at },
+        }));
+        displays.push({
+          table: syntheticTable,
+          seatsFilled: 0,
+          waitlistCount: wl.length,
+          playersWaitingElsewhere: 0,
+          seatedPlayers: [],
+          waitlistPlayers: syntheticWaitlist,
         });
       }
 

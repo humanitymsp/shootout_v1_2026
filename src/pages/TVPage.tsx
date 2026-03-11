@@ -6,7 +6,7 @@ import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStor
 import { log, logWarn, logError } from '../lib/logger';
 import { getHighHand, isHighHandEnabled, getRemainingTimeMs, getHighHandWinners } from '../lib/highHand';
 import type { HighHand, HighHandWinner } from '../lib/highHand';
-import { getPersistentTables } from '../lib/persistentTables';
+import { getPersistentTables, getTableWaitlist as getPersistentWaitlist } from '../lib/persistentTables';
 import type { ClubDay, PokerTable, TableSeat, TableWaitlist } from '../types';
 import Logo from '../components/Logo';
 import PlayingCard from '../components/PlayingCard';
@@ -442,6 +442,47 @@ export default function TVPage() {
     // Sort by creation time so new tables appear at the end
     displays.sort((a, b) => new Date(a.table.created_at).getTime() - new Date(b.table.created_at).getTime());
 
+    // Add pre-sign up persistent tables (without api_table_id) from localStorage
+    const persistentOnly = pts.filter(pt => !pt.api_table_id && pt.status !== 'CLOSED');
+    for (const pt of persistentOnly) {
+      const wl = getPersistentWaitlist(pt.id);
+      const syntheticTable: PokerTable = {
+        id: pt.id,
+        club_day_id: activeClubDay?.id || '',
+        table_number: pt.table_number,
+        game_type: pt.game_type,
+        stakes_text: pt.stakes_text,
+        seats_total: pt.seats_total,
+        bomb_pot_count: pt.bomb_pot_count,
+        lockout_count: pt.lockout_count || 0,
+        buy_in_limits: pt.buy_in_limits || '',
+        show_on_tv: pt.show_on_tv ?? true,
+        status: pt.status || 'OPEN',
+        created_at: pt.created_at,
+        is_persistent: true,
+      };
+      if (syntheticTable.show_on_tv === false) continue;
+      // Convert persistent waitlist entries to TableWaitlist shape for display
+      const syntheticWaitlist: TableWaitlist[] = wl.map(w => ({
+        id: w.id,
+        club_day_id: activeClubDay?.id || '',
+        table_id: pt.id,
+        player_id: w.id,
+        position: w.position,
+        added_at: w.added_at,
+        created_at: w.created_at,
+        player: { id: w.id, name: w.player_name, nick: w.player_name, created_at: w.created_at, updated_at: w.created_at },
+      }));
+      displays.push({
+        table: syntheticTable,
+        seatsFilled: 0,
+        waitlistCount: wl.length,
+        playersWaitingElsewhere: 0,
+        seatedPlayers: [],
+        waitlistPlayers: syntheticWaitlist,
+      });
+    }
+
     setTableDisplays(displays);
     
     // Save to cache after successful load
@@ -499,14 +540,22 @@ export default function TVPage() {
       <div ref={gridRef} className="tv-columns-container" style={{
         gridTemplateColumns: `repeat(${(() => {
           const seen = new Set<string>();
-          for (const d of tableDisplays) seen.add(`${d.table.game_type || 'Other'}||${d.table.stakes_text || ''}`);
-          return Math.max(1, seen.size);
+          for (const d of tableDisplays) {
+            if (!d.table.is_persistent) seen.add(`${d.table.game_type || 'Other'}||${d.table.stakes_text || ''}`);
+          }
+          // Also count persistent groups
+          const persistentSeen = new Set<string>();
+          for (const d of tableDisplays) {
+            if (d.table.is_persistent) persistentSeen.add(`${d.table.game_type || 'Other'}||${d.table.stakes_text || ''}`);
+          }
+          return Math.max(1, seen.size + persistentSeen.size);
         })()}, 1fr)`
       }}>
         {(() => {
-          // Group tables by game type + stakes
+          // Group tables by game type + stakes (regular tables only)
           const groups = new Map<string, { gameType: string; stakes: string; displays: TableDisplay[] }>();
           for (const display of tableDisplays) {
+            if (display.table.is_persistent) continue;
             const gameType = display.table.game_type || 'Other';
             const stakes = display.table.stakes_text || '';
             const groupKey = `${gameType}||${stakes}`;
@@ -532,7 +581,26 @@ export default function TVPage() {
             return a.stakes.localeCompare(b.stakes);
           });
 
-          return sortedGroups.map(({ gameType, stakes, displays }) => {
+          // Also group persistent (pre-sign up) tables
+          const persistentGroups = new Map<string, { gameType: string; stakes: string; displays: TableDisplay[] }>();
+          for (const display of tableDisplays) {
+            if (!display.table.is_persistent) continue;
+            const pGameType = display.table.game_type || 'Other';
+            const pStakes = display.table.stakes_text || '';
+            const pGroupKey = `presign||${pGameType}||${pStakes}`;
+            if (!persistentGroups.has(pGroupKey)) {
+              persistentGroups.set(pGroupKey, { gameType: pGameType, stakes: pStakes, displays: [] });
+            }
+            persistentGroups.get(pGroupKey)!.displays.push(display);
+          }
+          const sortedPersistentGroups = Array.from(persistentGroups.values()).sort((a, b) => {
+            const orderA = gameTypeOrder[a.gameType] || 50;
+            const orderB = gameTypeOrder[b.gameType] || 50;
+            if (orderA !== orderB) return orderA - orderB;
+            return a.stakes.localeCompare(b.stakes);
+          });
+
+          const regularColumns = sortedGroups.map(({ gameType, stakes, displays }) => {
             const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
             // Aggregate unique waitlisted players across all tables in this group
@@ -632,6 +700,81 @@ export default function TVPage() {
               </div>
             );
           });
+
+          // Render pre-sign up persistent table columns
+          const persistentColumns = sortedPersistentGroups.map(({ gameType, stakes, displays }) => {
+            const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
+            const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
+
+            // Aggregate waitlist from persistent tables
+            const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
+            const seenIds = new Set<string>();
+            for (const d of displays) {
+              for (const wl of d.waitlistPlayers) {
+                if (!seenIds.has(wl.player_id)) {
+                  seenIds.add(wl.player_id);
+                  groupWaitlist.push({
+                    id: wl.player_id,
+                    name: wl.player?.nick || wl.player?.name || 'Unknown',
+                    playerId: wl.player_id,
+                  });
+                }
+              }
+            }
+
+            return (
+              <div key={`presign-${gameType}||${stakes}`} className="tv-column tv-column-presign">
+                <div className="tv-column-header tv-column-header-presign">
+                  <div className="tv-presign-label">PRE-SIGN UP</div>
+                  <h2 className="tv-column-title">{headerLabel}</h2>
+                  {buyInLimits && (
+                    <div className="tv-column-buyin">Buy-in: {buyInLimits}</div>
+                  )}
+                  <div className="tv-column-stats">
+                    <span className="tv-column-stat">{displays.length} Table{displays.length !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                <div className="tv-column-body">
+                  <div className="tv-column-table-summary">
+                    {displays.map((d) => (
+                      <div key={d.table.id} className="tv-summary-table-row">
+                        <span className="tv-summary-table-num">Table {d.table.table_number}</span>
+                        <span className="tv-summary-table-seats">0/{d.table.seats_total || 9}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="tv-column-waitlist">
+                    <div className="tv-column-waitlist-header">
+                      Signed Up <span className="tv-column-waitlist-count">{groupWaitlist.length}</span>
+                    </div>
+                    {groupWaitlist.length > 0 ? (
+                      <div className="tv-column-waitlist-names">
+                        {(() => {
+                          const cols: { id: string; name: string; playerId: string }[][] = [];
+                          for (let i = 0; i < groupWaitlist.length; i += 10) {
+                            cols.push(groupWaitlist.slice(i, i + 10));
+                          }
+                          return cols.map((col, ci) => (
+                            <div key={ci} className="tv-waitlist-col">
+                              {col.map((p) => (
+                                <span key={p.id} className="tv-column-waitlist-name">{p.name}</span>
+                              ))}
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="tv-column-waitlist-empty">No one signed up</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          });
+
+          return [...regularColumns, ...persistentColumns];
         })()}
       </div>
 
