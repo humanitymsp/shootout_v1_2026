@@ -951,7 +951,6 @@ function TableCard({
       
       await loadTableData();
       onRefresh();
-      showToast(`Removed ${seat?.player?.nick || 'player'} from seat`, 'success');
     } catch (err: any) {
       logError('Error removing player from seat:', err);
       showToast(err.message || 'Failed to remove player', 'error');

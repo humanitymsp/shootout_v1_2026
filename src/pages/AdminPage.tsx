@@ -318,15 +318,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   useEffect(() => {
     loadData();
     
-    // Check if tutorial should be shown (first time user, not disabled)
-    const tutorialDisabled = localStorage.getItem('quickstart_tutorial_disabled');
-    if (!tutorialDisabled && !loading) {
-      // Small delay to ensure page is loaded
-      const timer = setTimeout(() => {
-        setShowTutorial(true);
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
+    // Tutorial is available via Help menu but no longer auto-launches
   }, [loading]);
 
   // Load persistent tables and set up real-time sync
@@ -1118,15 +1110,7 @@ export default function AdminPage({ user }: AdminPageProps) {
 
       <div className="admin-content-wrapper">
 
-        {/* Re-seat Panel */}
-        {clubDay && (
-          <ReseatPanel
-            tables={uniqueTables}
-            clubDayId={clubDay.id}
-            adminUser={adminUser}
-            onRefresh={handleRefresh}
-          />
-        )}
+        {/* Re-seat Panel removed per user request */}
 
 
         {/* Bulk Actions Bar */}
