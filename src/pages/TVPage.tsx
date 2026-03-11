@@ -655,7 +655,7 @@ export default function TVPage() {
                   )}
                   <div className="tv-column-stats">
                     <span className="tv-column-stat">{displays.length} Table{displays.length !== 1 ? 's' : ''}</span>
-                    <span className="tv-column-stat">{totalSeated}/{totalSeats} Seats</span>
+                    <span className="tv-column-stat">{totalSeated} Seats</span>
                   </div>
                 </div>
 
@@ -665,7 +665,7 @@ export default function TVPage() {
                     {displays.map((d) => (
                       <div key={d.table.id} className="tv-summary-table-row">
                         <span className="tv-summary-table-num">Table {d.table.table_number}</span>
-                        <span className="tv-summary-table-seats">{d.seatsFilled}/{d.table.seats_total || 20}</span>
+                        <span className="tv-summary-table-seats">{d.seatsFilled} Seats</span>
                         {(d.table.bomb_pot_count || 0) > 0 && (
                           <span className="tv-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
                         )}
@@ -749,7 +749,7 @@ export default function TVPage() {
                     {displays.map((d) => (
                       <div key={d.table.id} className="tv-summary-table-row">
                         <span className="tv-summary-table-num">Table {d.table.table_number}</span>
-                        <span className="tv-summary-table-seats">0/{d.table.seats_total || 20}</span>
+                        <span className="tv-summary-table-seats">0 Seats</span>
                       </div>
                     ))}
                   </div>

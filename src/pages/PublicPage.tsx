@@ -594,7 +594,7 @@ export default function PublicPage() {
                         {displays.map((d) => (
                           <div key={d.table.id} className="public-summary-table-row">
                             <span className="public-summary-table-num">Table {d.table.table_number}</span>
-                            <span className="public-summary-table-seats">{d.seatsFilled}/{d.table.seats_total || 20}</span>
+                            <span className="public-summary-table-seats">{d.seatsFilled} Seats</span>
                             {(d.table.bomb_pot_count || 0) > 0 && (
                               <span className="public-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
                             )}
@@ -670,7 +670,7 @@ export default function PublicPage() {
                           <div className="public-player-lists">
                             <div className="public-seated-count">
                               <span className="public-seated-count-number">{seatsFilled}</span>
-                              <span className="public-seated-count-label">/ {table.seats_total || 20} Seated</span>
+                              <span className="public-seated-count-label">Seated</span>
                             </div>
 
                             <div className="public-player-section public-waitlist-section">
@@ -988,7 +988,7 @@ function PublicTableCard({ display }: { display: TableDisplay }) {
         {/* Seated count indicator */}
         <div className="public-seated-count">
           <span className="public-seated-count-number">{seatsFilled}</span>
-          <span className="public-seated-count-label">/ {table.seats_total || 20} Seated</span>
+          <span className="public-seated-count-label">Seated</span>
         </div>
 
         {/* Waitlist count only — player names shown in game type summary */}
