@@ -523,23 +523,42 @@ export default function PublicPage() {
                   grouped.get(groupKey)!.displays.push(display);
                 });
 
-                return Array.from(grouped.values()).map(({ gameType, stakes, displays }) => {
+                // Sort groups: 1/2 stakes first, then by game type priority
+                const gameTypeOrder: Record<string, number> = {
+                  'NLH': 1, 'PLO': 2, 'BigO': 3, 'PLO5': 4, 'Limit': 5, 'Mixed': 6, 'Other': 99
+                };
+                const sortedGroups = Array.from(grouped.values()).sort((a, b) => {
+                  // Prioritize 1/2 stakes first
+                  const aIs12 = a.stakes.includes('1/2');
+                  const bIs12 = b.stakes.includes('1/2');
+                  if (aIs12 && !bIs12) return -1;
+                  if (!aIs12 && bIs12) return 1;
+                  const orderA = gameTypeOrder[a.gameType] || 50;
+                  const orderB = gameTypeOrder[b.gameType] || 50;
+                  if (orderA !== orderB) return orderA - orderB;
+                  return a.stakes.localeCompare(b.stakes);
+                });
+
+                return sortedGroups.map(({ gameType, stakes, displays }) => {
                   const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
 
-                  // Collect all waitlist player names across tables in this group
+                  // Collect all waitlist players, sort by added_at (earliest first, newest at bottom)
+                  const allWaitlistEntries: typeof displays[0]['waitlistPlayers'] = [];
+                  displays.forEach(d => {
+                    d.waitlistPlayers.forEach(wl => allWaitlistEntries.push(wl));
+                  });
+                  allWaitlistEntries.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
                   const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
                   const seenPlayerIds = new Set<string>();
-                  displays.forEach(d => {
-                    d.waitlistPlayers.forEach(wl => {
-                      if (!seenPlayerIds.has(wl.player_id)) {
-                        seenPlayerIds.add(wl.player_id);
-                        groupWaitlist.push({
-                          id: wl.id,
-                          name: wl.player?.nick || wl.player?.name || 'Unknown',
-                          playerId: wl.player_id,
-                        });
-                      }
-                    });
+                  allWaitlistEntries.forEach(wl => {
+                    if (!seenPlayerIds.has(wl.player_id)) {
+                      seenPlayerIds.add(wl.player_id);
+                      groupWaitlist.push({
+                        id: wl.id,
+                        name: wl.player?.nick || wl.player?.name || 'Unknown',
+                        playerId: wl.player_id,
+                      });
+                    }
                   });
 
                   // Read TC list from localStorage
