@@ -608,9 +608,9 @@ export default function PublicPage() {
                               return cols.map((col, ci) => (
                                 <div key={ci} className="public-waitlist-col">
                                   {col.map((p) => (
-                                    <span key={p.id} className="public-group-waitlist-name">
-                                      {p.name}
+                                    <span key={p.id} className={`public-group-waitlist-name${tcPlayerIds.has(p.playerId) ? ' public-tc-player' : ''}`}>
                                       {tcPlayerIds.has(p.playerId) && <span className="public-tc-badge">TC</span>}
+                                      {p.name}
                                     </span>
                                   ))}
                                 </div>

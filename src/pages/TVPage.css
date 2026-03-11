@@ -469,15 +469,22 @@
 }
 
 .tv-tc-badge {
-  font-size: 0.55em;
+  font-size: 0.85em;
   font-weight: 800;
   color: #fbbf24;
-  background: rgba(251, 191, 36, 0.2);
-  border: 1px solid rgba(251, 191, 36, 0.4);
-  padding: 0.05em 0.3em;
+  background: rgba(251, 191, 36, 0.25);
+  border: 1.5px solid rgba(251, 191, 36, 0.6);
+  padding: 0.05em 0.35em;
   border-radius: 4px;
   letter-spacing: 0.05em;
   flex-shrink: 0;
+  margin-right: 0.3em;
+  text-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
+}
+
+.tv-tc-player {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 .tv-column-waitlist-empty {

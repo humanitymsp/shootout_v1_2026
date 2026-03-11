@@ -682,9 +682,9 @@ export default function TVPage() {
                           return cols.map((col, ci) => (
                             <div key={ci} className="tv-waitlist-col">
                               {col.map((p) => (
-                                <span key={p.id} className="tv-column-waitlist-name">
-                                  {p.name}
+                                <span key={p.id} className={`tv-column-waitlist-name${tcPlayerIds.has(p.playerId) ? ' tv-tc-player' : ''}`}>
                                   {tcPlayerIds.has(p.playerId) && <span className="tv-tc-badge">TC</span>}
+                                  {p.name}
                                 </span>
                               ))}
                             </div>
