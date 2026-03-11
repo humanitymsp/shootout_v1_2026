@@ -1359,8 +1359,9 @@ function TableCard({
     // Run API calls in background without blocking UI
     (async () => {
       try {
-        // Always add to waitlist for table change (don't remove from current seat/waitlist - let them stay until seated at new table)
-        await addPlayerToWaitlist(newTableId, player.player_id, clubDayId, adminUser, { skipSeatCheck: true, atTop: true });
+        // TC (same game type) = add to top of waitlist; different game type = add to bottom
+        const isSameGameType = targetTable.game_type === table.game_type;
+        await addPlayerToWaitlist(newTableId, player.player_id, clubDayId, adminUser, { skipSeatCheck: true, atTop: isSameGameType });
 
         // Write TC entry to localStorage so PublicPage/TVPage can show TC indicator
         try {

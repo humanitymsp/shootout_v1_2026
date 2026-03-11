@@ -631,8 +631,11 @@ export default function TabletPage() {
 
     setActionInProgress(player.id);
     try {
-      // Add player to waitlist of target table at TOP (they stay seated at current table)
-      await addPlayerToWaitlist(targetTableId, player.player_id, clubDay.id, adminUser, { atTop: true });
+      // TC (same game type) = add to top of waitlist; different game type = add to bottom
+      const sourceTable = tables.find(t => t.id === sourceTableId);
+      const targetTable = tables.find(t => t.id === targetTableId);
+      const isSameGameType = sourceTable?.game_type === targetTable?.game_type;
+      await addPlayerToWaitlist(targetTableId, player.player_id, clubDay.id, adminUser, { atTop: isSameGameType });
       
       broadcastUpdate('tc-waitlist', targetTableId, player.player_id);
       showToast(`${playerName} added to Table ${targetTableNumber} waitlist`, 'success');
