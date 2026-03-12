@@ -847,7 +847,36 @@ export default function TabletPage() {
                 <button className="tablet-tc-modal-close" onClick={() => setTcPlayer(null)}>✕</button>
               </div>
               <div className="tablet-tc-modal-content">
-                <p>Add to waitlist (player stays at current table):</p>
+                <button
+                  className="tc-label-only-btn"
+                  disabled={actionInProgress !== null}
+                  onClick={() => {
+                    const playerId = tcPlayer.player.player_id;
+                    const playerName = tcPlayer.playerName;
+                    try {
+                      const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                      if (!tcList.some((entry: any) => entry.playerId === playerId)) {
+                        const sourceTable = activeTables.find(t => t.id === tcPlayer.sourceTableId);
+                        tcList.push({ playerId, fromTableNumber: sourceTable?.table_number, timestamp: Date.now() });
+                        localStorage.setItem('tc-list', JSON.stringify(tcList));
+                      }
+                    } catch {}
+                    try {
+                      const channel = new BroadcastChannel('admin-updates');
+                      channel.postMessage({ type: 'player-update', action: 'tc-label', playerId });
+                      channel.close();
+                    } catch {}
+                    localStorage.setItem('player-updated', new Date().toISOString());
+                    showToast(`${playerName} labeled as TC`, 'success');
+                    setTcPlayer(null);
+                    setSelectedPlayer(null);
+                    loadAllTableData();
+                  }}
+                >
+                  Label TC Only (No Table Yet)
+                </button>
+
+                <p>Or add to waitlist (player stays at current table):</p>
 
                 {sortedGroups.map(({ label, tables, isSame }) => (
                   <div key={label} className="tablet-tc-game-group">
@@ -1049,7 +1078,7 @@ export default function TabletPage() {
 
       {/* Game Type Waitlist Lobby */}
       {activeTables.length > 0 && (() => {
-        // Compute TC player IDs: players who are seated at any table AND on a waitlist
+        // Compute TC player IDs: players who are seated at any table AND on a waitlist OR in tc-list
         const seatedPlayerIds = new Set<string>();
         for (const [, data] of tableData) {
           for (const seat of data.seated) {
@@ -1064,6 +1093,15 @@ export default function TabletPage() {
             }
           }
         }
+        // Also include label-only TC players from localStorage
+        try {
+          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+          for (const entry of tcList) {
+            if (entry.playerId && seatedPlayerIds.has(entry.playerId)) {
+              tcPlayerIds.add(entry.playerId);
+            }
+          }
+        } catch {}
 
         // Group tables by game type + stakes
         const gameTypeGroups = new Map<string, PokerTable[]>();
@@ -1312,7 +1350,17 @@ export default function TabletPage() {
                           onTouchEnd={(e) => handleTouchEnd(e, seat, table.id, false, table.table_number)}
                           onTouchCancel={handleTouchCancel}
                         >
-                          <span className="tablet-player-name">{seat.player?.nick || seat.player?.name || 'Unknown'}</span>
+                          <span className="tablet-player-name">
+                            {(() => {
+                              let isTCLabeled = false;
+                              try {
+                                const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                                isTCLabeled = tcList.some((entry: any) => entry.playerId === seat.player_id);
+                              } catch {}
+                              return isTCLabeled ? <span className="tablet-tc-badge" title="Table Change pending">TC</span> : null;
+                            })()}
+                            {seat.player?.nick || seat.player?.name || 'Unknown'}
+                          </span>
                           {(isHovered || isSelected) && (
                             <div className="tablet-quick-actions" onClick={(e) => e.stopPropagation()}>
                               <button

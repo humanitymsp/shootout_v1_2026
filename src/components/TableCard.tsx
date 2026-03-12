@@ -2586,6 +2586,14 @@ function TableCard({
                   />
                   <div className="player-content">
                     <span className="player-name">
+                      {(() => {
+                        let isTCLabeled = false;
+                        try {
+                          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                          isTCLabeled = tcList.some((entry: any) => entry.playerId === seat.player_id);
+                        } catch {}
+                        return isTCLabeled ? <span className="player-tc-label" title="Table Change pending">TC</span> : null;
+                      })()}
                       <span className="player-name-text">
                         {searchQuery ? (
                           <>
@@ -2781,6 +2789,32 @@ function TableCard({
                   ×
                 </button>
               </div>
+
+              <button
+                className="tc-label-only-btn"
+                onClick={() => {
+                  const playerId = tableChangeMenu.player.player_id;
+                  const playerName = tableChangeMenu.player.player?.nick || 'player';
+                  try {
+                    const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                    if (!tcList.some((entry: any) => entry.playerId === playerId)) {
+                      tcList.push({ playerId, fromTableNumber: table.table_number, timestamp: Date.now() });
+                      localStorage.setItem('tc-list', JSON.stringify(tcList));
+                    }
+                  } catch {}
+                  try {
+                    const channel = new BroadcastChannel('admin-updates');
+                    channel.postMessage({ type: 'player-update', action: 'tc-label', playerId });
+                    channel.close();
+                  } catch {}
+                  localStorage.setItem('player-updated', new Date().toISOString());
+                  showToast(`${playerName} labeled as TC`, 'success');
+                  setTableChangeMenu(null);
+                  loadTableData(true);
+                }}
+              >
+                Label TC Only (No Table Yet)
+              </button>
 
               <div className="tc-options-bar">
                 <label className="tc-option-label">

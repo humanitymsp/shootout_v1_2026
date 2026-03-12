@@ -706,6 +706,18 @@
   color: #fff;
 }
 
+.tablet-tc-badge {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.25);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
 .tablet-player-name {
   flex: 1;
   display: flex;
@@ -1110,6 +1122,32 @@
   padding: 1.25rem;
   overflow-y: auto;
   max-height: calc(80vh - 60px);
+}
+
+.tablet-tc-modal-content .tc-label-only-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.65rem 1rem;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tablet-tc-modal-content .tc-label-only-btn:hover {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.6);
+}
+
+.tablet-tc-modal-content .tc-label-only-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .tablet-tc-modal-content p {

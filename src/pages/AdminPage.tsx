@@ -1717,6 +1717,15 @@ export default function AdminPage({ user }: AdminPageProps) {
             if (seatedPlayerIds.has(wl.player_id)) tcPlayerIds.add(wl.player_id);
           }
         }
+        // Also include label-only TC players from localStorage (no target table yet)
+        try {
+          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+          for (const entry of tcList) {
+            if (entry.playerId && seatedPlayerIds.has(entry.playerId)) {
+              tcPlayerIds.add(entry.playerId);
+            }
+          }
+        } catch {}
 
         return (
           <>

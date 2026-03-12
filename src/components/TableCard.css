@@ -1062,6 +1062,19 @@
   max-width: 100%;
 }
 
+.player-tc-label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.25);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+  margin-right: 0.25em;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
 .player-name-text {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1458,6 +1471,28 @@
   font-size: 0.7rem;
   color: var(--admin-secondary);
   opacity: 0.8;
+}
+
+/* TC label-only button (no target table) */
+.tc-label-only-btn {
+  display: block;
+  width: calc(100% - 2.5rem);
+  margin: 0.5rem 1.25rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+}
+
+.tc-label-only-btn:hover {
+  background: rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.6);
 }
 
 /* TC menu options bar */
