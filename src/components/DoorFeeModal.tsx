@@ -29,6 +29,8 @@ interface DoorFeeModalProps {
   showTableSelection?: boolean;
   defaultTableId?: string;
   title?: string;
+  // If true, player has already paid door fee today - auto-treat as previous player
+  hasAlreadyPaid?: boolean;
 }
 
 export default function DoorFeeModal({ 
@@ -40,15 +42,20 @@ export default function DoorFeeModal({
   showTableSelection = false,
   defaultTableId,
   title = 'Pay Door Fee & Seat',
+  hasAlreadyPaid = false,
 }: DoorFeeModalProps) {
   const [amount, setAmount] = useState(defaultAmount.toString());
   const [loading, setLoading] = useState(false);
   const [useCustom, setUseCustom] = useState(false);
   const [selectedTableId, setSelectedTableId] = useState(defaultTableId || '');
-  const [isPreviousPlayer, setIsPreviousPlayer] = useState(false);
+  const [isPreviousPlayer, setIsPreviousPlayer] = useState(hasAlreadyPaid);
   const [savedFees] = useState<number[]>(() => loadSavedDoorFees());
 
   useEffect(() => {
+    // Auto-set as previous player if they've already paid
+    if (hasAlreadyPaid) {
+      setIsPreviousPlayer(true);
+    }
     // If default amount is not 20, use custom mode
     if (defaultAmount !== 20) {
       setUseCustom(true);

@@ -78,7 +78,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   const [quickFilter, setQuickFilter] = useState<'all' | 'empty' | 'full' | 'waitlist'>('all');
   const [showPlayersPopup, setShowPlayersPopup] = useState(false);
   const [checkInStatusMap, setCheckInStatusMap] = useState<Map<string, { hasPaid: boolean; amount: number; isPrevious: boolean }>>(new Map());
-  const [buyInModal, setBuyInModal] = useState<{ entry: TableWaitlist; playerName: string; defaultAmount: number } | null>(null);
+  const [buyInModal, setBuyInModal] = useState<{ entry: TableWaitlist; playerName: string; defaultAmount: number; hasAlreadyPaid?: boolean } | null>(null);
   const [showKnowledgeBase, setShowKnowledgeBase] = useState(false);
   
   // Persistent tables state
@@ -1316,6 +1316,7 @@ export default function AdminPage({ user }: AdminPageProps) {
           defaultAmount={buyInModal.defaultAmount}
           tables={[]}
           showTableSelection={false}
+          hasAlreadyPaid={buyInModal.hasAlreadyPaid}
           onConfirm={async (amount, _tableId, isPreviousPlayer) => {
             if (isPreviousPlayer) {
               // Previous player: create a $0 check-in to mark them as bought in, but no receipt/accounting
@@ -1895,14 +1896,19 @@ export default function AdminPage({ user }: AdminPageProps) {
                                       className="popup-buyin-btn"
                                       onClick={async () => {
                                         let defaultAmount = 20;
+                                        let hasAlreadyPaid = false;
                                         try {
                                           const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
-                                          if (checkIn?.door_fee_amount) defaultAmount = checkIn.door_fee_amount;
+                                          if (checkIn?.door_fee_amount) {
+                                            defaultAmount = checkIn.door_fee_amount;
+                                            hasAlreadyPaid = true;
+                                          }
                                         } catch { /* use default */ }
                                         setBuyInModal({
                                           entry: wl,
                                           playerName: wl.player?.nick || wl.player?.name || 'Unknown',
                                           defaultAmount,
+                                          hasAlreadyPaid,
                                         });
                                       }}
                                     >
