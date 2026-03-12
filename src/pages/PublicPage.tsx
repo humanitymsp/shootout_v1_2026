@@ -376,11 +376,15 @@ export default function PublicPage() {
         hiddenFromPublic = JSON.parse(localStorage.getItem('hidden-from-public') || '[]');
       } catch {}
       const tables = dedupedTables.filter(t => !hiddenFromPublic.includes(t.id));
-      log('Public: Visible tables:', tables.map(t => `Table ${t.table_number} (${t.status})`));
+      
+      // Also filter out persistent tables with public_signups (they go to pre-sign up section)
+      const persistentTablesWithSignups = pts.filter(pt => pt.public_signups && pt.api_table_id);
+      const tablesWithoutPublicSignups = tables.filter(t => !persistentTablesWithSignups.some(pt => pt.api_table_id === t.id));
+      log('Public: Visible tables:', tablesWithoutPublicSignups.map(t => `Table ${t.table_number} (${t.status})`));
 
       const displays: TableDisplay[] = [];
 
-      for (const table of tables) {
+      for (const table of tablesWithoutPublicSignups) {
         // ⚠️ CRITICAL: Use centralized counting function - SINGLE SOURCE OF TRUTH
         // This ensures counts match Admin, TV, and Tablet views
         // CRITICAL: Pass clubDayId to prevent counting players from old club days
@@ -419,8 +423,9 @@ export default function PublicPage() {
         });
       }
 
-      // Add pre-sign up persistent tables (without api_table_id) from localStorage
-      const persistentOnly = pts.filter(pt => !pt.api_table_id && pt.status !== 'CLOSED');
+      // Add pre-sign up persistent tables from localStorage
+      // Include both: (1) tables without api_table_id (pre-signup only) and (2) tables with api_table_id but public_signups enabled
+      const persistentOnly = pts.filter(pt => pt.status !== 'CLOSED' && (!pt.api_table_id || pt.public_signups));
       for (const pt of persistentOnly) {
         const wl = getPersistentWaitlistForTable(pt.id);
         const syntheticTable: PokerTable = {
