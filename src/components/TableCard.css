@@ -1114,20 +1114,20 @@
 
 .player-actions {
   display: flex;
-  gap: 0.2rem;
+  gap: 0.3rem;
   align-items: center;
   position: relative;
   justify-self: end;
 }
 
 .player-quick-bust {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1px solid rgba(251, 191, 36, 0.4);
   background: rgba(251, 191, 36, 0.1);
   color: #fbbf24;
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -1147,13 +1147,13 @@
 }
 
 .player-quick-remove {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1px solid rgba(239, 68, 68, 0.4);
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -1173,13 +1173,13 @@
 }
 
 .player-wl-btn {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1px solid rgba(22, 163, 74, 0.4);
   background: rgba(22, 163, 74, 0.1);
   color: #16a34a;
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -1288,13 +1288,13 @@
 }
 
 .player-table-change {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1px solid rgba(59, 130, 246, 0.4);
   background: rgba(59, 130, 246, 0.1);
   color: #3b82f6;
-  font-size: 0.55rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -1875,9 +1875,9 @@
   
   .player-quick-bust,
   .player-action-btn {
-    width: 12px;
-    height: 12px;
-    font-size: 0.55rem;
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
   }
   
   .seated-list,
