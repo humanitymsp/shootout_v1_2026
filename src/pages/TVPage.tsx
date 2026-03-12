@@ -10,6 +10,7 @@ import { getPersistentTables, getTableWaitlist as getPersistentWaitlist } from '
 import type { ClubDay, PokerTable, TableSeat, TableWaitlist } from '../types';
 import Logo from '../components/Logo';
 import PlayingCard from '../components/PlayingCard';
+import { useGoogleCast } from '../hooks/useGoogleCast';
 import './TVPage.css';
 import '../components/HighHandBanner.css';
 
@@ -81,6 +82,9 @@ export default function TVPage() {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const retryTimeoutRef = useRef<any>(null);
+  
+  // Google Cast functionality
+  const cast = useGoogleCast();
   const retryCountRef = useRef(0);
   const [highHand, setHighHand] = useState<HighHand | null>(getHighHand());
   const [highHandEnabled, setHighHandEnabled] = useState(isHighHandEnabled());
@@ -539,16 +543,35 @@ export default function TVPage() {
           <h1 className="tv-main-title">CASH GAME WAITLIST</h1>
         </div>
         <div className="tv-header-right">
+          <div className="tv-cast-controls">
+            {cast.isAvailable && (
+              <>
+                {cast.isConnected ? (
+                  <button 
+                    className="tv-cast-btn tv-cast-btn-connected"
+                    onClick={cast.stopCast}
+                    title={`Connected to ${cast.deviceName}. Click to disconnect.`}
+                  >
+                    📺 {cast.deviceName}
+                  </button>
+                ) : (
+                  <button 
+                    className="tv-cast-btn"
+                    onClick={cast.requestCast}
+                    title="Cast to TV"
+                  >
+                    📡 Cast
+                  </button>
+                )}
+              </>
+            )}
+          </div>
           <div className="tv-datetime">
             <span className="tv-date">
               {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
-            <span className="tv-datetime-separator">•</span>
             <span className="tv-time">
-              {currentTime.getHours() % 12 || 12}:{currentTime.getMinutes().toString().padStart(2, '0')}
-              <span className="tv-time-period">
-                {currentTime.getHours() >= 12 ? 'PM' : 'AM'}
-              </span>
+              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
           {isOffline && (
