@@ -311,9 +311,9 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
           return;
         }
 
-        // Validate nickname length (max 9 characters)
-        if (nick.trim().length > 9) {
-          setError('Player nickname must be 9 characters or less');
+        // Validate nickname length (max 13 characters)
+        if (nick.trim().length > 13) {
+          setError('Player nickname must be 13 characters or less');
           setLoading(false);
           return;
         }
