@@ -331,7 +331,8 @@ export default function PublicPage() {
 
       // Helper: patch player data onto seat/waitlist entries using the playerMap
       // Always prefer PlayerSync data — enrichArrayWithPlayerData may return empty player objects
-      // Falls back to localStorage cache (populated by startPlayerSyncPolling)
+      // Falls back to localStorage cache, then assigns "Player N" placeholders
+      let unknownCounter = 0;
       const patchPlayerData = <T extends { player_id: string; player?: any }>(items: T[]): T[] => {
         return items.map(item => {
           // 1st priority: PlayerSync data (most reliable for public page)
@@ -346,7 +347,10 @@ export default function PublicPage() {
           if (local && (local.nick || local.name)) {
             return { ...item, player: local };
           }
-          return item;
+          // Fallback: assign a numbered placeholder
+          unknownCounter++;
+          const placeholder = `Player ${unknownCounter}`;
+          return { ...item, player: { id: item.player_id, name: placeholder, nick: placeholder } };
         });
       };
 
@@ -580,7 +584,7 @@ export default function PublicPage() {
                       seenPlayerIds.add(wl.player_id);
                       groupWaitlist.push({
                         id: wl.id,
-                        name: wl.player?.nick || wl.player?.name || 'Unknown',
+                        name: wl.player?.nick || wl.player?.name || 'Player',
                         playerId: wl.player_id,
                       });
                     }
@@ -696,7 +700,7 @@ export default function PublicPage() {
                                 {waitlistPlayers.length > 0 ? (
                                   waitlistPlayers.map((wl) => (
                                     <li key={wl.id} className="public-player-name public-waiting-player">
-                                      {wl.player?.nick || wl.player?.name || 'Unknown'}
+                                      {wl.player?.nick || wl.player?.name || 'Player'}
                                     </li>
                                   ))
                                 ) : (
