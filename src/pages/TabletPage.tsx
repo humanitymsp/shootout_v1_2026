@@ -382,15 +382,7 @@ export default function TabletPage() {
       await removePlayerFromWaitlist(wl.id, adminUser);
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
-      // Always remove from all other waitlists
-      try {
-        const removedCount = await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
-        if (removedCount > 0) {
-          log(`Removed ${playerName} from ${removedCount} other waitlist(s) after seating`);
-        }
-      } catch { /* best effort */ }
-
-      // If TC player, remove from previous table seat(s)
+      // Player remains on other game type waitlists (multi-game-type support)
       if (wasTC) {
         try {
           const { getSeatedPlayersForPlayer, removePlayerFromSeat: removeSeat } = await import('../lib/api');

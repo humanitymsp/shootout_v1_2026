@@ -851,11 +851,7 @@ function TableCard({
     seatPlayer(targetTableId, playerId, clubDayId)
       .then(async () => {
         log('✅ Previous player seated successfully');
-        // Always remove from all waitlists
-        try {
-          const removedCount = await removePlayerFromAllWaitlists(playerId, clubDayId);
-          if (removedCount > 0) log(`Removed previous player from ${removedCount} waitlist(s)`);
-        } catch {}
+        // Note: Player remains on other game type waitlists (multi-game-type support)
         // If TC player, also remove from previous table's seat
         if (wasTC) {
           try {
@@ -939,8 +935,7 @@ function TableCard({
             localStorage.setItem('tc-list', JSON.stringify(cleaned));
           }
         } catch {}
-        // Remove from all waitlists
-        try { await removePlayerFromAllWaitlists(wl.player_id, clubDayId); } catch {}
+        // Note: Player remains on other game type waitlists (multi-game-type support)
       } catch (err: any) {
         logError(`Failed to seat ${playerName}:`, err);
       }
@@ -998,35 +993,23 @@ function TableCard({
       const seat = seatedPlayers.find(s => s.id === seatId);
       await removePlayerFromSeat(seatId, table.id, adminUser);
       
-      // Remove busted player from all waitlists
-      if (seat?.player_id) {
-        try {
-          const removedCount = await removePlayerFromAllWaitlists(seat.player_id, clubDayId);
-          if (removedCount > 0) {
-            log(`Removed ${seat.player?.nick || 'player'} from ${removedCount} waitlist(s) after bust out`);
-          }
-        } catch (error) {
-          logWarn('Failed to remove busted player from waitlists:', error);
-        }
-      }
-      
-      // Store bust out info for re-seating (last 30 minutes)
+      // Note: Busted out players remain on other game type waitlists (multi-game-type support)
+      // If TC player, also remove from previous table's seat
       try {
-        const bustOutData = {
-          playerId: seat?.player_id,
-          playerNick: seat?.player?.nick || 'Unknown',
-          tableId: table.id,
-          tableNumber: table.table_number,
-          bustedOutAt: Date.now(),
-        };
-        const recentBustOuts = JSON.parse(localStorage.getItem('recent-bust-outs') || '[]');
-        recentBustOuts.push(bustOutData);
-        // Keep only last 30 minutes worth
-        const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
-        const filtered = recentBustOuts.filter((b: any) => b.bustedOutAt > thirtyMinutesAgo);
-        localStorage.setItem('recent-bust-outs', JSON.stringify(filtered));
-      } catch (error) {
-        logWarn('Failed to store bust out info:', error);
+        const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+        const tcEntry = tcList.find((entry: any) => entry.playerId === seat?.player_id);
+        if (tcEntry) {
+          const allSeats = await getSeatedPlayersForPlayer(seat?.player_id, clubDayId);
+          const oldSeats = allSeats.filter(s => s.table_id !== table.id);
+          for (const oldSeat of oldSeats) {
+            await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
+            log(`Removed TC player from old seat at table ${oldSeat.table_id}`);
+          }
+          const cleaned = tcList.filter((entry: any) => entry.playerId !== seat?.player_id);
+          localStorage.setItem('tc-list', JSON.stringify(cleaned));
+        }
+      } catch (err) {
+        logWarn('Failed to remove TC player from previous table:', err);
       }
       
       // Broadcast update
@@ -1311,6 +1294,7 @@ function TableCard({
         // Refresh data in background to sync with server
         await loadTableData();
         onRefresh();
+        // Toast removed per user request
       } catch (err: any) {
         // Rollback optimistic update on error
         await loadTableData();
@@ -1418,6 +1402,7 @@ function TableCard({
       try {
         checkIn = await getCheckInForPlayer(playerId, clubDayId);
       } catch { /* use default */ }
+
       if (!checkIn) {
         const playerName = player.player?.nick || player.player?.name || 'Unknown';
         showToast(`${playerName} must buy in before being seated`, 'error');
@@ -3055,16 +3040,7 @@ function TableCard({
               .then(async () => {
                 log('✅ Server confirmed seat operation');
 
-                // Auto-remove from other waitlists
-                try {
-                  const removedCount = await removePlayerFromAllWaitlists(playerId, clubDayId);
-                  if (removedCount > 0) {
-                    log(`Removed ${playerData?.nick || playerId} from ${removedCount} waitlist(s) after seating`);
-                  }
-                } catch (err) {
-                  logWarn('Failed to auto-remove from other waitlists:', err);
-                }
-
+                // Note: Player remains on other game type waitlists (multi-game-type support)
                 // If TC player, also remove from previous table's seat
                 if (wasTC) {
                   try {
