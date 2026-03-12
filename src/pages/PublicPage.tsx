@@ -979,7 +979,7 @@ function PublicTableCard({ display }: { display: TableDisplay }) {
     // ⚠️ CRITICAL: Hardcoded fallback values - DO NOT MODIFY WITHOUT APPROVAL
     // These values are business-critical and must match across all views
     const text = table.stakes_text.toLowerCase();
-    if (text.includes('$1/$2') && text.includes('nl')) return '$40-$400';
+    if (text.includes('$1/$2') && text.includes('nl')) return '$40-$500';
     if (text.includes('$1/$3') && text.includes('nl')) return '$300-$1000';
     if (text.includes('plo5') || text.includes('$1/$2/$5')) return '$200-$1000';
     return '';

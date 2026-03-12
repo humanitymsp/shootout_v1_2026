@@ -1174,9 +1174,9 @@ export async function createClubDay(preservedBuyInLimits?: Map<number, string>):
   // Create default tables (3 tables as specified: 8, 10, 14)
   // Use preserved buy-in limits if available, otherwise use defaults
   const defaultTables = [
-    { tableNumber: 8, gameType: 'NLH', stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$400' },
-    { tableNumber: 10, gameType: 'NLH', stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$400' },
-    { tableNumber: 14, gameType: 'NLH', stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$400' },
+    { tableNumber: 8, gameType: 'NLH', stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$500' },
+    { tableNumber: 10, gameType: 'NLH', stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$500' },
+    { tableNumber: 14, gameType: 'NLH', stakesText: '$1/$2 No Limit', seatsTotal: 9, buyInLimits: '$40-$500' },
   ];
   
   for (const table of defaultTables) {

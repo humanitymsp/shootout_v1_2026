@@ -13,7 +13,7 @@ interface AddTableModalProps {
 }
 
 const TABLE_TEMPLATES = [
-  { name: 'NLH 1/2', gameType: 'NLH' as const, stakesText: '$1/$2 No Limit', seatsTotal: 20, buyInLimits: '$40-$400', bombPotCount: 1 },
+  { name: 'NLH 1/2', gameType: 'NLH' as const, stakesText: '$1/$2 No Limit', seatsTotal: 20, buyInLimits: '$40-$500', bombPotCount: 1 },
   { name: 'NLH 1/3', gameType: 'NLH' as const, stakesText: '$1/$3 No Limit', seatsTotal: 20, buyInLimits: '$300-$1000', bombPotCount: 1 },
   { name: 'NLH 1/2/5', gameType: 'NLH' as const, stakesText: '$1/$2/$5 No Limit', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
   { name: 'NLH 2/5', gameType: 'NLH' as const, stakesText: '$2/$5 No Limit', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
@@ -44,7 +44,7 @@ const STAKES_OPTIONS = [
 ];
 
 const BUY_IN_LIMITS_OPTIONS = [
-  '$40-$400',
+  '$40-$500',
   '$100-$500',
   '$200-$1000',
   '$300-$1000',
