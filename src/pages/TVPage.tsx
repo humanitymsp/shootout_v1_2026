@@ -86,6 +86,23 @@ export default function TVPage() {
   // Google Cast functionality
   const cast = useGoogleCast();
   const retryCountRef = useRef(0);
+  
+  // Keyboard shortcut for casting (Ctrl+Shift+C)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        if (cast.isConnected) {
+          cast.stopCast();
+        } else if (cast.isAvailable) {
+          cast.requestCast();
+        }
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cast]);
   const [highHand, setHighHand] = useState<HighHand | null>(getHighHand());
   const [highHandEnabled, setHighHandEnabled] = useState(isHighHandEnabled());
   const [highHandRemaining, setHighHandRemaining] = useState(getRemainingTimeMs());
@@ -543,29 +560,6 @@ export default function TVPage() {
           <h1 className="tv-main-title">CASH GAME WAITLIST</h1>
         </div>
         <div className="tv-header-right">
-          <div className="tv-cast-controls">
-            {cast.isAvailable && (
-              <>
-                {cast.isConnected ? (
-                  <button 
-                    className="tv-cast-btn tv-cast-btn-connected"
-                    onClick={cast.stopCast}
-                    title={`Connected to ${cast.deviceName}. Click to disconnect.`}
-                  >
-                    📺 {cast.deviceName}
-                  </button>
-                ) : (
-                  <button 
-                    className="tv-cast-btn"
-                    onClick={cast.requestCast}
-                    title="Cast to TV"
-                  >
-                    📡 Cast
-                  </button>
-                )}
-              </>
-            )}
-          </div>
           <div className="tv-datetime">
             <span className="tv-date">
               {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
@@ -903,6 +897,29 @@ export default function TVPage() {
                 </div>
               </div>
             </>
+          )}
+        </div>
+      )}
+      
+      {/* Off-screen cast button - accessible via keyboard shortcut */}
+      {cast.isAvailable && (
+        <div className="tv-offscreen-controls">
+          {cast.isConnected ? (
+            <button 
+              className="tv-cast-btn tv-cast-btn-connected"
+              onClick={cast.stopCast}
+              title={`Connected to ${cast.deviceName}. Press Ctrl+Shift+C to disconnect.`}
+            >
+              📺 {cast.deviceName}
+            </button>
+          ) : (
+            <button 
+              className="tv-cast-btn"
+              onClick={cast.requestCast}
+              title="Press Ctrl+Shift+C to cast to TV"
+            >
+              📡 Cast
+            </button>
           )}
         </div>
       )}

@@ -166,6 +166,25 @@
   border-color: rgba(34, 197, 94, 0.5);
 }
 
+.tv-offscreen-controls {
+  position: fixed;
+  top: -100px;
+  left: 10px;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tv-offscreen-controls:hover {
+  opacity: 1;
+}
+
+/* Show controls when Ctrl+Shift is pressed (visual hint) */
+.tv-offscreen-controls:focus-within {
+  top: 10px;
+  opacity: 1;
+}
+
 .tv-datetime {
   display: flex;
   align-items: center;
