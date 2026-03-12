@@ -112,19 +112,50 @@ export default function TVPage() {
       // Players are synced, but we don't need to do anything here
       // The player data will be used when displaying seats/waitlists
       log(`📡 TV: Synced ${players.length} players from admin`);
-    }, 1000); // Poll every 1 second for faster updates
+    }, 500); // Poll every 500ms for faster updates
 
-    // Reduced polling frequency - use BroadcastChannel for instant updates instead
-    const pollInterval = setInterval(() => {
-      // Skip polling if tab is hidden (better performance)
-      if (document.hidden) return;
-      // Skip polling if offline (will retry when online)
-      if (isOffline) return;
-      loadData();
-    }, 1000); // 1s polling for near-realtime cross-device sync
+    // Adaptive polling - faster when recent activity detected
+    let currentInterval: NodeJS.Timeout;
+    let pollSpeed = 500; // Default 500ms
+    
+    const createPollingInterval = (speed: number) => {
+      clearInterval(currentInterval);
+      currentInterval = setInterval(() => {
+        // Skip polling if tab is hidden (better performance)
+        if (document.hidden) return;
+        // Skip polling if offline (will retry when online)
+        if (isOffline) return;
+        
+        // Check if there was recent admin activity (last 2 seconds)
+        const lastPlayerUpdate = localStorage.getItem('player-updated');
+        const lastTableUpdate = localStorage.getItem('table-updated');
+        const now = Date.now();
+        
+        let recentActivity = false;
+        if (lastPlayerUpdate) {
+          const timeDiff = now - parseInt(lastPlayerUpdate);
+          if (timeDiff < 2000) recentActivity = true;
+        }
+        if (lastTableUpdate) {
+          const timeDiff = now - parseInt(lastTableUpdate);
+          if (timeDiff < 2000) recentActivity = true;
+        }
+        
+        // Adjust polling speed based on activity
+        const newSpeed = recentActivity ? 200 : 500;
+        if (newSpeed !== pollSpeed) {
+          pollSpeed = newSpeed;
+          createPollingInterval(newSpeed);
+        }
+        
+        loadData();
+      }, speed);
+    };
+    
+    createPollingInterval(pollSpeed);
 
     return () => {
-      clearInterval(pollInterval);
+      clearInterval(currentInterval);
       stopPlayerSync();
     };
   }, [clubDay, isOffline]);
@@ -259,7 +290,7 @@ export default function TVPage() {
           loadData();
         }
       }
-    }, 300); // Reduced from 1000ms to 300ms for faster response
+    }, 200); // Reduced from 1000ms to 200ms for faster response
 
     let channel: BroadcastChannel | null = null;
     try {
@@ -285,11 +316,8 @@ export default function TVPage() {
       adminChannel.onmessage = (event) => {
         // Refresh on table-related updates from admin page (including buy-in limits)
         if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-          log('📺 TV: Received admin update, refreshing table data');
-          // Use a small delay to ensure server has processed the change
-          setTimeout(() => {
-            loadData();
-          }, 500);
+          log('📺 TV: Received admin update, refreshing table data immediately');
+          loadData();
         }
       };
     } catch {
