@@ -426,15 +426,21 @@ export default function PublicPage() {
       }
 
       // Add pre-sign up persistent tables from localStorage
-      // Only include persistent tables that are valid:
-      // (1) tables without api_table_id (pure pre-signup) OR
-      // (2) tables with api_table_id that actually exists in the API AND has public_signups enabled
-      // This filters out ghost games where the API table was deleted but localStorage still has the persistent entry
+      // Show persistent tables that have public_signups enabled and are not CLOSED.
+      // Filter out stale entries: if a persistent table has an api_table_id that no longer
+      // exists in the API AND doesn't have public_signups, it's a ghost game.
       const validApiTableIds = new Set(allTables.map(t => t.id));
-      const persistentOnly = pts.filter(pt => pt.status !== 'CLOSED' && (
-        (!pt.api_table_id) ||
-        (pt.public_signups && pt.api_table_id && validApiTableIds.has(pt.api_table_id))
-      ));
+      const persistentOnly = pts.filter(pt => {
+        if (pt.status === 'CLOSED') return false;
+        // Always show tables with public_signups enabled
+        if (pt.public_signups) return true;
+        // Tables without api_table_id are pure pre-signup — show them
+        if (!pt.api_table_id) return true;
+        // Tables with api_table_id but no public_signups — only show if the API table still exists
+        return validApiTableIds.has(pt.api_table_id);
+      });
+      log(`Public: All persistent tables: ${pts.map(pt => `T${pt.table_number} (id=${pt.id.slice(0,8)}, api=${pt.api_table_id?.slice(0,8) || 'none'}, signups=${pt.public_signups}, status=${pt.status})`).join(', ')}`);
+      log(`Public: Filtered persistent for display: ${persistentOnly.map(pt => `T${pt.table_number}`).join(', ') || '(none)'}`);
       for (const pt of persistentOnly) {
         const wl = getPersistentWaitlistForTable(pt.id);
         const syntheticTable: PokerTable = {
