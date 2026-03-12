@@ -91,7 +91,7 @@ export default function TabletPage() {
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       log(`📡 Tablet: Synced ${players.length} players from admin`);
-    }, 3000); // Poll every 3 seconds
+    }, 10000); // Poll every 10 seconds
     
     return () => {
       stopPlayerSync();
@@ -207,7 +207,7 @@ export default function TabletPage() {
       if (!isLoadingRef.current) {
         loadAllTableData();
       }
-    }, 3000); // 3s polling for near-realtime cross-device sync
+    }, 5000); // 5s polling for cross-device sync
     return () => clearInterval(pollInterval);
   }, [clubDay, loadAllTableData]);
 

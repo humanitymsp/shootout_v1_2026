@@ -37,7 +37,7 @@
  * Status: PRODUCTION STABLE - DO NOT MODIFY WITHOUT APPROVAL
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay, getAllPlayers, getCheckInForPlayer } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
@@ -70,6 +70,8 @@ export default function PublicPage() {
   const [tableDisplays, setTableDisplays] = useState<TableDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const isLoadingRef = useRef(false);
+  const debounceTimerRef = useRef<any>(null);
 
   // Public signup state (for pre-sign up tables)
   const [signupTableId, setSignupTableId] = useState<string | null>(null);
@@ -93,20 +95,16 @@ export default function PublicPage() {
   useEffect(() => {
     if (!clubDay) return;
 
-    // ⚠️ CRITICAL: Real-time player synchronization from admin device
-    // This ensures public view stays in sync with admin changes
-    // DO NOT modify polling intervals without testing impact on real-time updates
+    // Player synchronization from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       log(`📡 Public: Synced ${players.length} players from admin`);
-    }, 3000, 'apiKey'); // Poll every 3 seconds with apiKey auth for public access
+    }, 10000, 'apiKey'); // Poll every 10 seconds with apiKey auth for public access
 
-    // ⚠️ CRITICAL: Data refresh polling for near-realtime table updates
-    // 2000ms interval balances responsiveness with server load
-    // Changing this may cause delays in showing table updates to public users
+    // Data refresh polling for table updates
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
       loadData();
-    }, 3000); // 3s polling for near-realtime cross-device sync
+    }, 10000); // 10s polling — event-driven updates handle instant changes
 
     return () => {
       clearInterval(pollInterval);
@@ -185,15 +183,11 @@ export default function PublicPage() {
     // Listen for instant refresh signals from admin (cross-tab updates)
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'tv-updated' || e.key === 'table-updated' || e.key === 'player-updated') {
-        log('📱 Public: Received storage event, refreshing');
-        loadData();
+        debouncedRefresh();
       }
     };
     
-    // ⚠️ CRITICAL: Poll for localStorage changes (same-tab updates)
-    // StorageEvent doesn't fire in the same tab, so we poll every 300ms
-    // This 300ms interval is optimized for responsiveness vs performance
-    // Changing this interval may cause delays or increase CPU usage
+    // Poll for localStorage changes (same-tab changes don't trigger storage events)
     let lastProcessedUpdate: string | null = null;
     const pollInterval = setInterval(() => {
       const lastTableUpdate = localStorage.getItem('table-updated');
@@ -204,19 +198,14 @@ export default function PublicPage() {
       if (latestUpdate && latestUpdate !== lastProcessedUpdate) {
         const updateTime = new Date(latestUpdate).getTime();
         const now = Date.now();
-        // Refresh if update was within last 10 seconds
-        // CRITICAL: This 10-second window prevents stale updates from triggering refreshes
         if (now - updateTime < 10000) {
           lastProcessedUpdate = latestUpdate;
-          log('📱 Public: Detected localStorage update, refreshing');
-          loadData();
+          debouncedRefresh();
         }
       }
-    }, 1000); // 1s is sufficient — BroadcastChannel + StorageEvent handle instant updates
+    }, 3000); // 3s — main polling handles periodic updates
 
-    // ⚠️ CRITICAL: BroadcastChannel for same-origin real-time messaging
-    // This provides instant updates across tabs/windows without polling delays
-    // DO NOT remove these channels - they are essential for real-time sync
+    // BroadcastChannel for same-origin real-time messaging
     let adminChannel: BroadcastChannel | null = null;
     let tvChannel: BroadcastChannel | null = null;
     let publicChannel: BroadcastChannel | null = null;
@@ -224,11 +213,8 @@ export default function PublicPage() {
     try {
       adminChannel = new BroadcastChannel('admin-updates');
       adminChannel.addEventListener('message', (event) => {
-        // Refresh on any table or player updates (including buy-in limits)
-        // CRITICAL: This ensures public view reflects admin changes immediately
         if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-          log('📱 Public: Received admin update, refreshing immediately');
-          loadData();
+          debouncedRefresh();
         }
       });
     } catch (error) {
@@ -237,15 +223,8 @@ export default function PublicPage() {
 
     try {
       tvChannel = new BroadcastChannel('tv-updates');
-      tvChannel.addEventListener('message', (event) => {
-        // Refresh on any TV updates, especially table updates (buy-in limits)
-        // CRITICAL: TV view updates must propagate to public view immediately
-        if (event.data?.type === 'table-update' || event.data?.type === 'table-updated') {
-          log('📱 Public: Received TV update, refreshing immediately');
-          loadData();
-        } else {
-          loadData();
-        }
+      tvChannel.addEventListener('message', () => {
+        debouncedRefresh();
       });
     } catch (error) {
       logWarn('TV BroadcastChannel not available:', error);
@@ -255,8 +234,7 @@ export default function PublicPage() {
       publicChannel = new BroadcastChannel('public-updates');
       publicChannel.addEventListener('message', (event) => {
         if (event.data?.type === 'public-toggle') {
-          log('📱 Public: Received public visibility toggle, refreshing immediately');
-          loadData();
+          debouncedRefresh();
         }
       });
     } catch (error) {
@@ -301,7 +279,18 @@ export default function PublicPage() {
    * - Each table requires an async call to getTableCounts()
    * - Modifications that add database calls will impact performance
    */
+  // Debounced refresh — coalesces rapid-fire events into one loadData call
+  const debouncedRefresh = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      loadData();
+    }, 500);
+  };
+
   const loadData = async () => {
+    // Concurrency guard - skip if already loading
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       // Use apiKey auth so the public page works without login
       const AUTH = 'apiKey';
@@ -473,6 +462,7 @@ export default function PublicPage() {
       logError('Error loading public page data:', error);
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   };
 

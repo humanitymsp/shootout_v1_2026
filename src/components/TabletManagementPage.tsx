@@ -41,7 +41,7 @@ export default function TabletManagementPage({
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDayId, (players) => {
       log(`📡 Tablet: Synced ${players.length} players from admin`);
-    }, 3000); // Poll every 3 seconds
+    }, 10000); // Poll every 10 seconds
     
     return () => {
       stopPlayerSync();

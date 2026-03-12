@@ -515,7 +515,7 @@ function TableCard({
           setTimeout(() => loadTableData(), 200);
         }
       }
-    }, 2000);
+    }, 5000);
 
     return () => {
       if (broadcastChannel) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
@@ -29,6 +29,8 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
   const [tableDisplays, setTableDisplays] = useState<TableDisplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const isLoadingRef = useRef(false);
+  const debounceTimerRef = useRef<any>(null);
 
   useEffect(() => {
     // Initialize localStorage players system
@@ -37,7 +39,7 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDayId, (players) => {
       log(`📡 Mobile TV: Synced ${players.length} players from admin`);
-    }, 3000); // Poll every 3 seconds
+    }, 10000); // Poll every 10 seconds
     
     loadData();
     
@@ -50,8 +52,9 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
     if (!clubDay) return;
 
     const pollInterval = setInterval(() => {
+      if (document.hidden) return;
       loadData();
-    }, 2000); // Faster polling for near-realtime updates
+    }, 5000); // 5s polling
 
     return () => clearInterval(pollInterval);
   }, [clubDay]);
@@ -65,16 +68,22 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
     return () => clearInterval(clockInterval);
   }, []);
 
+  // Debounced refresh — coalesces rapid-fire events into one loadData call
+  const debouncedRefresh = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      loadData();
+    }, 500);
+  };
+
   useEffect(() => {
-    // Listen for instant refresh signals from admin
     const handleStorage = (e: StorageEvent) => {
       if (e.key === 'tv-updated' || e.key === 'table-updated' || e.key === 'player-updated') {
-        log('📱 MobileTV: Received storage event, refreshing');
-        loadData();
+        debouncedRefresh();
       }
     };
     
-    // Poll for localStorage changes (since same-tab changes don't trigger storage events)
+    // Poll for localStorage changes (same-tab changes don't trigger storage events)
     let lastProcessedUpdate: string | null = null;
     const pollInterval = setInterval(() => {
       const lastTableUpdate = localStorage.getItem('table-updated');
@@ -85,26 +94,21 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
       if (latestUpdate && latestUpdate !== lastProcessedUpdate) {
         const updateTime = new Date(latestUpdate).getTime();
         const now = Date.now();
-        // Refresh if update was within last 10 seconds
         if (now - updateTime < 10000) {
           lastProcessedUpdate = latestUpdate;
-          log('📱 MobileTV: Detected localStorage update, refreshing');
-          loadData();
+          debouncedRefresh();
         }
       }
-    }, 2000); // Check every 2 seconds
+    }, 3000); // 3s
 
-    // Listen for broadcast messages (same-origin tabs/windows)
     let adminChannel: BroadcastChannel | null = null;
     let tvChannel: BroadcastChannel | null = null;
 
     try {
       adminChannel = new BroadcastChannel('admin-updates');
       adminChannel.addEventListener('message', (event) => {
-        // Refresh on any table or player updates (including buy-in limits)
         if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-          log('📱 MobileTV: Received admin update, refreshing immediately');
-          loadData();
+          debouncedRefresh();
         }
       });
     } catch (error) {
@@ -113,14 +117,8 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
 
     try {
       tvChannel = new BroadcastChannel('tv-updates');
-      tvChannel.addEventListener('message', (event) => {
-        // Refresh on any TV updates, especially table updates (buy-in limits)
-        if (event.data?.type === 'table-update' || event.data?.type === 'table-updated') {
-          log('📱 MobileTV: Received TV update, refreshing immediately');
-          loadData();
-        } else {
-          loadData();
-        }
+      tvChannel.addEventListener('message', () => {
+        debouncedRefresh();
       });
     } catch (error) {
       logWarn('TV BroadcastChannel not available:', error);
@@ -141,6 +139,8 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
   }, []);
 
   const loadData = async () => {
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
     try {
       // Get active club day
       const activeDay = await getActiveClubDay();
@@ -202,6 +202,7 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
       logError('Error loading mobile TV data:', error);
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
   };
 
