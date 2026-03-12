@@ -378,10 +378,18 @@ export default function TabletPage() {
         wasTC = existingSeats.length > 0;
       } catch { /* best effort */ }
 
-      await removePlayerFromWaitlist(wl.id, adminUser);
+      // Seat at new table
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
-      // If TC player, remove from previous table(s)
+      // Remove from ALL waitlists (the acted-on one + any other TC waitlists)
+      try {
+        await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
+      } catch {
+        // Fallback: at least remove the specific waitlist entry
+        await removePlayerFromWaitlist(wl.id, adminUser);
+      }
+      
+      // If TC player, remove from previous table seat(s)
       if (wasTC) {
         try {
           const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);

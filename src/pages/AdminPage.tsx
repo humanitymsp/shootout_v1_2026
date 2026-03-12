@@ -1,6 +1,6 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt } from '../lib/api';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
@@ -579,15 +579,29 @@ export default function AdminPage({ user }: AdminPageProps) {
     try {
       // Check if player is already seated elsewhere (TC player)
       let wasTC = false;
+      let oldSeatTableNumbers: number[] = [];
       try {
         const existingSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
         wasTC = existingSeats.length > 0;
+        if (wasTC) {
+          oldSeatTableNumbers = existingSeats
+            .map(s => tables.find(t => t.id === s.table_id)?.table_number)
+            .filter((n): n is number => n !== undefined);
+        }
       } catch { /* best effort */ }
 
+      // Seat at new table
       await seatPlayer(tableId, wl.player_id, clubDay.id, adminUser);
-      await removePlayerFromWaitlist(wl.id, adminUser);
       
-      // If TC player, remove from previous table(s)
+      // Remove from ALL waitlists (the acted-on one + any other TC waitlists)
+      try {
+        await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
+      } catch {
+        // Fallback: at least remove the specific waitlist entry
+        await removePlayerFromWaitlist(wl.id, adminUser);
+      }
+      
+      // If TC player, remove from previous table seat(s)
       if (wasTC) {
         try {
           const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
@@ -601,7 +615,13 @@ export default function AdminPage({ user }: AdminPageProps) {
       }
       
       const table = tables.find(t => t.id === tableId);
-      showToast(`Seated ${wl.player?.nick || 'player'} at Table ${table?.table_number}`, 'success');
+      const playerName = wl.player?.nick || 'player';
+      if (wasTC && oldSeatTableNumbers.length > 0) {
+        showToast(`Moved ${playerName} from Table ${oldSeatTableNumbers.join(', ')} → Table ${table?.table_number}`, 'success');
+      } else {
+        showToast(`Seated ${playerName} at Table ${table?.table_number}`, 'success');
+      }
+      broadcastUpdate('seat', tableId, wl.player_id);
       handleRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to seat player', 'error');
