@@ -41,7 +41,7 @@ import { useEffect, useState, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay, getAllPlayers, getCheckInForPlayer } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
-import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
+import { initializeLocalPlayers, startPlayerSyncPolling, getPlayerByIdLocal } from '../lib/localStoragePlayers';
 import { getPersistentTables, getTableWaitlist as getPersistentWaitlistForTable } from '../lib/persistentTables';
 import { createPendingSignup } from '../lib/pendingSignups';
 import { validatePhoneNumber } from '../lib/sms';
@@ -330,12 +330,21 @@ export default function PublicPage() {
       }
 
       // Helper: patch player data onto seat/waitlist entries using the playerMap
+      // Always prefer PlayerSync data — enrichArrayWithPlayerData may return empty player objects
+      // Falls back to localStorage cache (populated by startPlayerSyncPolling)
       const patchPlayerData = <T extends { player_id: string; player?: any }>(items: T[]): T[] => {
         return items.map(item => {
-          if (item.player?.nick || item.player?.name) return item;
+          // 1st priority: PlayerSync data (most reliable for public page)
           const p = playerMap.get(item.player_id);
-          if (p) {
+          if (p && (p.nick || p.name)) {
             return { ...item, player: { id: item.player_id, name: p.name, nick: p.nick } };
+          }
+          // 2nd priority: existing player data from enrichment
+          if (item.player?.nick || item.player?.name) return item;
+          // 3rd priority: localStorage cache (populated by startPlayerSyncPolling)
+          const local = getPlayerByIdLocal(item.player_id);
+          if (local && (local.nick || local.name)) {
+            return { ...item, player: local };
           }
           return item;
         });

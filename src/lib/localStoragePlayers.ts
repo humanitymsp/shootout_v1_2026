@@ -442,8 +442,9 @@ export function createPlayerLocal(player: {
  * Upsert a player with a known ID into localStorage.
  * Used when we already have a DB player record and need to ensure
  * localStorage has it for enrichWithPlayerData lookups.
+ * Pass clubDayId to also push to PlayerSync (so public page can see names).
  */
-export function upsertPlayerLocal(player: Player): void {
+export function upsertPlayerLocal(player: Player, clubDayId?: string): void {
   const players = getTodayPlayers();
   const idx = players.findIndex(p => p.id === player.id);
   if (idx >= 0) {
@@ -451,7 +452,7 @@ export function upsertPlayerLocal(player: Player): void {
   } else {
     players.push(player);
   }
-  saveTodayPlayers(players, false); // Don't sync back to backend — this came from backend
+  saveTodayPlayers(players, !!clubDayId, clubDayId);
 }
 
 /**

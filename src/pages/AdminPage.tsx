@@ -1763,7 +1763,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                                   // Always create a new player for public signups to avoid name collisions
                                   const player = await createPlayer({ name: ps.playerName, nick: ps.playerName, phone: ps.playerPhone });
                                   // Cache player in localStorage so enrichWithPlayerData finds it during refresh
-                                  upsertPlayerLocal(player);
+                                  upsertPlayerLocal(player, clubDay?.id);
                                   const newEntry = await addPlayerToWaitlist(ps.tableId, player.id, ps.clubDayId, 'admin-override', { skipSeatCheck: true });
                                   // Optimistically update waitlist map so UI updates immediately
                                   const entryWithPlayer = { ...newEntry, player };
