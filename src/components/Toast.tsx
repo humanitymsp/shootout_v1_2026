@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import './Toast.css';
 
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
@@ -16,14 +16,17 @@ interface ToastProps {
 }
 
 function ToastItem({ toast, onRemove }: ToastProps) {
+  const onRemoveRef = useRef(onRemove);
+  onRemoveRef.current = onRemove;
+
   useEffect(() => {
-    const duration = toast.duration || 2000;
+    const duration = toast.duration || 3000;
     const timer = setTimeout(() => {
-      onRemove(toast.id);
+      onRemoveRef.current(toast.id);
     }, duration);
 
     return () => clearTimeout(timer);
-  }, [toast.id, toast.duration, onRemove]);
+  }, [toast.id, toast.duration]);
 
   const getIcon = () => {
     switch (toast.type) {
@@ -65,9 +68,9 @@ export default function ToastContainer() {
     };
   }, []);
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  }, []);
 
   return (
     <div className="toast-container">
