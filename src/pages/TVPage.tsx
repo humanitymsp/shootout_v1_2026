@@ -111,7 +111,7 @@ export default function TVPage() {
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       // Players are synced, but we don't need to do anything here
       // The player data will be used when displaying seats/waitlists
-      log(`📡 TV: Synced ${players.length} players from admin`);
+      // Players synced from admin
     }, 500); // Poll every 500ms for faster updates
 
     // Adaptive polling - faster when recent activity detected
@@ -164,7 +164,7 @@ export default function TVPage() {
   useEffect(() => {
     const autoRefreshInterval = setInterval(() => {
       if (!document.hidden && !isOffline) {
-        log('📺 TV: Auto-refresh (2 min interval)');
+        // Auto-refresh (2 min interval)
         loadData();
       }
     }, 2 * 60 * 1000);
@@ -244,7 +244,7 @@ export default function TVPage() {
   useEffect(() => {
     const handleStorageReset = (event: StorageEvent) => {
       if (event.key === 'day-reset') {
-        log('📡 TV: Day reset detected, reloading...');
+        // Day reset detected, reloading...
         window.location.reload();
       }
     };
@@ -261,7 +261,7 @@ export default function TVPage() {
     const handleStorage = (e: StorageEvent) => {
       // If day was reset, do a full browser refresh
       if (e.key === 'day-reset') {
-        log('📺 TV: Day reset detected, refreshing browser');
+        // Day reset detected, refreshing browser
         window.location.reload();
         return;
       }
@@ -286,7 +286,7 @@ export default function TVPage() {
         // Extended window to catch all updates
         if (now - updateTime < 10000) {
           lastProcessedUpdate = latestUpdate;
-          log('📺 TV: Detected localStorage update, refreshing immediately');
+          // LocalStorage update detected, refreshing immediately
           loadData();
         }
       }
@@ -298,7 +298,7 @@ export default function TVPage() {
       channel.onmessage = (event) => {
         // Immediately refresh on any TV update, especially table updates
         if (event.data?.type === 'table-update') {
-          log('📺 TV: Received table update broadcast (buy-in limits?), refreshing immediately');
+          // Table update broadcast received, refreshing immediately
           // Force immediate refresh for buy-in limits
           loadData();
         } else {
@@ -316,7 +316,7 @@ export default function TVPage() {
       adminChannel.onmessage = (event) => {
         // Refresh on table-related updates from admin page (including buy-in limits)
         if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-          log('📺 TV: Received admin update, refreshing table data immediately');
+          // Admin update received, refreshing immediately
           loadData();
         }
       };
@@ -335,14 +335,14 @@ export default function TVPage() {
   // Listen for online/offline events
   useEffect(() => {
     const handleOnline = () => {
-      log('📺 TV: Connection restored, refreshing data');
+      // Connection restored, refreshing data
       setIsOffline(false);
       retryCountRef.current = 0;
       loadData();
     };
 
     const handleOffline = () => {
-      log('📺 TV: Connection lost, using cached data');
+      // Connection lost, using cached data
       setIsOffline(true);
     };
 
@@ -381,7 +381,7 @@ export default function TVPage() {
       // Check if we have cached data to fall back to
       const cached = loadFromCache();
       if (cached && (cached.clubDay || cached.tableDisplays.length > 0)) {
-        log('📺 TV: Using cached data due to network error');
+        // Using cached data due to network error
         setClubDay(cached.clubDay);
         setTableDisplays(cached.tableDisplays);
         setIsOffline(true);
@@ -439,8 +439,7 @@ export default function TVPage() {
       
       // Debug logging for Table 14 specifically
       if (table.table_number === 14) {
-        log(`📺 TV: Table 14 - seatsFilled: ${seatsFilled}, seatedPlayers.length: ${counts.seatedPlayers.length}, clubDayId: ${activeClubDay?.id}`);
-        log(`📺 TV: Table 14 - Raw seats from API: ${counts.seatedPlayers.length}, Unique players after deduplication: ${seatsFilled}`);
+        // Table 14 debug data processed
       }
 
       // Count players seated here who are waiting at another table

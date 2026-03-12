@@ -250,7 +250,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       
       setClubDay(activeDay);
       const tablesData = await getTablesForClubDay(activeDay.id);
-      log('AdminPage: Loaded tables:', tablesData.map(t => `Table ${t.table_number} (${t.status})`));
+      // Tables loaded successfully
 
       // Patch is_persistent flag using persistent table metadata
       const pts = getPersistentTables();
@@ -410,13 +410,13 @@ export default function AdminPage({ user }: AdminPageProps) {
         // Skip auto-fix if bulk operation is in progress
         const bulkOperationInProgress = localStorage.getItem('bulk-operation-in-progress');
         if (bulkOperationInProgress === 'true') {
-          log('⏭️ Skipping auto-fix: bulk operation in progress');
+          // Skipping auto-fix: bulk operation in progress
           return;
         }
 
         const result = await autoFixTableIntegrity(clubDay.id);
         if (result.fixed > 0) {
-          log(`🔧 Auto-fixed ${result.fixed} integrity issues silently`);
+          // Auto-fixed integrity issues silently
           // Refresh tables after fixes
           const tablesData = await getTablesForClubDay(clubDay.id);
           setTables(tablesData);
@@ -493,19 +493,18 @@ export default function AdminPage({ user }: AdminPageProps) {
     const handleBroadcastMessage = (event: MessageEvent) => {
       if (event.data?.type === 'public-waitlist-signup') {
         const { playerName, tableNumber } = event.data;
-        log(`📡 AdminPage: Public signup — ${playerName} joined Table ${tableNumber} waitlist`);
+          // Public signup received
         showToast(`🆕 ${playerName} joined Table ${tableNumber} waitlist from public page`, 'success');
         handleRefresh();
       } else if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-        log('📡 AdminPage: Received update broadcast:', event.data);
-        log('🔄 AdminPage: Triggering refresh...');
+        // Update broadcast received, triggering refresh
         handleRefresh();
       }
     };
 
     const handleStorageEvent = (event: StorageEvent) => {
       if (event.key === 'player-updated' || event.key === 'table-updated') {
-        log('AdminPage: Received update via storage event, refreshing...');
+        // Storage event received, refreshing
         handleRefresh();
       }
     };
@@ -551,7 +550,7 @@ export default function AdminPage({ user }: AdminPageProps) {
     });
 
     if (stale.length > 0) {
-      log(`[FAB] Auto-pruning ${stale.length} stale pending signup(s) already on waitlist/seated`);
+      // Auto-pruning stale pending signups
       const staleTokens = new Set(stale.map(s => s.token));
       setPendingSignups(prev => prev.filter(p => !staleTokens.has(p.token)));
       // Remove from DynamoDB in background
@@ -572,7 +571,6 @@ export default function AdminPage({ user }: AdminPageProps) {
   }, []);
 
   const handleRefresh = () => {
-    log('AdminPage: Refreshing data...');
     refreshData();
   };
 
@@ -1300,7 +1298,7 @@ export default function AdminPage({ user }: AdminPageProps) {
           adminUser={adminUser}
           tables={(() => {
             const filteredTables = uniqueTables.filter((table) => table.status !== 'CLOSED');
-            log('📋 Tables passed to CheckInModal:', filteredTables.map(t => `Table ${t.table_number} (${t.status})`));
+            // Tables filtered for CheckInModal
             return filteredTables;
           })()}
           onClose={() => setShowCheckIn(false)}
@@ -1748,7 +1746,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                                         logWarn('[AdminPage] Waitlist confirmation SMS failed:', smsResult.error || 'Unknown SMS error');
                                         showToast(`Added to waitlist, but SMS failed: ${smsResult.error || 'Unknown error'}`, 'error');
                                       } else {
-                                        log('[AdminPage] Waitlist confirmation SMS sent:', ps.playerPhone);
+                                        // SMS confirmation sent
                                       }
                                     }
                                   } catch (smsErr) {
