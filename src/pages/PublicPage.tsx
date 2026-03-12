@@ -426,8 +426,15 @@ export default function PublicPage() {
       }
 
       // Add pre-sign up persistent tables from localStorage
-      // Include both: (1) tables without api_table_id (pre-signup only) and (2) tables with api_table_id but public_signups enabled
-      const persistentOnly = pts.filter(pt => pt.status !== 'CLOSED' && (!pt.api_table_id || pt.public_signups));
+      // Only include persistent tables that are valid:
+      // (1) tables without api_table_id (pure pre-signup) OR
+      // (2) tables with api_table_id that actually exists in the API AND has public_signups enabled
+      // This filters out ghost games where the API table was deleted but localStorage still has the persistent entry
+      const validApiTableIds = new Set(allTables.map(t => t.id));
+      const persistentOnly = pts.filter(pt => pt.status !== 'CLOSED' && (
+        (!pt.api_table_id) ||
+        (pt.public_signups && pt.api_table_id && validApiTableIds.has(pt.api_table_id))
+      ));
       for (const pt of persistentOnly) {
         const wl = getPersistentWaitlistForTable(pt.id);
         const syntheticTable: PokerTable = {
@@ -547,12 +554,16 @@ export default function PublicPage() {
                   return a.stakes.localeCompare(b.stakes);
                 });
 
-                // Build global set of seated player IDs across ALL tables for TC detection
+                // Build global sets for TC detection
                 const allSeatedPlayerIds = new Set<string>();
+                const allWaitlistedPlayerIds = new Set<string>();
                 for (const group of sortedGroups) {
                   for (const d of group.displays) {
                     for (const seat of d.seatedPlayers) {
                       allSeatedPlayerIds.add(seat.player_id);
+                    }
+                    for (const wl of d.waitlistPlayers) {
+                      allWaitlistedPlayerIds.add(wl.player_id);
                     }
                   }
                 }
@@ -565,14 +576,14 @@ export default function PublicPage() {
                   displays.forEach(d => {
                     d.waitlistPlayers.forEach(wl => allWaitlistEntries.push(wl));
                   });
-                  // Sort to prioritize TC players: TCs first (by added_at), then regular players (by added_at)
+                  // Sort: regular players first (by added_at), TC players at the bottom (by added_at)
                   allWaitlistEntries.sort((a, b) => {
                     const aIsTC = allSeatedPlayerIds.has(a.player_id);
                     const bIsTC = allSeatedPlayerIds.has(b.player_id);
                     
-                    // TC players come first
-                    if (aIsTC && !bIsTC) return -1;
-                    if (!aIsTC && bIsTC) return 1;
+                    // TC players go to the bottom
+                    if (aIsTC && !bIsTC) return 1;
+                    if (!aIsTC && bIsTC) return -1;
                     
                     // Within same group, sort by added_at (oldest first)
                     return new Date(a.added_at).getTime() - new Date(b.added_at).getTime();
@@ -590,14 +601,6 @@ export default function PublicPage() {
                     }
                   });
 
-                  // TC detection: player is on waitlist AND seated at any table (live data, not localStorage)
-                  const tcPlayerIds = new Set<string>();
-                  for (const wl of allWaitlistEntries) {
-                    if (allSeatedPlayerIds.has(wl.player_id)) {
-                      tcPlayerIds.add(wl.player_id);
-                    }
-                  }
-
                   const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
                   return (
@@ -610,18 +613,25 @@ export default function PublicPage() {
                       </div>
                       {/* Table info summary */}
                       <div className="public-group-table-summary">
-                        {displays.map((d) => (
-                          <div key={d.table.id} className="public-summary-table-row">
-                            <span className="public-summary-table-num">Table {d.table.table_number}</span>
-                            <span className="public-summary-table-seats">{d.seatsFilled} Seats</span>
-                            {(d.table.bomb_pot_count || 0) > 0 && (
-                              <span className="public-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
-                            )}
-                            {(d.table.lockout_count || 0) > 0 && (
-                              <span className="public-summary-lockout">🔒 {d.table.lockout_count} LO</span>
-                            )}
-                          </div>
-                        ))}
+                        {displays.map((d) => {
+                          // Count seated players at this table who are also on a waitlist (TC players)
+                          const tcCount = d.seatedPlayers.filter(s => allWaitlistedPlayerIds.has(s.player_id)).length;
+                          return (
+                            <div key={d.table.id} className="public-summary-table-row">
+                              <span className="public-summary-table-num">Table {d.table.table_number}</span>
+                              <span className="public-summary-table-seats">
+                                {d.seatsFilled} Seats
+                                {tcCount > 0 && <span className="public-tc-badge public-tc-seated-badge">TC {tcCount}</span>}
+                              </span>
+                              {(d.table.bomb_pot_count || 0) > 0 && (
+                                <span className="public-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
+                              )}
+                              {(d.table.lockout_count || 0) > 0 && (
+                                <span className="public-summary-lockout">🔒 {d.table.lockout_count} LO</span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
 
                       {groupWaitlist.length > 0 && (
@@ -638,8 +648,7 @@ export default function PublicPage() {
                               return cols.map((col, ci) => (
                                 <div key={ci} className="public-waitlist-col">
                                   {col.map((p) => (
-                                    <span key={p.id} className={`public-group-waitlist-name${tcPlayerIds.has(p.playerId) ? ' public-tc-player' : ''}`}>
-                                      {tcPlayerIds.has(p.playerId) && <span className="public-tc-badge">TC</span>}
+                                    <span key={p.id} className="public-group-waitlist-name">
                                       {p.name}
                                     </span>
                                   ))}

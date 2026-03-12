@@ -908,6 +908,12 @@
   text-shadow: 0 0 6px rgba(251, 191, 36, 0.4);
 }
 
+.public-tc-seated-badge {
+  font-size: 0.7em;
+  margin-left: 0.4em;
+  margin-right: 0;
+}
+
 .public-tc-player {
   color: #fbbf24;
   font-weight: 700;
