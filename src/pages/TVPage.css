@@ -327,7 +327,7 @@
 
 .tv-column-title {
   margin: 0 0 0.3vh;
-  font-size: clamp(2.25rem, 4vh, 3.4rem);
+  font-size: clamp(1.8rem, 3.2vh, 2.7rem);
   font-weight: 800;
   color: #fbbf24;
   text-transform: uppercase;
@@ -774,14 +774,14 @@
 
 .tv-card-player-name {
   font-weight: 600;
-  font-size: clamp(0.8rem, 1.15vw, 1.05rem);
+  font-size: clamp(1rem, 1.44vw, 1.31rem);
   color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.01em;
   padding: 0;
   background: none;
-  display: inline;
-  vertical-align: baseline;
+  border: none;
+  border-radius: 0;
   word-break: break-word;
   overflow-wrap: break-word;
 }
