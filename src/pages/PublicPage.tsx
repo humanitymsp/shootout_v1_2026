@@ -562,7 +562,18 @@ export default function PublicPage() {
                   displays.forEach(d => {
                     d.waitlistPlayers.forEach(wl => allWaitlistEntries.push(wl));
                   });
-                  allWaitlistEntries.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
+                  // Sort to prioritize TC players: TCs first (by added_at), then regular players (by added_at)
+                  allWaitlistEntries.sort((a, b) => {
+                    const aIsTC = allSeatedPlayerIds.has(a.player_id);
+                    const bIsTC = allSeatedPlayerIds.has(b.player_id);
+                    
+                    // TC players come first
+                    if (aIsTC && !bIsTC) return -1;
+                    if (!aIsTC && bIsTC) return 1;
+                    
+                    // Within same group, sort by added_at (oldest first)
+                    return new Date(a.added_at).getTime() - new Date(b.added_at).getTime();
+                  });
                   const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
                   const seenPlayerIds = new Set<string>();
                   allWaitlistEntries.forEach(wl => {

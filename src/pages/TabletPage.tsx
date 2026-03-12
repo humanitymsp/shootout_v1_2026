@@ -1093,7 +1093,29 @@ export default function TabletPage() {
                     }
                   }
                 }
-                allEntries.sort((a, b) => new Date(a.wl.added_at).getTime() - new Date(b.wl.added_at).getTime());
+                // Sort to prioritize TC players: TCs first (by added_at), then regular players (by added_at)
+                // Build set of all seated players for TC detection
+                const allSeatedPlayerIds = new Set<string>();
+                for (const t of gameTables) {
+                  const data = tableData.get(t.id);
+                  if (data) {
+                    for (const seat of data.seated) {
+                      allSeatedPlayerIds.add(seat.player_id);
+                    }
+                  }
+                }
+                
+                allEntries.sort((a, b) => {
+                  const aIsTC = allSeatedPlayerIds.has(a.wl.player_id);
+                  const bIsTC = allSeatedPlayerIds.has(b.wl.player_id);
+                  
+                  // TC players come first
+                  if (aIsTC && !bIsTC) return -1;
+                  if (!aIsTC && bIsTC) return 1;
+                  
+                  // Within same group, sort by added_at (oldest first)
+                  return new Date(a.wl.added_at).getTime() - new Date(b.wl.added_at).getTime();
+                });
                 const seenPlayerIds = new Set<string>();
                 const mergedWaitlist = allEntries.filter(({ wl }) => {
                   if (seenPlayerIds.has(wl.player_id)) return false;
