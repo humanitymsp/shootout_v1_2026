@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 declare global {
   interface Window {
-    cast: any;
-    chrome: any;
+    cast?: any;
+    chrome?: any;
+    __onGCastApiAvailable?: (isAvailable: boolean) => void;
   }
 }
 
@@ -11,7 +12,6 @@ interface CastState {
   isAvailable: boolean;
   isConnected: boolean;
   deviceName: string;
-  isCasting: boolean;
 }
 
 export const useGoogleCast = () => {
@@ -19,117 +19,99 @@ export const useGoogleCast = () => {
     isAvailable: false,
     isConnected: false,
     deviceName: '',
-    isCasting: false,
   });
-  
-  const castContextRef = useRef<any>(null);
-  const remotePlayerRef = useRef<any>(null);
-  const remotePlayerControllerRef = useRef<any>(null);
 
   useEffect(() => {
-    // Initialize Cast SDK
-    const initializeCast = () => {
-      if (!window.cast || !window.cast.framework) {
-        console.warn('Cast SDK not loaded');
-        return;
+    console.log('Cast: Checking for Cast SDK...');
+    
+    // Simple check if Cast SDK is available
+    const checkCast = () => {
+      if (window.cast && window.cast.framework) {
+        console.log('Cast: SDK is available');
+        setCastState({
+          isAvailable: true,
+          isConnected: false,
+          deviceName: '',
+        });
+      } else {
+        console.log('Cast: SDK not available, using Chrome tab casting');
+        setCastState({
+          isAvailable: true, // Chrome tab casting is always available in Chrome
+          isConnected: false,
+          deviceName: '',
+        });
       }
-
-      const CastContext = window.cast.framework.CastContext;
-      const CastContextEventType = window.cast.framework.CastContextEventType;
-      const RemotePlayer = window.cast.framework.RemotePlayer;
-      const RemotePlayerController = window.cast.framework.RemotePlayerController;
-      const castConfig = new window.cast.framework.CastContextConfig();
-
-      // Configure cast context
-      castConfig.receiverApplicationId = window.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID;
-      castConfig.autoJoinPolicy = window.cast.AutoJoinPolicy.ORIGIN_SCOPED;
-      castConfig.language = 'en-US';
-
-      // Create cast context
-      castContextRef.current = new CastContext(castConfig);
-      
-      // Create remote player and controller
-      remotePlayerRef.current = new RemotePlayer();
-      remotePlayerControllerRef.current = new RemotePlayerController(remotePlayerRef.current);
-
-      // Listen for cast state changes
-      castContextRef.current.addEventListener(
-        CastContextEventType.CAST_STATE_CHANGED,
-        (event: any) => {
-          const castState = event.castState;
-          setCastState(prev => ({
-            ...prev,
-            isAvailable: true,
-            isConnected: castState === window.cast.framework.CastState.CONNECTED,
-            deviceName: castState === window.cast.framework.CastState.CONNECTED 
-              ? castContextRef.current.getCastDevice().friendlyName 
-              : '',
-          }));
-        }
-      );
-
-      // Listen for player state changes
-      remotePlayerControllerRef.current.addEventListener(
-        'isConnectedChanged',
-        (event: any) => {
-          setCastState(prev => ({
-            ...prev,
-            isCasting: event.value,
-          }));
-        }
-      );
-
-      setCastState(prev => ({
-        ...prev,
-        isAvailable: true,
-      }));
     };
 
-    // Wait for Cast SDK to be ready
-    if (window.__onGCastApiAvailable) {
+    // Check immediately
+    checkCast();
+
+    // Set up callback if SDK loads later
+    if (!window.cast) {
       window.__onGCastApiAvailable = (isAvailable: boolean) => {
-        if (isAvailable) {
-          initializeCast();
-        }
+        console.log('Cast: SDK availability callback -', isAvailable);
+        checkCast();
       };
-    } else if (window.cast && window.cast.framework) {
-      initializeCast();
     }
 
-    return () => {
-      // Cleanup
-      if (castContextRef.current) {
-        castContextRef.current.end();
+    // Poll for SDK (fallback)
+    const pollInterval = setInterval(() => {
+      if (!castState.isAvailable) {
+        checkCast();
+      } else {
+        clearInterval(pollInterval);
       }
+    }, 1000);
+
+    return () => {
+      clearInterval(pollInterval);
     };
-  }, []);
+  }, [castState.isAvailable]);
 
   const requestCast = async () => {
-    if (!castContextRef.current) return;
-    
+    console.log('Cast: Requesting cast session...');
     try {
-      await castContextRef.current.requestSession();
+      // Use Chrome's built-in tab casting
+      if (window.chrome && window.chrome.cast && window.chrome.cast.requestTab) {
+        window.chrome.cast.requestTab(
+          (session: any) => {
+            console.log('Cast: Tab casting started:', session);
+            setCastState(prev => ({
+              ...prev,
+              isConnected: true,
+              deviceName: 'Chromecast',
+            }));
+          },
+          (error: any) => {
+            console.error('Cast: Error casting tab:', error);
+            alert('Could not start casting. Please use Chrome\'s menu: • → Cast → Select device');
+          }
+        );
+      } else {
+        // Try to open Chrome's cast dialog via keyboard shortcut
+        alert('To cast this page:\n\n1. Press Ctrl+Shift+P\n2. Type "Cast"\n3. Select "Cast tab"\n4. Choose your Chromecast device\n\nOr use Chrome menu: • → Cast');
+      }
     } catch (error) {
-      console.error('Error requesting cast session:', error);
+      console.error('Cast: Error requesting cast:', error);
+      alert('Casting not available. Please use Chrome\'s built-in cast feature from the menu.');
     }
   };
 
   const stopCast = () => {
-    if (castContextRef.current) {
-      castContextRef.current.endSession();
-    }
-  };
-
-  const castTab = () => {
-    if (window.chrome && window.chrome.cast) {
-      window.chrome.cast.requestTab(
-        (session: any) => {
-          console.log('Tab casting started:', session);
-        },
-        (error: any) => {
-          console.error('Error casting tab:', error);
-        }
-      );
+    console.log('Cast: Stopping cast...');
+    setCastState(prev => ({
+      ...prev,
+      isConnected: false,
+      deviceName: '',
+    }));
+    
+    // Stop tab casting if possible
+    if (window.chrome && window.chrome.cast && window.chrome.cast.stop) {
+      try {
+        window.chrome.cast.stop();
+      } catch (e) {
+        console.log('Cast: Could not stop casting programmatically');
+      }
     }
   };
 
@@ -137,6 +119,5 @@ export const useGoogleCast = () => {
     ...castState,
     requestCast,
     stopCast,
-    castTab,
   };
 };
