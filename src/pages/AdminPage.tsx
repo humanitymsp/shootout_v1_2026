@@ -1885,126 +1885,122 @@ export default function AdminPage({ user }: AdminPageProps) {
                             const ciStatus = checkInStatusMap.get(wl.player_id);
                             const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
                             return (
-                              <div key={wl.id} className="popup-waitlist-item">
-                                <div className="admin-fab-reorder-btns">
-                                  <button
-                                    className="admin-fab-reorder-btn"
-                                    disabled={idx === 0}
-                                    title="Move up"
-                                    onClick={async () => {
-                                      const prev = mergedWaitlist[idx - 1];
-                                      try {
-                                        await swapWaitlistAddedAt(wl.id, prev.wl.id);
-                                        handleRefresh();
-                                      } catch { showToast('Failed to reorder', 'error'); }
-                                    }}
-                                  >▲</button>
-                                  <button
-                                    className="admin-fab-reorder-btn"
-                                    disabled={idx === mergedWaitlist.length - 1}
-                                    title="Move down"
-                                    onClick={async () => {
-                                      const next = mergedWaitlist[idx + 1];
-                                      try {
-                                        await swapWaitlistAddedAt(wl.id, next.wl.id);
-                                        handleRefresh();
-                                      } catch { showToast('Failed to reorder', 'error'); }
-                                    }}
-                                  >▼</button>
-                                  {isTC && idx < mergedWaitlist.length - 1 && (
+                              <div key={wl.id} className="popup-waitlist-item admin-fab-item-stacked">
+                                <div className="admin-fab-name-row">
+                                  <span className="popup-waitlist-meta">#{idx + 1}</span>
+                                  {isTC && <span className="admin-fab-tc-badge">TC</span>}
+                                  <span className={`popup-waitlist-name-text${isTC ? ' admin-fab-tc-player' : ''}`}>{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
+                                  {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="popup-previous-badge">Previous</span>}
+                                  {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
+                                </div>
+                                <div className="admin-fab-controls-row">
+                                  <div className="admin-fab-reorder-btns">
                                     <button
-                                      className="admin-fab-reorder-btn admin-fab-bottom-btn"
-                                      title="Send to bottom of list"
+                                      className="admin-fab-reorder-btn"
+                                      disabled={idx === 0}
+                                      title="Move up"
                                       onClick={async () => {
+                                        const prev = mergedWaitlist[idx - 1];
                                         try {
-                                          await sendWaitlistToBottom(wl.id, clubDay.id);
-                                          showToast(`Moved ${wl.player?.nick || 'player'} to bottom`, 'success');
+                                          await swapWaitlistAddedAt(wl.id, prev.wl.id);
                                           handleRefresh();
-                                        } catch { showToast('Failed to move to bottom', 'error'); }
+                                        } catch { showToast('Failed to reorder', 'error'); }
                                       }}
-                                    >⤓</button>
-                                  )}
-                                </div>
-                                <div className="popup-waitlist-info">
-                                  <span className="popup-waitlist-name">
-                                    {isTC && <span className="admin-fab-tc-badge">TC</span>}
-                                    <span className={`popup-waitlist-name-text${isTC ? ' admin-fab-tc-player' : ''}`}>{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
-                                    {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="popup-previous-badge">Previous</span>}
-                                    {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="popup-buyin-amount-badge">${ciStatus.amount}</span>}
-                                  </span>
-                                  <span className="popup-waitlist-meta">
-                                    #{idx + 1}
-                                  </span>
-                                </div>
-                                <div className="admin-fab-actions">
-                                  <button
-                                    className="admin-fab-seat-btn"
-                                    title="Seat this player at the best available table"
-                                    onClick={() => {
-                                      if (tcPlayerIds.has(wl.player_id)) {
-                                        // TC player - show modal to select table
-                                        setTcSeatModal({ waitlist: wl, gameType, stakes });
-                                      } else {
-                                        // Regular player - seat at best available table
-                                        const targetTable = gameTables
-                                          .filter(t => {
-                                            const seated = seatedPlayersMap.get(t.id)?.length || 0;
-                                            return seated < (t.seats_total || 20) && t.status !== 'CLOSED';
-                                          })
-                                          .sort((a, b) => {
-                                            const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
-                                            const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
-                                            return seatedB - seatedA;
-                                          })[0];
-                                        if (!targetTable) {
-                                          showToast('No available seats at any table for this game type', 'error');
-                                          return;
-                                        }
-                                        seatPlayerAtTable(targetTable.id, wl);
-                                      }
-                                    }}
-                                  >
-                                    Seat
-                                  </button>
-                                  {needsBuyIn && (
+                                    >▲</button>
                                     <button
-                                      className="popup-buyin-btn"
+                                      className="admin-fab-reorder-btn"
+                                      disabled={idx === mergedWaitlist.length - 1}
+                                      title="Move down"
                                       onClick={async () => {
-                                        let defaultAmount = 20;
-                                        let hasAlreadyPaid = false;
+                                        const next = mergedWaitlist[idx + 1];
                                         try {
-                                          const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
-                                          if (checkIn?.door_fee_amount) {
-                                            defaultAmount = checkIn.door_fee_amount;
-                                            hasAlreadyPaid = true;
+                                          await swapWaitlistAddedAt(wl.id, next.wl.id);
+                                          handleRefresh();
+                                        } catch { showToast('Failed to reorder', 'error'); }
+                                      }}
+                                    >▼</button>
+                                    {isTC && idx < mergedWaitlist.length - 1 && (
+                                      <button
+                                        className="admin-fab-reorder-btn admin-fab-bottom-btn"
+                                        title="Send to bottom of list"
+                                        onClick={async () => {
+                                          try {
+                                            await sendWaitlistToBottom(wl.id, clubDay.id);
+                                            showToast(`Moved ${wl.player?.nick || 'player'} to bottom`, 'success');
+                                            handleRefresh();
+                                          } catch { showToast('Failed to move to bottom', 'error'); }
+                                        }}
+                                      >⤓</button>
+                                    )}
+                                  </div>
+                                  <div className="admin-fab-actions">
+                                    <button
+                                      className="admin-fab-seat-btn"
+                                      title="Seat this player at the best available table"
+                                      onClick={() => {
+                                        if (tcPlayerIds.has(wl.player_id)) {
+                                          setTcSeatModal({ waitlist: wl, gameType, stakes });
+                                        } else {
+                                          const targetTable = gameTables
+                                            .filter(t => {
+                                              const seated = seatedPlayersMap.get(t.id)?.length || 0;
+                                              return seated < (t.seats_total || 20) && t.status !== 'CLOSED';
+                                            })
+                                            .sort((a, b) => {
+                                              const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
+                                              const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
+                                              return seatedB - seatedA;
+                                            })[0];
+                                          if (!targetTable) {
+                                            showToast('No available seats at any table for this game type', 'error');
+                                            return;
                                           }
-                                        } catch { /* use default */ }
-                                        setBuyInModal({
-                                          entry: wl,
-                                          playerName: wl.player?.nick || wl.player?.name || 'Unknown',
-                                          defaultAmount,
-                                          hasAlreadyPaid,
-                                        });
+                                          seatPlayerAtTable(targetTable.id, wl);
+                                        }
                                       }}
                                     >
-                                      Buy In
+                                      Seat
                                     </button>
-                                  )}
-                                  <button
-                                    className="admin-fab-remove-btn"
-                                    title="Remove from waitlist"
-                                    onClick={async () => {
-                                      try {
-                                        await removePlayerFromWaitlist(wl.id, adminUser);
-                                        showToast(`Removed ${wl.player?.nick || 'player'} from waitlist`, 'success');
-                                        handleRefresh();
-                                      } catch (err: any) {
-                                        showToast(err.message || 'Failed to remove', 'error');
-                                      }
-                                    }}
-                                  >
-                                    ✕
-                                  </button>
+                                    {needsBuyIn && (
+                                      <button
+                                        className="popup-buyin-btn"
+                                        onClick={async () => {
+                                          let defaultAmount = 20;
+                                          let hasAlreadyPaid = false;
+                                          try {
+                                            const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
+                                            if (checkIn?.door_fee_amount) {
+                                              defaultAmount = checkIn.door_fee_amount;
+                                              hasAlreadyPaid = true;
+                                            }
+                                          } catch { /* use default */ }
+                                          setBuyInModal({
+                                            entry: wl,
+                                            playerName: wl.player?.nick || wl.player?.name || 'Unknown',
+                                            defaultAmount,
+                                            hasAlreadyPaid,
+                                          });
+                                        }}
+                                      >
+                                        Buy In
+                                      </button>
+                                    )}
+                                    <button
+                                      className="admin-fab-remove-btn"
+                                      title="Remove from waitlist"
+                                      onClick={async () => {
+                                        try {
+                                          await removePlayerFromWaitlist(wl.id, adminUser);
+                                          showToast(`Removed ${wl.player?.nick || 'player'} from waitlist`, 'success');
+                                          handleRefresh();
+                                        } catch (err: any) {
+                                          showToast(err.message || 'Failed to remove', 'error');
+                                        }
+                                      }}
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             );
