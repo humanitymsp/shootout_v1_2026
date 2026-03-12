@@ -374,7 +374,6 @@ export default function TabletPage() {
       // Check if player is already seated elsewhere (TC player) BEFORE seating
       let wasTC = false;
       try {
-        const { getSeatedPlayersForPlayer } = await import('../lib/api');
         const existingSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
         wasTC = existingSeats.length > 0;
       } catch { /* best effort */ }
@@ -382,14 +381,13 @@ export default function TabletPage() {
       await removePlayerFromWaitlist(wl.id, adminUser);
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
-      // Player remains on other game type waitlists (multi-game-type support)
+      // If TC player, remove from previous table(s)
       if (wasTC) {
         try {
-          const { getSeatedPlayersForPlayer, removePlayerFromSeat: removeSeat } = await import('../lib/api');
           const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
           const oldSeats = allSeats.filter(s => s.table_id !== tableId);
           for (const oldSeat of oldSeats) {
-            await removeSeat(oldSeat.id, oldSeat.table_id, adminUser);
+            await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
             log(`Tablet: removed TC player from old seat at table ${oldSeat.table_id}`);
           }
         } catch (err) {

@@ -1,6 +1,6 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt } from '../lib/api';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
@@ -103,6 +103,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   });
   const [showBustedPlayers, setShowBustedPlayers] = useState(false);
   const [pendingSignups, setPendingSignups] = useState<PendingSignup[]>([]);
+  const [tcSeatModal, setTcSeatModal] = useState<{ waitlist: TableWaitlist; gameType: string; stakes: string } | null>(null);
   const dismissedTokensRef = useRef<Set<string>>(new Set());
   const [isPurgingPlayers, setIsPurgingPlayers] = useState(false);
   const [isRecoveringPlayers, setIsRecoveringPlayers] = useState(false);
@@ -572,6 +573,39 @@ export default function AdminPage({ user }: AdminPageProps) {
 
   const handleRefresh = () => {
     refreshData();
+  };
+
+  const seatPlayerAtTable = async (tableId: string, wl: TableWaitlist) => {
+    try {
+      // Check if player is already seated elsewhere (TC player)
+      let wasTC = false;
+      try {
+        const existingSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
+        wasTC = existingSeats.length > 0;
+      } catch { /* best effort */ }
+
+      await seatPlayer(tableId, wl.player_id, clubDay.id, adminUser);
+      await removePlayerFromWaitlist(wl.id, adminUser);
+      
+      // If TC player, remove from previous table(s)
+      if (wasTC) {
+        try {
+          const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDay.id);
+          const oldSeats = allSeats.filter(s => s.table_id !== tableId);
+          for (const oldSeat of oldSeats) {
+            await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
+          }
+        } catch (err) {
+          logError('Failed to remove TC player from previous table:', err);
+        }
+      }
+      
+      const table = tables.find(t => t.id === tableId);
+      showToast(`Seated ${wl.player?.nick || 'player'} at Table ${table?.table_number}`, 'success');
+      handleRefresh();
+    } catch (err: any) {
+      showToast(err.message || 'Failed to seat player', 'error');
+    }
   };
 
   const handleDuplicateTable = useCallback(async (sourceTable: PokerTable) => {
@@ -1873,28 +1907,27 @@ export default function AdminPage({ user }: AdminPageProps) {
                                   <button
                                     className="admin-fab-seat-btn"
                                     title="Seat this player at the best available table"
-                                    onClick={async () => {
-                                      const targetTable = gameTables
-                                        .filter(t => {
-                                          const seated = seatedPlayersMap.get(t.id)?.length || 0;
-                                          return seated < (t.seats_total || 20) && t.status !== 'CLOSED';
-                                        })
-                                        .sort((a, b) => {
-                                          const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
-                                          const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
-                                          return seatedB - seatedA;
-                                        })[0];
-                                      if (!targetTable) {
-                                        showToast('No available seats at any table for this game type', 'error');
-                                        return;
-                                      }
-                                      try {
-                                        await seatPlayer(targetTable.id, wl.player_id, clubDay.id, adminUser);
-                                        await removePlayerFromWaitlist(wl.id, adminUser);
-                                        showToast(`Seated ${wl.player?.nick || 'player'} at Table ${targetTable.table_number}`, 'success');
-                                        handleRefresh();
-                                      } catch (err: any) {
-                                        showToast(err.message || 'Failed to seat player', 'error');
+                                    onClick={() => {
+                                      if (tcPlayerIds.has(wl.player_id)) {
+                                        // TC player - show modal to select table
+                                        setTcSeatModal({ waitlist: wl, gameType, stakes });
+                                      } else {
+                                        // Regular player - seat at best available table
+                                        const targetTable = gameTables
+                                          .filter(t => {
+                                            const seated = seatedPlayersMap.get(t.id)?.length || 0;
+                                            return seated < (t.seats_total || 20) && t.status !== 'CLOSED';
+                                          })
+                                          .sort((a, b) => {
+                                            const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
+                                            const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
+                                            return seatedB - seatedA;
+                                          })[0];
+                                        if (!targetTable) {
+                                          showToast('No available seats at any table for this game type', 'error');
+                                          return;
+                                        }
+                                        seatPlayerAtTable(targetTable.id, wl);
                                       }
                                     }}
                                   >
@@ -1958,6 +1991,41 @@ export default function AdminPage({ user }: AdminPageProps) {
         );
       })()}
 
+    {/* TC Seat Selection Modal */}
+      {tcSeatModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3>Seat TC Player</h3>
+              <button className="modal-close" onClick={() => setTcSeatModal(null)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p>Seat <strong>{tcSeatModal.waitlist.player?.nick || tcSeatModal.waitlist.player?.name || 'Player'}</strong> at which table?</p>
+              <div className="table-selection-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px', marginTop: '20px' }}>
+                {tables
+                  .filter(t => t.game_type === tcSeatModal.gameType && t.stakes === tcSeatModal.stakes && t.status !== 'CLOSED')
+                  .map(table => {
+                    const seated = seatedPlayersMap.get(table.id)?.length || 0;
+                    return (
+                      <button
+                        key={table.id}
+                        className="btn-primary"
+                        onClick={() => {
+                          seatPlayerAtTable(table.id, tcSeatModal.waitlist);
+                          setTcSeatModal(null);
+                        }}
+                      >
+                        Table {table.table_number}
+                        <br />
+                        <small>{seated} seated</small>
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
