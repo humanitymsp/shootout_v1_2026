@@ -17,7 +17,7 @@ interface ToastProps {
 
 function ToastItem({ toast, onRemove }: ToastProps) {
   useEffect(() => {
-    const duration = toast.duration || 3000;
+    const duration = toast.duration || 2000;
     const timer = setTimeout(() => {
       onRemove(toast.id);
     }, duration);
