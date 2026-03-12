@@ -593,6 +593,13 @@ export default function AdminPage({ user }: AdminPageProps) {
       // Seat at new table
       await seatPlayer(tableId, wl.player_id, clubDay.id, adminUser);
       
+      // Clear TC label from localStorage
+      try {
+        const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+        const cleaned = tcList.filter((entry: any) => entry.playerId !== wl.player_id);
+        localStorage.setItem('tc-list', JSON.stringify(cleaned));
+      } catch {}
+      
       // Remove from ALL waitlists (the acted-on one + any other TC waitlists)
       try {
         await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
