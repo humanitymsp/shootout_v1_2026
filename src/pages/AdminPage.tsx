@@ -1,6 +1,6 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt, sendWaitlistToBottom } from '../lib/api';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
@@ -1911,6 +1911,19 @@ export default function AdminPage({ user }: AdminPageProps) {
                                       } catch { showToast('Failed to reorder', 'error'); }
                                     }}
                                   >▼</button>
+                                  {isTC && idx < mergedWaitlist.length - 1 && (
+                                    <button
+                                      className="admin-fab-reorder-btn admin-fab-bottom-btn"
+                                      title="Send to bottom of list"
+                                      onClick={async () => {
+                                        try {
+                                          await sendWaitlistToBottom(wl.id, clubDay.id);
+                                          showToast(`Moved ${wl.player?.nick || 'player'} to bottom`, 'success');
+                                          handleRefresh();
+                                        } catch { showToast('Failed to move to bottom', 'error'); }
+                                      }}
+                                    >⤓</button>
+                                  )}
                                 </div>
                                 <div className="popup-waitlist-info">
                                   <span className="popup-waitlist-name">

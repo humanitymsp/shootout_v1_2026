@@ -2016,6 +2016,36 @@ export async function swapWaitlistAddedAt(entryIdA: string, entryIdB: string): P
   }
 }
 
+/**
+ * Move a waitlist entry to the bottom of the list by setting its addedAt
+ * timestamp to be later than every other active entry in the same club day.
+ */
+export async function sendWaitlistToBottom(entryId: string, clubDayId: string): Promise<void> {
+  const client = getClient();
+  // Get all active waitlist entries for this club day
+  const { data } = await client.models.TableWaitlist.list({
+    filter: {
+      and: [
+        { clubDayId: { eq: clubDayId } },
+        { removedAt: { attributeExists: false } },
+      ],
+    },
+    limit: 1000,
+  });
+  if (!data || data.length === 0) return;
+
+  // Find the latest addedAt across all entries
+  let latestMs = 0;
+  for (const entry of data) {
+    const ms = new Date(entry.addedAt).getTime();
+    if (ms > latestMs) latestMs = ms;
+  }
+
+  // Set this entry's addedAt to 1 second after the latest
+  const newAddedAt = new Date(latestMs + 1000).toISOString();
+  await client.models.TableWaitlist.update({ id: entryId, addedAt: newAddedAt });
+}
+
 export type MoveTargetType = 'seat' | 'waitlist' | 'auto';
 
 export async function movePlayerEntry(params: {

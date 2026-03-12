@@ -536,6 +536,19 @@
   cursor: default;
 }
 
+.admin-fab-bottom-btn {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #f59e0b;
+  font-size: 0.6rem;
+  margin-top: 1px;
+}
+
+.admin-fab-bottom-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+
 .admin-fab-remove-btn {
   padding: 0.1rem 0.3rem;
   background: rgba(239, 68, 68, 0.15);
