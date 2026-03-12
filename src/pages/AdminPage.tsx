@@ -1945,27 +1945,9 @@ export default function AdminPage({ user }: AdminPageProps) {
                                   <div className="admin-fab-actions">
                                     <button
                                       className="admin-fab-seat-btn"
-                                      title="Seat this player at the best available table"
+                                      title="Seat this player at a table"
                                       onClick={() => {
-                                        if (tcPlayerIds.has(wl.player_id)) {
-                                          setTcSeatModal({ waitlist: wl, gameType, stakes });
-                                        } else {
-                                          const targetTable = gameTables
-                                            .filter(t => {
-                                              const seated = seatedPlayersMap.get(t.id)?.length || 0;
-                                              return seated < (t.seats_total || 20) && t.status !== 'CLOSED';
-                                            })
-                                            .sort((a, b) => {
-                                              const seatedA = seatedPlayersMap.get(a.id)?.length || 0;
-                                              const seatedB = seatedPlayersMap.get(b.id)?.length || 0;
-                                              return seatedB - seatedA;
-                                            })[0];
-                                          if (!targetTable) {
-                                            showToast('No available seats at any table for this game type', 'error');
-                                            return;
-                                          }
-                                          seatPlayerAtTable(targetTable.id, wl);
-                                        }
+                                        setTcSeatModal({ waitlist: wl, gameType, stakes });
                                       }}
                                     >
                                       Seat
@@ -2034,7 +2016,7 @@ export default function AdminPage({ user }: AdminPageProps) {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>Seat TC Player</h3>
+              <h3>Seat Player</h3>
               <button className="modal-close" onClick={() => setTcSeatModal(null)}>✕</button>
             </div>
             <div className="modal-body">
