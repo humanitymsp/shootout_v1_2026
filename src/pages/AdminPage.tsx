@@ -2023,7 +2023,7 @@ export default function AdminPage({ user }: AdminPageProps) {
               <p>Seat <strong>{tcSeatModal.waitlist.player?.nick || tcSeatModal.waitlist.player?.name || 'Player'}</strong> at which table?</p>
               <div className="table-selection-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px', marginTop: '20px' }}>
                 {tables
-                  .filter(t => t.game_type === tcSeatModal.gameType && t.stakes === tcSeatModal.stakes && t.status !== 'CLOSED')
+                  .filter(t => t.game_type === tcSeatModal.gameType && t.stakes_text === tcSeatModal.stakes && t.status !== 'CLOSED')
                   .map(table => {
                     const seated = seatedPlayersMap.get(table.id)?.length || 0;
                     return (
