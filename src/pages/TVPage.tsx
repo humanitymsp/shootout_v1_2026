@@ -82,6 +82,8 @@ export default function TVPage() {
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const retryTimeoutRef = useRef<any>(null);
+  const isLoadingRef = useRef(false);
+  const debounceTimerRef = useRef<any>(null);
   
   // Google Cast functionality
   const cast = useGoogleCast();
@@ -130,53 +132,18 @@ export default function TVPage() {
 
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
-      // Players are synced, but we don't need to do anything here
-      // The player data will be used when displaying seats/waitlists
-      // Players synced from admin
-    }, 500); // Poll every 500ms for faster updates
+      // Players are synced — data used when displaying seats/waitlists
+    }, 5000); // Poll every 5 seconds
 
-    // Adaptive polling - faster when recent activity detected
-    let currentInterval: NodeJS.Timeout;
-    let pollSpeed = 500; // Default 500ms
-    
-    const createPollingInterval = (speed: number) => {
-      clearInterval(currentInterval);
-      currentInterval = setInterval(() => {
-        // Skip polling if tab is hidden (better performance)
-        if (document.hidden) return;
-        // Skip polling if offline (will retry when online)
-        if (isOffline) return;
-        
-        // Check if there was recent admin activity (last 2 seconds)
-        const lastPlayerUpdate = localStorage.getItem('player-updated');
-        const lastTableUpdate = localStorage.getItem('table-updated');
-        const now = Date.now();
-        
-        let recentActivity = false;
-        if (lastPlayerUpdate) {
-          const timeDiff = now - parseInt(lastPlayerUpdate);
-          if (timeDiff < 2000) recentActivity = true;
-        }
-        if (lastTableUpdate) {
-          const timeDiff = now - parseInt(lastTableUpdate);
-          if (timeDiff < 2000) recentActivity = true;
-        }
-        
-        // Adjust polling speed based on activity
-        const newSpeed = recentActivity ? 200 : 500;
-        if (newSpeed !== pollSpeed) {
-          pollSpeed = newSpeed;
-          createPollingInterval(newSpeed);
-        }
-        
-        loadData();
-      }, speed);
-    };
-    
-    createPollingInterval(pollSpeed);
+    // Single polling interval at 3 seconds — event-driven updates handle the rest
+    const pollInterval = setInterval(() => {
+      if (document.hidden) return;
+      if (isOffline) return;
+      loadData();
+    }, 3000);
 
     return () => {
-      clearInterval(currentInterval);
+      clearInterval(pollInterval);
       stopPlayerSync();
     };
   }, [clubDay, isOffline]);
@@ -277,23 +244,20 @@ export default function TVPage() {
 
   useEffect(() => {
     // Listen for instant TV refresh signals from admin
-    let lastProcessedUpdate: string | null = null;
-    
     const handleStorage = (e: StorageEvent) => {
       // If day was reset, do a full browser refresh
       if (e.key === 'day-reset') {
-        // Day reset detected, refreshing browser
         window.location.reload();
         return;
       }
       if (e.key === 'tv-updated' || e.key === 'table-updated' || e.key === 'player-updated') {
-        loadData();
+        debouncedRefresh();
       }
     };
     window.addEventListener('storage', handleStorage);
 
     // Poll for localStorage changes (since same-tab changes don't trigger storage events)
-    // Reduced interval for faster updates, especially for buy-in limits
+    let lastProcessedUpdate: string | null = null;
     const pollInterval = setInterval(() => {
       const lastTableUpdate = localStorage.getItem('table-updated');
       const lastPlayerUpdate = localStorage.getItem('player-updated');
@@ -303,28 +267,18 @@ export default function TVPage() {
       if (latestUpdate && latestUpdate !== lastProcessedUpdate) {
         const updateTime = new Date(latestUpdate).getTime();
         const now = Date.now();
-        // Refresh if update was within last 10 seconds and we haven't processed it
-        // Extended window to catch all updates
         if (now - updateTime < 10000) {
           lastProcessedUpdate = latestUpdate;
-          // LocalStorage update detected, refreshing immediately
-          loadData();
+          debouncedRefresh();
         }
       }
-    }, 200); // Reduced from 1000ms to 200ms for faster response
+    }, 2000); // Check every 2 seconds (was 200ms)
 
     let channel: BroadcastChannel | null = null;
     try {
       channel = new BroadcastChannel('tv-updates');
-      channel.onmessage = (event) => {
-        // Immediately refresh on any TV update, especially table updates
-        if (event.data?.type === 'table-update') {
-          // Table update broadcast received, refreshing immediately
-          // Force immediate refresh for buy-in limits
-          loadData();
-        } else {
-          loadData();
-        }
+      channel.onmessage = () => {
+        debouncedRefresh();
       };
     } catch {
       // BroadcastChannel not supported
@@ -335,10 +289,8 @@ export default function TVPage() {
     try {
       adminChannel = new BroadcastChannel('admin-updates');
       adminChannel.onmessage = (event) => {
-        // Refresh on table-related updates from admin page (including buy-in limits)
         if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-          // Admin update received, refreshing immediately
-          loadData();
+          debouncedRefresh();
         }
       };
     } catch {
@@ -380,6 +332,10 @@ export default function TVPage() {
   }, []);
 
   const loadData = async (hasCachedData = false) => {
+    // Concurrency guard - skip if already loading
+    if (isLoadingRef.current) return;
+    isLoadingRef.current = true;
+    
     try {
       const activeDay = await getActiveClubDay();
       if (activeDay) {
@@ -427,7 +383,16 @@ export default function TVPage() {
       }
     } finally {
       setLoading(false);
+      isLoadingRef.current = false;
     }
+  };
+
+  // Debounced refresh — coalesces rapid-fire events into one loadData call
+  const debouncedRefresh = () => {
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      loadData();
+    }, 500);
   };
 
   const loadTableDisplays = async (tables: PokerTable[], activeClubDay: ClubDay | null) => {

@@ -92,7 +92,7 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
           loadData();
         }
       }
-    }, 300); // Check every 300ms for fast updates
+    }, 2000); // Check every 2 seconds
 
     // Listen for broadcast messages (same-origin tabs/windows)
     let adminChannel: BroadcastChannel | null = null;
