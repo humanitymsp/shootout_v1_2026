@@ -1218,6 +1218,7 @@ export default function AdminPage({ user }: AdminPageProps) {
           </div>
         )}
 
+        <div className="admin-main-layout">
         <div className="tables-grid">
         {activeTables.length === 0 ? (
           <div className="empty-state">
@@ -1351,6 +1352,235 @@ export default function AdminPage({ user }: AdminPageProps) {
             )}
           </div>
         )}
+      </div>
+
+      {/* Inline Waitlist Sidebar */}
+      {clubDay && (() => {
+        const allWaitlist = Array.from(waitlistPlayersMap.values()).flat();
+        const sidebarGameTypeGroups = new Map<string, PokerTable[]>();
+        uniqueTables.filter(t => t.status !== 'CLOSED').forEach(t => {
+          const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
+          if (!sidebarGameTypeGroups.has(key)) sidebarGameTypeGroups.set(key, []);
+          sidebarGameTypeGroups.get(key)!.push(t);
+        });
+        const sidebarSeatedPlayerIds = new Set(
+          Array.from(seatedPlayersMap.values()).flat().map(s => s.player_id)
+        );
+        const sidebarTcPlayerIds = new Set<string>();
+        for (const [, wlist] of waitlistPlayersMap) {
+          for (const wl of wlist) {
+            if (sidebarSeatedPlayerIds.has(wl.player_id)) sidebarTcPlayerIds.add(wl.player_id);
+          }
+        }
+        try {
+          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+          for (const entry of tcList) {
+            if (entry.playerId && sidebarSeatedPlayerIds.has(entry.playerId)) {
+              sidebarTcPlayerIds.add(entry.playerId);
+            }
+          }
+        } catch {}
+
+        const totalWaiting = allWaitlist.length;
+
+        return (
+          <div className="admin-waitlist-sidebar">
+            <div className="admin-sidebar-header">
+              <h3>Waitlist Lobby</h3>
+              <span className="admin-sidebar-badge">{totalWaiting + pendingSignups.length}</span>
+            </div>
+            <div className="admin-sidebar-scroll">
+              {/* Pending signups */}
+              {pendingSignups.length > 0 && (
+                <div className="admin-sidebar-panel">
+                  <div className="admin-sidebar-panel-header">
+                    <span className="admin-sidebar-panel-name">📱 Pending</span>
+                    <span className="admin-sidebar-panel-meta">{pendingSignups.length} awaiting</span>
+                  </div>
+                  <div className="admin-sidebar-panel-list">
+                    {pendingSignups.map(ps => (
+                      <div key={ps.token} className="admin-sidebar-item pending">
+                        <div className="admin-sidebar-item-info">
+                          <span className="admin-sidebar-item-name">{ps.playerName}</span>
+                          <span className="admin-sidebar-item-meta">Table {ps.tableNumber} • {ps.gameType} {ps.stakesText}</span>
+                        </div>
+                        <div className="admin-sidebar-item-actions">
+                          <button
+                            className="admin-sidebar-confirm-btn"
+                            onClick={async () => {
+                              try {
+                                const player = await createPlayer({ name: ps.playerName, nick: ps.playerName, phone: ps.playerPhone });
+                                upsertPlayerLocal(player, clubDay?.id);
+                                const newEntry = await addPlayerToWaitlist(ps.tableId, player.id, ps.clubDayId, 'admin-override', { skipSeatCheck: true });
+                                const entryWithPlayer = { ...newEntry, player };
+                                setWaitlistPlayersMap(prev => {
+                                  const updated = new Map(prev);
+                                  const existing = updated.get(ps.tableId) || [];
+                                  updated.set(ps.tableId, [...existing, entryWithPlayer]);
+                                  return updated;
+                                });
+                                dismissedTokensRef.current.add(ps.token);
+                                await removePendingSignupFromDB(ps.token);
+                                setPendingSignups(prev => prev.filter(p => p.token !== ps.token));
+                                showToast(`✅ ${ps.playerName} added to Table ${ps.tableNumber} waitlist`, 'success');
+                                handleRefresh();
+                              } catch (err: any) {
+                                showToast(err.message || 'Failed to add player', 'error');
+                              }
+                            }}
+                          >✓</button>
+                          <button
+                            className="admin-sidebar-dismiss-btn"
+                            onClick={async () => {
+                              dismissedTokensRef.current.add(ps.token);
+                              setPendingSignups(prev => prev.filter(p => p.token !== ps.token));
+                              showToast(`Dismissed ${ps.playerName}`, 'success');
+                              await removePendingSignupFromDB(ps.token);
+                            }}
+                          >✕</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Game type waitlist panels */}
+              {Array.from(sidebarGameTypeGroups.entries()).map(([groupKey, gameTables]) => {
+                const [gameType, stakes] = groupKey.split('||');
+                const totalSeated = gameTables.reduce((sum, t) => sum + (seatedPlayersMap.get(t.id)?.length || 0), 0);
+                const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 20), 0);
+
+                const allEntries: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
+                for (const t of gameTables) {
+                  const wlist = waitlistPlayersMap.get(t.id) || [];
+                  for (const wl of wlist) {
+                    if (wl.club_day_id === clubDay.id) {
+                      allEntries.push({ wl, tableId: t.id, tableNumber: t.table_number });
+                    }
+                  }
+                }
+                allEntries.sort((a, b) => {
+                  const aIsTC = sidebarTcPlayerIds.has(a.wl.player_id);
+                  const bIsTC = sidebarTcPlayerIds.has(b.wl.player_id);
+                  if (aIsTC && !bIsTC) return -1;
+                  if (!aIsTC && bIsTC) return 1;
+                  return new Date(a.wl.added_at).getTime() - new Date(b.wl.added_at).getTime();
+                });
+                const seenPlayerIds = new Set<string>();
+                const mergedWaitlist = allEntries.filter(({ wl }) => {
+                  if (seenPlayerIds.has(wl.player_id)) return false;
+                  seenPlayerIds.add(wl.player_id);
+                  return true;
+                });
+
+                return (
+                  <div key={groupKey} className="admin-sidebar-panel">
+                    <div className="admin-sidebar-panel-header">
+                      <span className="admin-sidebar-panel-name">{gameType} {stakes}</span>
+                      <span className="admin-sidebar-panel-meta">{totalSeated}/{totalSeats} seated · {mergedWaitlist.length} waiting</span>
+                    </div>
+                    <div className="admin-sidebar-panel-list">
+                      {mergedWaitlist.length === 0 ? (
+                        <div className="admin-sidebar-empty">No players waiting</div>
+                      ) : (
+                        mergedWaitlist.map(({ wl }, idx) => {
+                          const isTC = sidebarTcPlayerIds.has(wl.player_id);
+                          const ciStatus = checkInStatusMap.get(wl.player_id);
+                          const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
+                          return (
+                            <div key={wl.id} className="admin-sidebar-item">
+                              <div className="admin-sidebar-item-row">
+                                <span className="admin-sidebar-item-num">#{idx + 1}</span>
+                                {isTC && <span className="admin-sidebar-tc-badge">TC</span>}
+                                <span className={`admin-sidebar-item-name${isTC ? ' tc' : ''}`}>{wl.player?.nick || wl.player?.name || 'Unknown'}</span>
+                                {ciStatus?.hasPaid && ciStatus.isPrevious && <span className="admin-sidebar-prev-badge">Prev</span>}
+                                {ciStatus?.hasPaid && !ciStatus.isPrevious && <span className="admin-sidebar-amount-badge">${ciStatus.amount}</span>}
+                              </div>
+                              <div className="admin-sidebar-item-actions">
+                                <button
+                                  className="admin-sidebar-reorder-btn"
+                                  disabled={idx === 0}
+                                  title="Move up"
+                                  onClick={async () => {
+                                    const prev = mergedWaitlist[idx - 1];
+                                    try {
+                                      await swapWaitlistAddedAt(wl.id, prev.wl.id);
+                                      handleRefresh();
+                                    } catch { showToast('Failed to reorder', 'error'); }
+                                  }}
+                                >▲</button>
+                                <button
+                                  className="admin-sidebar-reorder-btn"
+                                  disabled={idx === mergedWaitlist.length - 1}
+                                  title="Move down"
+                                  onClick={async () => {
+                                    const next = mergedWaitlist[idx + 1];
+                                    try {
+                                      await swapWaitlistAddedAt(wl.id, next.wl.id);
+                                      handleRefresh();
+                                    } catch { showToast('Failed to reorder', 'error'); }
+                                  }}
+                                >▼</button>
+                                <button
+                                  className="admin-sidebar-seat-btn"
+                                  title="Seat"
+                                  onClick={() => {
+                                    setTcSeatModal({ waitlist: wl, gameType, stakes });
+                                  }}
+                                >Seat</button>
+                                {needsBuyIn && (
+                                  <button
+                                    className="admin-sidebar-buyin-btn"
+                                    onClick={async () => {
+                                      let defaultAmount = 20;
+                                      let hasAlreadyPaid = false;
+                                      try {
+                                        const checkIn = await getCheckInForPlayer(wl.player_id, clubDay.id);
+                                        if (checkIn?.door_fee_amount) {
+                                          defaultAmount = checkIn.door_fee_amount;
+                                          hasAlreadyPaid = true;
+                                        }
+                                      } catch {}
+                                      setBuyInModal({
+                                        entry: wl,
+                                        playerName: wl.player?.nick || wl.player?.name || 'Unknown',
+                                        defaultAmount,
+                                        hasAlreadyPaid,
+                                      });
+                                    }}
+                                  >Buy In</button>
+                                )}
+                                <button
+                                  className="admin-sidebar-remove-btn"
+                                  title="Remove"
+                                  onClick={async () => {
+                                    try {
+                                      await removePlayerFromWaitlist(wl.id, adminUser);
+                                      showToast(`Removed ${wl.player?.nick || 'player'} from waitlist`, 'success');
+                                      handleRefresh();
+                                    } catch (err: any) {
+                                      showToast(err.message || 'Failed to remove', 'error');
+                                    }
+                                  }}
+                                >✕</button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {totalWaiting === 0 && pendingSignups.length === 0 && sidebarGameTypeGroups.size === 0 && (
+                <div className="admin-sidebar-empty">No active tables</div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
       </div>
 
       {showCheckIn && (

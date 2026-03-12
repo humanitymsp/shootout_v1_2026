@@ -217,7 +217,30 @@
 
 /* ============================================================
    Floating Players Popup (bottom-right FAB + panel)
+   Hidden on desktop where inline sidebar is visible
    ============================================================ */
+
+/* Hide FAB + popup on wide screens where sidebar is visible */
+@media (min-width: 1025px) {
+  .players-popup-fab,
+  .admin-waitlist-fab-container {
+    display: none !important;
+  }
+}
+
+/* Hide inline sidebar on narrow screens where FAB is used */
+@media (max-width: 1024px) {
+  .admin-waitlist-sidebar {
+    display: none !important;
+  }
+  .admin-main-layout {
+    padding: 0;
+  }
+  .tables-grid {
+    padding-left: var(--admin-page-gutter);
+    padding-right: var(--admin-page-gutter);
+  }
+}
 
 .players-popup-fab {
   position: fixed;
@@ -860,16 +883,26 @@
   color: white;
 }
 
+/* Two-column layout: tables left, waitlist sidebar right */
+.admin-main-layout {
+  display: flex;
+  gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 var(--admin-page-gutter);
+}
+
 .tables-grid {
   display: grid;
   grid-template-columns: repeat(var(--grid-columns, 3), 1fr);
   column-gap: var(--admin-grid-col-gap);
   row-gap: var(--admin-grid-row-gap);
-  padding: calc(0.75rem * var(--admin-density)) var(--admin-page-gutter);
+  padding: calc(0.75rem * var(--admin-density)) 0;
   padding-bottom: calc(1.25rem * var(--admin-density));
   width: 100%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0;
   scroll-behavior: smooth;
   flex: 1;
   overflow-y: auto;
@@ -880,6 +913,339 @@
   align-content: start;
   grid-auto-rows: min-content;
   box-sizing: border-box;
+}
+
+/* --- Inline Waitlist Sidebar --- */
+.admin-waitlist-sidebar {
+  width: 340px;
+  min-width: 300px;
+  max-width: 380px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--admin-surface);
+  border-left: 1px solid var(--admin-border);
+  border-radius: 12px 0 0 12px;
+  overflow: hidden;
+  margin: calc(0.75rem * var(--admin-density)) 0;
+}
+
+.admin-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.85rem;
+  background: linear-gradient(135deg, var(--admin-surface-alt) 0%, var(--admin-surface) 100%);
+  border-bottom: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+
+.admin-sidebar-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--admin-text, #f1f5f9);
+  letter-spacing: 0.02em;
+}
+
+.admin-sidebar-badge {
+  background: var(--admin-primary);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  min-width: 1.4rem;
+  text-align: center;
+}
+
+.admin-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+}
+
+.admin-sidebar-panel {
+  background: var(--admin-surface-alt);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.admin-sidebar-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.7rem;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(139, 92, 246, 0.05) 100%);
+  border-bottom: 1px solid rgba(42, 58, 82, 0.3);
+}
+
+.admin-sidebar-panel-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--admin-text, #f1f5f9);
+}
+
+.admin-sidebar-panel-meta {
+  font-size: 0.65rem;
+  color: var(--admin-muted, #94a3b8);
+  font-weight: 500;
+}
+
+.admin-sidebar-panel-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-sidebar-empty {
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--admin-muted, #94a3b8);
+  font-style: italic;
+}
+
+.admin-sidebar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid rgba(42, 58, 82, 0.15);
+  transition: background 0.15s ease;
+}
+
+.admin-sidebar-item:last-child {
+  border-bottom: none;
+}
+
+.admin-sidebar-item:hover {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.admin-sidebar-item.pending {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.admin-sidebar-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.admin-sidebar-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-sidebar-item-num {
+  font-size: 0.65rem;
+  color: var(--admin-muted, #94a3b8);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.admin-sidebar-item-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--admin-text, #f1f5f9);
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.admin-sidebar-item-name.tc {
+  color: #f59e0b;
+}
+
+.admin-sidebar-item-meta {
+  font-size: 0.65rem;
+  color: var(--admin-muted, #94a3b8);
+}
+
+.admin-sidebar-tc-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.08rem 0.3rem;
+  border-radius: 4px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  flex-shrink: 0;
+}
+
+.admin-sidebar-prev-badge {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  font-size: 0.55rem;
+  font-weight: 600;
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.admin-sidebar-amount-badge {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.admin-sidebar-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.admin-sidebar-reorder-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(148, 163, 184, 0.06);
+  color: var(--admin-muted, #94a3b8);
+  font-size: 0.6rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.admin-sidebar-reorder-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: var(--admin-primary);
+}
+
+.admin-sidebar-reorder-btn:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.admin-sidebar-seat-btn {
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-sidebar-seat-btn:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.2);
+}
+
+.admin-sidebar-buyin-btn {
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--admin-primary);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-sidebar-buyin-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: var(--admin-primary);
+}
+
+.admin-sidebar-remove-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef4444;
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  margin-left: auto;
+}
+
+.admin-sidebar-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.2);
+}
+
+.admin-sidebar-confirm-btn {
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-sidebar-confirm-btn:hover {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: #22c55e;
+}
+
+.admin-sidebar-dismiss-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef4444;
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.admin-sidebar-dismiss-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: #ef4444;
 }
 
 .game-type-group {
