@@ -192,13 +192,6 @@ export async function getAllTableCountsForClubDay(
   const allSeatsRaw = seatResult.data || [];
   const allWaitlistsRaw = wlResult.data || [];
 
-  // Enrich with player data from localStorage
-  let enrichFn: ((arr: any[]) => any[]) | null = null;
-  try {
-    const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
-    enrichFn = enrichArrayWithPlayerData;
-  } catch { /* fallback: no enrichment */ }
-
   // Convert raw Amplify records to app types
   const toSeat = (r: any): TableSeat => ({
     id: r.id,
@@ -227,10 +220,12 @@ export async function getAllTableCountsForClubDay(
   let allSeats = allSeatsRaw.map(toSeat);
   let allWaitlists = allWaitlistsRaw.map(toWl);
 
-  if (enrichFn) {
-    allSeats = enrichFn(allSeats);
-    allWaitlists = enrichFn(allWaitlists);
-  }
+  // Enrich with player data from localStorage (async function — must await)
+  try {
+    const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
+    allSeats = await enrichArrayWithPlayerData(allSeats);
+    allWaitlists = await enrichArrayWithPlayerData(allWaitlists);
+  } catch { /* fallback: no enrichment */ }
 
   // Group by table_id
   const seatsByTable = new Map<string, TableSeat[]>();
