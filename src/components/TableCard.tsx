@@ -964,32 +964,13 @@ function TableCard({
 
 
   const handleBustOut = async (seatId: string) => {
-    let seat = seatedPlayers.find(s => s.id === seatId);
-
-    // If this is a temp/optimistic seat, fetch real seats from API to get the actual DB seat ID
-    if (seatId.startsWith('temp-') && seat?.player_id) {
-      log('Bust out on temp seat, fetching real seat from API for player:', seat.player_id);
-      try {
-        const realSeats = await getSeatedPlayersForTable(table.id, clubDayId);
-        const realSeat = realSeats.find(s => s.player_id === seat!.player_id);
-        if (realSeat) {
-          seat = realSeat;
-          seatId = realSeat.id;
-          log('Resolved temp seat to real seat:', seatId);
-        } else {
-          showToast('Player seat not found — try refreshing first', 'error');
-          return;
-        }
-      } catch (err) {
-        logError('Failed to resolve temp seat:', err);
-        showToast('Could not verify seat — try refreshing first', 'error');
-        return;
-      }
-    }
+    const seat = seatedPlayers.find(s => s.id === seatId);
+    const playerId = seat?.player_id;
+    const playerNick = seat?.player?.nick || seat?.player?.name || 'this player';
 
     const confirmed = await showConfirmDialog({
       title: 'Bust Out Player',
-      message: `Bust out ${seat?.player?.nick || 'this player'}?`,
+      message: `Bust out ${playerNick}?`,
       confirmText: 'Bust Out',
       cancelText: 'Cancel',
       type: 'warning',
@@ -997,45 +978,76 @@ function TableCard({
     if (!confirmed) return;
     setLoading(true);
     try {
-      log('Busting out player:', { seatId, tableId: table.id, adminUser });
-      const seat = seatedPlayers.find(s => s.id === seatId);
-      const playerId = seat?.player_id;
+      log('Busting out player:', { seatId, playerId, tableId: table.id, adminUser });
       
-      try {
-        await removePlayerFromSeat(seatId, table.id, adminUser);
-      } catch (removeErr: any) {
-        logWarn('Primary bust-out failed, trying fallback by player_id:', removeErr.message);
-        // Fallback: find real seat by player_id and remove that
-        let fallbackRemoved = false;
-        if (playerId) {
-          try {
-            const realSeats = await getSeatedPlayersForTable(table.id, clubDayId);
-            const realSeat = realSeats.find(s => s.player_id === playerId);
-            if (realSeat) {
-              await removePlayerFromSeat(realSeat.id, table.id, adminUser);
-              fallbackRemoved = true;
-              log('Fallback bust-out succeeded with real seat:', realSeat.id);
-            }
-          } catch (fallbackErr) {
-            logWarn('Fallback bust-out also failed:', fallbackErr);
-          }
-        }
-        if (!fallbackRemoved) {
-          // No real seat in DB — this is a ghost/orphan entry, just clean local state
-          logWarn('No real seat found in DB — removing ghost entry from local state');
+      // ROBUST: Always query DB for real seats to find the actual seat record
+      // This handles temp IDs, stale IDs, and any mismatch between local and DB state
+      let dbRemoved = false;
+      
+      // Strategy 1: Try the provided seatId directly
+      if (!seatId.startsWith('temp-')) {
+        try {
+          await removePlayerFromSeat(seatId, table.id, adminUser);
+          dbRemoved = true;
+          log('Bust-out: removed by seatId:', seatId);
+        } catch (err: any) {
+          logWarn('Bust-out: seatId removal failed:', err.message);
         }
       }
       
-      // Always remove from local state so UI updates instantly
+      // Strategy 2: If that failed (or was temp), find real seat by player_id
+      if (!dbRemoved && playerId) {
+        try {
+          const realSeats = await getSeatedPlayersForTable(table.id, clubDayId);
+          const realSeat = realSeats.find(s => s.player_id === playerId);
+          if (realSeat) {
+            try {
+              await removePlayerFromSeat(realSeat.id, table.id, adminUser);
+              dbRemoved = true;
+              log('Bust-out: removed by player_id lookup, real seatId:', realSeat.id);
+            } catch (err2: any) {
+              logWarn('Bust-out: player_id seat removal failed:', err2.message);
+            }
+          } else {
+            log('Bust-out: no active DB seat found for player — ghost entry');
+          }
+        } catch (err: any) {
+          logWarn('Bust-out: DB seat lookup failed:', err.message);
+        }
+      }
+      
+      // Strategy 3: If that also failed, try without clubDayId filter (catches cross-day orphans)
+      if (!dbRemoved && playerId) {
+        try {
+          const allSeats = await getSeatedPlayersForTable(table.id);
+          const orphanSeat = allSeats.find(s => s.player_id === playerId);
+          if (orphanSeat) {
+            try {
+              await removePlayerFromSeat(orphanSeat.id, table.id, adminUser);
+              dbRemoved = true;
+              log('Bust-out: removed orphan seat (no clubDay filter):', orphanSeat.id);
+            } catch (err3: any) {
+              logWarn('Bust-out: orphan seat removal failed:', err3.message);
+            }
+          }
+        } catch { /* best effort */ }
+      }
+      
+      if (!dbRemoved) {
+        logWarn('Bust-out: no DB seat to remove — cleaning local state only (ghost entry)');
+      }
+      
+      // ALWAYS remove from local state regardless of DB outcome
       setSeatedPlayers(prev => prev.filter(s => s.id !== seatId && s.player_id !== playerId));
+      setWaitlistPlayers(prev => prev.filter(w => w.player_id !== playerId));
       optimisticPlayersRef.current.seated = optimisticPlayersRef.current.seated.filter(s => s.id !== seatId && s.player_id !== playerId);
+      optimisticPlayersRef.current.waitlist = optimisticPlayersRef.current.waitlist.filter(w => w.player_id !== playerId);
       saveOptimisticPlayers();
       
-      // Note: Busted out players remain on other game type waitlists (multi-game-type support)
       // Clean up TC label from localStorage if applicable (UI only)
       try {
         const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-        const cleaned = tcList.filter((entry: any) => entry.playerId !== seat?.player_id);
+        const cleaned = tcList.filter((entry: any) => entry.playerId !== playerId);
         if (cleaned.length !== tcList.length) {
           localStorage.setItem('tc-list', JSON.stringify(cleaned));
         }
@@ -1048,8 +1060,8 @@ function TableCard({
           type: 'player-update',
           action: 'remove',
           tableId: table.id,
-          playerId: seat?.player_id,
-          waitlistId: null // Bust out doesn't have a waitlist ID
+          playerId,
+          waitlistId: null
         };
         channel.postMessage(updateData);
         channel.close();
@@ -1059,7 +1071,7 @@ function TableCard({
       }
       localStorage.setItem('player-updated', new Date().toISOString());
       
-      await loadTableData();
+      await loadTableData(true);
       onRefresh();
     } catch (err: any) {
       logError('Error removing player from seat:', err);
