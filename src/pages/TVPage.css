@@ -362,7 +362,7 @@
   background: linear-gradient(135deg, rgba(52, 211, 153, 0.12) 0%, rgba(52, 211, 153, 0.04) 100%) !important;
   border-bottom-color: rgba(52, 211, 153, 0.25) !important;
   /* Slightly taller to accommodate PRE-SIGN UP label */
-  height: clamp(6.5rem, 10.5vh, 9rem);
+  height: clamp(8rem, 13.5vh, 11rem);
 }
 
 .tv-presign-label {
@@ -381,7 +381,7 @@
   text-align: center;
   flex-shrink: 0;
   /* Fixed height so all game headers are identical */
-  height: clamp(5.5rem, 9vh, 8rem);
+  height: clamp(7rem, 12vh, 10rem);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -403,27 +403,24 @@
 }
 
 .tv-column-game {
-  font-size: clamp(1.8rem, 3.2vh, 2.7rem);
+  font-size: clamp(1.4rem, 2.6vh, 2.2rem);
   white-space: nowrap;
 }
 
 .tv-column-stakes {
-  font-size: clamp(1.2rem, 2.2vh, 1.8rem);
+  font-size: clamp(1rem, 1.8vh, 1.5rem);
   color: rgba(251, 191, 36, 0.75);
   font-weight: 700;
   white-space: nowrap;
 }
 
 .tv-column-buyin {
-  font-size: clamp(1rem, 2.2vh, 1.8rem);
+  font-size: clamp(0.85rem, 1.6vh, 1.3rem);
   font-weight: 700;
   color: #34d399;
-  margin-bottom: 0.2vh;
+  margin-top: 0.3vh;
   letter-spacing: 0.03em;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
 .tv-column-stats {
