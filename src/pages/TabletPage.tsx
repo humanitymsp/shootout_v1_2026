@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
 import { getActiveClubDay, getTablesForClubDay, getSeatedPlayersForPlayer } from '../lib/api';
-import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer, swapWaitlistAddedAt } from '../lib/api';
+import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, getCheckInForPlayer, swapWaitlistAddedAt } from '../lib/api';
 import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
 import { showToast } from '../components/Toast';
@@ -499,17 +499,7 @@ export default function TabletPage() {
     try {
       await removePlayerFromSeat(seat.id, tableId, adminUser);
       
-      // Remove busted player from all waitlists
-      if (seat.player_id && clubDay) {
-        try {
-          const removedCount = await removePlayerFromAllWaitlists(seat.player_id, clubDay.id);
-          if (removedCount > 0) {
-            log(`Removed ${playerName} from ${removedCount} waitlist(s) after bust out`);
-          }
-        } catch (error) {
-          logError('Failed to remove busted player from waitlists:', error);
-        }
-      }
+      // Note: Busted players remain on other tables' waitlists (multi-game-type support)
       
       // Store bust out info for undo (5 seconds)
       setLastBustAction({ seat, tableId, tableNumber });

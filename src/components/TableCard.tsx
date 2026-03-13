@@ -1037,11 +1037,10 @@ function TableCard({
         logWarn('Bust-out: no DB seat to remove — cleaning local state only (ghost entry)');
       }
       
-      // ALWAYS remove from local state regardless of DB outcome
+      // ALWAYS remove from seated local state regardless of DB outcome
+      // Note: Do NOT remove from waitlist — busted players remain on other tables' waitlists
       setSeatedPlayers(prev => prev.filter(s => s.id !== seatId && s.player_id !== playerId));
-      setWaitlistPlayers(prev => prev.filter(w => w.player_id !== playerId));
       optimisticPlayersRef.current.seated = optimisticPlayersRef.current.seated.filter(s => s.id !== seatId && s.player_id !== playerId);
-      optimisticPlayersRef.current.waitlist = optimisticPlayersRef.current.waitlist.filter(w => w.player_id !== playerId);
       saveOptimisticPlayers();
       
       // Clean up TC label from localStorage if applicable (UI only)
