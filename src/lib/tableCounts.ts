@@ -139,3 +139,152 @@ export async function getMultipleTableCounts(tableIds: string[]): Promise<Map<st
   
   return countsMap;
 }
+
+/**
+ * BATCH: Get counts for ALL tables in a club day using just 2 GraphQL queries total.
+ * 
+ * Instead of calling getTableCounts() per table (2 queries each = 2N queries),
+ * this fetches ALL seats and ALL waitlists for the entire club day in 2 queries,
+ * then groups by table_id in JavaScript.
+ * 
+ * Use this in display pages (TV, Public, MobileTV) that show all tables at once.
+ * 
+ * @param clubDayId - The club day ID
+ * @param authMode - Optional auth mode (e.g., 'apiKey' for public pages)
+ * @returns Map of tableId -> TableCounts, plus allWaitlists for cross-table lookups
+ */
+export async function getAllTableCountsForClubDay(
+  clubDayId: string,
+  authMode?: string
+): Promise<{ countsMap: Map<string, TableCounts>; allWaitlists: any[] }> {
+  const { generateClient } = await import('./graphql-client');
+  const client = generateClient();
+
+  // TWO queries instead of 2N queries
+  const seatListOpts: any = {
+    filter: {
+      and: [
+        { clubDayId: { eq: clubDayId } },
+        { leftAt: { attributeExists: false } },
+      ],
+    },
+    limit: 1000,
+  };
+  const wlListOpts: any = {
+    filter: {
+      and: [
+        { clubDayId: { eq: clubDayId } },
+        { removedAt: { attributeExists: false } },
+      ],
+    },
+    limit: 1000,
+  };
+  if (authMode) {
+    seatListOpts.authMode = authMode;
+    wlListOpts.authMode = authMode;
+  }
+
+  const [seatResult, wlResult] = await Promise.all([
+    client.models.TableSeat.list(seatListOpts),
+    client.models.TableWaitlist.list(wlListOpts),
+  ]);
+
+  const allSeatsRaw = seatResult.data || [];
+  const allWaitlistsRaw = wlResult.data || [];
+
+  // Enrich with player data from localStorage
+  let enrichFn: ((arr: any[]) => any[]) | null = null;
+  try {
+    const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
+    enrichFn = enrichArrayWithPlayerData;
+  } catch { /* fallback: no enrichment */ }
+
+  // Convert raw Amplify records to app types
+  const toSeat = (r: any): TableSeat => ({
+    id: r.id,
+    club_day_id: r.clubDayId,
+    table_id: r.tableId,
+    player_id: r.playerId,
+    player: r.player ? { id: r.player.id, name: r.player.name, nick: r.player.nick, phone: r.player.phone } as any : undefined,
+    seated_at: r.seatedAt,
+    left_at: r.leftAt || undefined,
+    created_at: r.createdAt || new Date().toISOString(),
+  });
+
+  const toWl = (r: any): TableWaitlist => ({
+    id: r.id,
+    club_day_id: r.clubDayId,
+    table_id: r.tableId,
+    player_id: r.playerId,
+    player: r.player ? { id: r.player.id, name: r.player.name, nick: r.player.nick, phone: r.player.phone } as any : undefined,
+    position: r.position,
+    added_at: r.addedAt,
+    called_in: r.calledIn || false,
+    removed_at: r.removedAt || undefined,
+    created_at: r.createdAt || new Date().toISOString(),
+  });
+
+  let allSeats = allSeatsRaw.map(toSeat);
+  let allWaitlists = allWaitlistsRaw.map(toWl);
+
+  if (enrichFn) {
+    allSeats = enrichFn(allSeats);
+    allWaitlists = enrichFn(allWaitlists);
+  }
+
+  // Group by table_id
+  const seatsByTable = new Map<string, TableSeat[]>();
+  const wlByTable = new Map<string, TableWaitlist[]>();
+
+  for (const seat of allSeats) {
+    if (!seat.id.startsWith('temp-')) {
+      const arr = seatsByTable.get(seat.table_id) || [];
+      arr.push(seat);
+      seatsByTable.set(seat.table_id, arr);
+    }
+  }
+  for (const wl of allWaitlists) {
+    if (!wl.id.startsWith('temp-')) {
+      const arr = wlByTable.get(wl.table_id) || [];
+      arr.push(wl);
+      wlByTable.set(wl.table_id, arr);
+    }
+  }
+
+  // Build counts map with deduplication (same logic as getTableCounts)
+  const countsMap = new Map<string, TableCounts>();
+
+  const allTableIds = new Set([...seatsByTable.keys(), ...wlByTable.keys()]);
+  for (const tableId of allTableIds) {
+    const seats = seatsByTable.get(tableId) || [];
+    const waitlist = (wlByTable.get(tableId) || []).sort((a, b) => (a.position || 0) - (b.position || 0));
+
+    // Deduplicate by player_id
+    const uniqueSeatsMap = new Map<string, TableSeat>();
+    for (const seat of seats) {
+      if (!uniqueSeatsMap.has(seat.player_id)) {
+        uniqueSeatsMap.set(seat.player_id, seat);
+      } else {
+        const existing = uniqueSeatsMap.get(seat.player_id)!;
+        if (new Date(seat.seated_at).getTime() < new Date(existing.seated_at).getTime()) {
+          uniqueSeatsMap.set(seat.player_id, seat);
+        }
+      }
+    }
+    const uniqueWlMap = new Map<string, TableWaitlist>();
+    for (const wl of waitlist) {
+      if (!uniqueWlMap.has(wl.player_id)) {
+        uniqueWlMap.set(wl.player_id, wl);
+      }
+    }
+
+    countsMap.set(tableId, {
+      seatedCount: uniqueSeatsMap.size,
+      waitlistCount: uniqueWlMap.size,
+      seatedPlayers: Array.from(uniqueSeatsMap.values()),
+      waitlistPlayers: Array.from(uniqueWlMap.values()),
+    });
+  }
+
+  return { countsMap, allWaitlists };
+}

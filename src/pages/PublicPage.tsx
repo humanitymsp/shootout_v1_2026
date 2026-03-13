@@ -39,7 +39,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay, getAllPlayers, getCheckInForPlayer } from '../lib/api';
-import { getTableCounts } from '../lib/tableCounts';
+import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
 import { initializeLocalPlayers, startPlayerSyncPolling, getPlayerByIdLocal } from '../lib/localStoragePlayers';
 import { getPersistentTables, getTableWaitlist as getPersistentWaitlistForTable } from '../lib/persistentTables';
@@ -203,7 +203,7 @@ export default function PublicPage() {
           debouncedRefresh();
         }
       }
-    }, 3000); // 3s — main polling handles periodic updates
+    }, 5000); // 5s — main polling handles periodic updates
 
     // BroadcastChannel for same-origin real-time messaging
     let adminChannel: BroadcastChannel | null = null;
@@ -386,34 +386,21 @@ export default function PublicPage() {
 
       const displays: TableDisplay[] = [];
 
-      // Fetch ALL active waitlists for this club day in ONE query (eliminates N+1 per-player queries)
-      let allActiveWaitlists: any[] = [];
-      try {
-        const { data: wlData } = await client.models.TableWaitlist.list({
-          filter: {
-            clubDayId: { eq: activeDay.id },
-            removedAt: { attributeExists: false },
-          },
-          authMode: AUTH,
-        });
-        allActiveWaitlists = wlData || [];
-      } catch { /* best effort */ }
+      // BATCH: Fetch ALL seats + ALL waitlists for the entire club day in just 2 queries
+      // (replaces per-table getTableCounts which was 2 queries × N tables)
+      const { countsMap, allWaitlists } = await getAllTableCountsForClubDay(activeDay.id, AUTH);
 
       // Build map: playerId -> set of tableIds they're waiting at
       const playerWaitlistMap = new Map<string, Set<string>>();
-      for (const wl of allActiveWaitlists) {
-        if (!playerWaitlistMap.has(wl.playerId)) {
-          playerWaitlistMap.set(wl.playerId, new Set());
+      for (const wl of allWaitlists) {
+        if (!playerWaitlistMap.has(wl.player_id)) {
+          playerWaitlistMap.set(wl.player_id, new Set());
         }
-        playerWaitlistMap.get(wl.playerId)!.add(wl.tableId);
+        playerWaitlistMap.get(wl.player_id)!.add(wl.table_id);
       }
 
       for (const table of tablesWithoutPublicSignups) {
-        // ⚠️ CRITICAL: Use centralized counting function - SINGLE SOURCE OF TRUTH
-        // This ensures counts match Admin, TV, and Tablet views
-        // CRITICAL: Pass clubDayId to prevent counting players from old club days
-        // Removing this parameter will cause "Unknown" players to appear after day reset
-        const counts = await getTableCounts(table.id, activeDay.id, AUTH);
+        const counts = countsMap.get(table.id) || { seatedCount: 0, waitlistCount: 0, seatedPlayers: [], waitlistPlayers: [] };
         const seatsFilled = counts.seatedCount;
         const waitlistCount = counts.waitlistCount;
 

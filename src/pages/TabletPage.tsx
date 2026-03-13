@@ -4,7 +4,7 @@ import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
 import { getActiveClubDay, getTablesForClubDay, getSeatedPlayersForPlayer } from '../lib/api';
 import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer, swapWaitlistAddedAt } from '../lib/api';
-import { getTableCounts } from '../lib/tableCounts';
+import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
 import { showToast } from '../components/Toast';
 import { logError, log } from '../lib/logger';
@@ -121,21 +121,20 @@ export default function TabletPage() {
     setLoading(true);
     const data = new Map<string, { seated: TableSeat[]; waitlist: TableWaitlist[] }>();
     
-    // Get current tables from ref
-    const currentTables = tablesRef.current.filter(t => t.status !== 'CLOSED');
-    for (const table of currentTables) {
-      try {
-        // Use centralized counting function - SINGLE SOURCE OF TRUTH
-        // CRITICAL: Pass clubDayId to prevent counting players from old club days
-        const counts = await getTableCounts(table.id, clubDay.id);
-        data.set(table.id, { 
-          seated: counts.seatedPlayers, 
-          waitlist: counts.waitlistPlayers 
+    // BATCH: Fetch ALL seats + ALL waitlists for the entire club day in just 2 queries
+    // (replaces per-table getTableCounts which was 2 queries × N tables)
+    try {
+      const { countsMap } = await getAllTableCountsForClubDay(clubDay.id);
+      const currentTables = tablesRef.current.filter(t => t.status !== 'CLOSED');
+      for (const table of currentTables) {
+        const counts = countsMap.get(table.id);
+        data.set(table.id, {
+          seated: counts?.seatedPlayers || [],
+          waitlist: counts?.waitlistPlayers || [],
         });
-      } catch (error) {
-        logError(`Error loading data for table ${table.id}:`, error);
-        data.set(table.id, { seated: [], waitlist: [] });
       }
+    } catch (error) {
+      logError('Error batch-loading table data:', error);
     }
     
     setTableData(data);

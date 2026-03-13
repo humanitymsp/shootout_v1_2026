@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
-import { getTableCounts } from '../lib/tableCounts';
-import { generateClient } from '../lib/graphql-client';
+import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
 import { log, logWarn, logError } from '../lib/logger';
 import { getHighHand, isHighHandEnabled, getRemainingTimeMs, getHighHandWinners } from '../lib/highHand';
@@ -14,7 +13,6 @@ import { useGoogleCast } from '../hooks/useGoogleCast';
 import './TVPage.css';
 import '../components/HighHandBanner.css';
 
-const client = generateClient();
 
 interface TableDisplay {
   table: PokerTable;
@@ -405,31 +403,21 @@ export default function TVPage() {
 
     const displays: TableDisplay[] = [];
 
-    // Fetch ALL active waitlists for this club day in ONE query (eliminates N+1 per-player queries)
-    let allActiveWaitlists: any[] = [];
-    try {
-      const { data: wlData } = await client.models.TableWaitlist.list({
-        filter: {
-          clubDayId: { eq: activeClubDay?.id || '' },
-          removedAt: { attributeExists: false },
-        },
-      });
-      allActiveWaitlists = wlData || [];
-    } catch { /* best effort */ }
+    // BATCH: Fetch ALL seats + ALL waitlists for the entire club day in just 2 queries
+    // (replaces per-table getTableCounts which was 2 queries × N tables)
+    const { countsMap, allWaitlists } = await getAllTableCountsForClubDay(activeClubDay?.id || '');
 
-    // Build a set of playerIds that are on ANY waitlist, keyed by tableId
-    const playerWaitlistMap = new Map<string, Set<string>>(); // playerId -> set of tableIds they're waiting at
-    for (const wl of allActiveWaitlists) {
-      if (!playerWaitlistMap.has(wl.playerId)) {
-        playerWaitlistMap.set(wl.playerId, new Set());
+    // Build playerWaitlistMap for cross-table lookups
+    const playerWaitlistMap = new Map<string, Set<string>>();
+    for (const wl of allWaitlists) {
+      if (!playerWaitlistMap.has(wl.player_id)) {
+        playerWaitlistMap.set(wl.player_id, new Set());
       }
-      playerWaitlistMap.get(wl.playerId)!.add(wl.tableId);
+      playerWaitlistMap.get(wl.player_id)!.add(wl.table_id);
     }
 
     for (const table of activeTables) {
-      // Use centralized counting function - SINGLE SOURCE OF TRUTH
-      // CRITICAL: Pass clubDayId to prevent counting players from old club days
-      const counts = await getTableCounts(table.id, activeClubDay?.id);
+      const counts = countsMap.get(table.id) || { seatedCount: 0, waitlistCount: 0, seatedPlayers: [], waitlistPlayers: [] };
       const seatsFilled = counts.seatedCount;
       const waitlistCount = counts.waitlistCount;
 
