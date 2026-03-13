@@ -1915,15 +1915,10 @@ export async function addPlayerToWaitlist(
     position = waitlist.length + 1;
   }
 
-  // Determine addedAt: controls sort order in merged (cross-table) views.
-  // For atTop (TC players): set to 1s before earliest existing entry so they appear first.
-  // For normal adds: use current time so new players always go to the bottom.
-  let addedAt = new Date().toISOString();
-  if (options?.atTop && waitlist.length > 0) {
-    const sorted = [...waitlist].sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
-    const earliest = new Date(sorted[0].added_at).getTime();
-    addedAt = new Date(earliest - 1000).toISOString();
-  }
+  // Use current time for addedAt — ensures multi-device ordering is consistent.
+  // TC-first priority is handled at the display layer (TVPage, PublicPage, AdminPage FAB
+  // all sort TC players before regular players by checking seated status).
+  const addedAt = new Date().toISOString();
 
   const { data } = await getClient().models.TableWaitlist.create({
     tableId,
