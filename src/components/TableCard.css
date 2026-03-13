@@ -1242,13 +1242,54 @@
   color: var(--admin-text, #fff);
 }
 
+.wl-popup-subtitle {
+  padding: 0.25rem 1rem 0.5rem;
+  font-size: 0.7rem;
+  color: var(--admin-text-muted, #888);
+  border-bottom: 1px solid var(--admin-border, #333);
+}
+
 .wl-popup-body {
   padding: 0.5rem;
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 300px;
+  max-height: 350px;
   overflow-y: auto;
+}
+
+.wl-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--admin-text-muted, #aaa);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 0.25rem;
+}
+
+.wl-group-header.wl-group-same-game {
+  color: #f59e0b;
+}
+
+.wl-group-add-all-btn {
+  background: rgba(22, 163, 74, 0.15);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+  border-radius: 6px;
+  color: #16a34a;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wl-group-add-all-btn:hover {
+  background: rgba(22, 163, 74, 0.3);
+  border-color: #16a34a;
 }
 
 .wl-popup-empty {

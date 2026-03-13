@@ -1306,6 +1306,36 @@ function TableCard({
     })();
   };
 
+  // WL: Add player to another table's waitlist WITHOUT TC label (player stays at current table)
+  const handleWaitlistAdd = async (player: TableSeat | TableWaitlist, targetTableId: string) => {
+    const playerId = player.player_id;
+    const targetTable = allTables.find(t => t.id === targetTableId);
+    if (!targetTable) {
+      showToast('Target table not found', 'error');
+      return;
+    }
+
+    try {
+      await addPlayerToWaitlist(targetTableId, playerId, clubDayId, adminUser, { skipSeatCheck: true });
+      // NO TC label - this is a pure waitlist add
+      // Broadcast update
+      try {
+        const channel = new BroadcastChannel('admin-updates');
+        channel.postMessage({
+          type: 'player-update',
+          action: 'waitlist-add',
+          tableId: targetTableId,
+          playerId,
+        });
+        channel.close();
+      } catch {}
+      localStorage.setItem('player-updated', new Date().toISOString());
+      onRefresh();
+    } catch (err: any) {
+      showToast(err.message || `Failed to add to Table ${targetTable.table_number} waitlist`, 'error');
+    }
+  };
+
   const handleTableChange = async (player: TableSeat | TableWaitlist, newTableId: string, isFromWaitlist: boolean) => {
     const playerId = player.player_id;
     
@@ -2915,23 +2945,30 @@ function TableCard({
       {wlGameTypeMenu && (() => {
         const playerId = wlGameTypeMenu.player.player_id;
         const playerName = wlGameTypeMenu.player.player?.nick || 'Unknown';
-        const currentGameType = table.game_type || 'Other';
-        const currentStakes = table.stakes_text || '';
-        const currentKey = `${currentGameType}||${currentStakes}`;
 
-        // Group all other tables by game type (excluding current game type)
-        const gameGroups = new Map<string, { gameType: string; stakes: string; tables: typeof allTables }>();
+        // Group ALL tables by game type + stakes (exclude current table only, not current game type)
+        const wlGroups = new Map<string, { gameType: string; stakes: string; tables: typeof allTables; isSameGame: boolean }>();
         for (const t of allTables) {
           if (t.status === 'CLOSED') continue;
-          const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
-          if (key === currentKey) continue;
-          const existing = gameGroups.get(key);
+          if (t.id === table.id) continue; // Exclude current table only
+          const gameType = t.game_type || 'Other';
+          const stakes = t.stakes_text || '';
+          const key = `${gameType}||${stakes}`;
+          const existing = wlGroups.get(key);
           if (existing) {
             existing.tables.push(t);
           } else {
-            gameGroups.set(key, { gameType: t.game_type || 'Other', stakes: t.stakes_text || '', tables: [t] });
+            const isSameGame = gameType === (table.game_type || 'Other');
+            wlGroups.set(key, { gameType, stakes, tables: [t], isSameGame });
           }
         }
+
+        // Sort: different game types first (that's the primary WL use case), then same game
+        const sortedWlGroups = Array.from(wlGroups.values()).sort((a, b) => {
+          if (!a.isSameGame && b.isSameGame) return -1;
+          if (a.isSameGame && !b.isSameGame) return 1;
+          return a.gameType.localeCompare(b.gameType);
+        });
 
         return (
           <>
@@ -2941,30 +2978,47 @@ function TableCard({
                 <strong>Add {playerName} to waitlist</strong>
                 <button className="wl-popup-close" onClick={() => setWlGameTypeMenu(null)}>×</button>
               </div>
+              <div className="wl-popup-subtitle">No TC label — player stays at current table</div>
               <div className="wl-popup-body">
-                {gameGroups.size === 0 ? (
-                  <div className="wl-popup-empty">No other game types available</div>
+                {sortedWlGroups.length === 0 ? (
+                  <div className="wl-popup-empty">No other tables available</div>
                 ) : (
-                  Array.from(gameGroups.entries()).map(([key, group]) => (
-                    <button
-                      key={key}
-                      className="wl-game-type-item"
-                      onClick={async () => {
-                        const lobbyTable = group.tables[0];
-                        try {
-                          await addPlayerToWaitlist(lobbyTable.id, playerId, clubDayId, adminUser, { skipSeatCheck: true });
-                          // Toast removed per user request
-                          setWlGameTypeMenu(null);
-                          onRefresh();
-                        } catch (err: any) {
-                          showToast(err.message || `Failed to add to ${group.gameType} waitlist`, 'error');
-                        }
-                      }}
-                    >
-                      <span className="wl-game-name">{group.gameType} {group.stakes}</span>
-                      <span className="wl-game-info">{group.tables.length} table{group.tables.length !== 1 ? 's' : ''}</span>
-                    </button>
-                  ))
+                  sortedWlGroups.map(group => {
+                    const label = group.stakes ? `${group.gameType} — ${group.stakes}` : group.gameType;
+                    return (
+                      <div key={`${group.gameType}||${group.stakes}`}>
+                        <div className={`wl-group-header${group.isSameGame ? ' wl-group-same-game' : ''}`}>
+                          <span>{label}{group.isSameGame ? ' (Same Game)' : ''}</span>
+                          {group.tables.length > 1 && (
+                            <button
+                              className="wl-group-add-all-btn"
+                              onClick={async () => {
+                                for (const t of group.tables) {
+                                  await handleWaitlistAdd(wlGameTypeMenu.player, t.id);
+                                }
+                                setWlGameTypeMenu(null);
+                              }}
+                            >
+                              All ({group.tables.length})
+                            </button>
+                          )}
+                        </div>
+                        {group.tables.map(t => (
+                          <button
+                            key={t.id}
+                            className="wl-game-type-item"
+                            onClick={async () => {
+                              await handleWaitlistAdd(wlGameTypeMenu.player, t.id);
+                              setWlGameTypeMenu(null);
+                            }}
+                          >
+                            <span className="wl-game-name">Table {t.table_number}</span>
+                            <span className="wl-game-info">{t.seats_filled || 0}/{t.seats_total || 20} seats</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
