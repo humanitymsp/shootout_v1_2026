@@ -96,6 +96,7 @@ function TableCard({
   const refreshCooldownRef = useRef<number>(2000); // 2s cooldown between refreshes (prevents cascade from multi-event triggers)
   const optimisticUpdatesRef = useRef<Set<string>>(new Set()); // Track players with optimistic updates
   const optimisticPlayersRef = useRef<{ seated: TableSeat[]; waitlist: TableWaitlist[] }>({ seated: [], waitlist: [] }); // Store optimistic players
+  const lastActionTimeRef = useRef<number>(0); // Track when last user action happened — prevents stale prefetchedCounts from overwriting fresh local state
   
   // localStorage keys for persisting optimistic players across refreshes
   const OPTIMISTIC_SEATED_KEY = `optimistic-seated-${table.id}`;
@@ -201,8 +202,13 @@ function TableCard({
   }, [table.id]); // Only reload when table.id changes, not on every render
 
   // Consume prefetched data from AdminPage (eliminates per-card polling)
+  // Uses JSON comparison to avoid firing on every AdminPage render (object reference changes)
+  const prefetchedSeatedJson = prefetchedCounts ? JSON.stringify(prefetchedCounts.seatedPlayers.map(s => s.id).sort()) : '';
+  const prefetchedWaitlistJson = prefetchedCounts ? JSON.stringify(prefetchedCounts.waitlistPlayers.map(w => w.id).sort()) : '';
   useEffect(() => {
     if (!prefetchedCounts) return;
+    // Skip if a user action happened within the last 5 seconds — local loadTableData has fresher data
+    if (Date.now() - lastActionTimeRef.current < 5000) return;
     // Only apply prefetched data if no in-flight moves (preserve optimistic UI)
     if (inFlightMovesRef.current.size > 0) return;
     // Merge with optimistic players (same logic as loadTableData)
@@ -215,7 +221,7 @@ function TableCard({
     const optWaitlist = optimisticPlayersRef.current.waitlist.filter(o => !serverWaitlistIds.has(o.player_id));
     setSeatedPlayers([...serverSeated, ...optSeated]);
     setWaitlistPlayers([...serverWaitlist, ...optWaitlist]);
-  }, [prefetchedCounts]);
+  }, [prefetchedSeatedJson, prefetchedWaitlistJson]);
 
   // Auto-refresh persistent tables — only when NOT receiving prefetched data from AdminPage
   useEffect(() => {
@@ -570,6 +576,7 @@ function TableCard({
     }
     
     lastRefreshRef.current = now;
+    lastActionTimeRef.current = now; // Prevent prefetchedCounts from overwriting fresh local fetch
     log('🔄 Loading table data for table:', table.id);
     
     // CRITICAL: Pass clubDayId to prevent showing players from old club days after reset
