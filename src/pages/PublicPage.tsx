@@ -162,7 +162,7 @@ export default function PublicPage() {
         setHighHand(hand);
         if (hand) setHighHandRemaining(getRemainingTimeMs());
       }
-    }, 500);
+    }, 2000);
 
     return () => {
       window.removeEventListener('storage', handleHHUpdate);

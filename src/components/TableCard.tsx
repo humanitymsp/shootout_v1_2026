@@ -91,7 +91,7 @@ function TableCard({
   const [checkinCache, setCheckinCache] = useState<Map<string, { amount: number; isPrevious: boolean }>>(new Map());
   const inFlightMovesRef = useRef<Set<string>>(new Set());
   const lastRefreshRef = useRef<number>(0);
-  const refreshCooldownRef = useRef<number>(500); // 500ms cooldown between refreshes
+  const refreshCooldownRef = useRef<number>(2000); // 2s cooldown between refreshes (prevents cascade from multi-event triggers)
   const optimisticUpdatesRef = useRef<Set<string>>(new Set()); // Track players with optimistic updates
   const optimisticPlayersRef = useRef<{ seated: TableSeat[]; waitlist: TableWaitlist[] }>({ seated: [], waitlist: [] }); // Store optimistic players
   
@@ -515,7 +515,7 @@ function TableCard({
           setTimeout(() => loadTableData(), 200);
         }
       }
-    }, 5000);
+    }, 10000);
 
     return () => {
       if (broadcastChannel) {

@@ -105,6 +105,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   const [pendingSignups, setPendingSignups] = useState<PendingSignup[]>([]);
   const [tcSeatModal, setTcSeatModal] = useState<{ waitlist: TableWaitlist; gameType: string; stakes: string } | null>(null);
   const dismissedTokensRef = useRef<Set<string>>(new Set());
+  const isPollingRef = useRef(false);
   const [isPurgingPlayers, setIsPurgingPlayers] = useState(false);
   const [isRecoveringPlayers, setIsRecoveringPlayers] = useState(false);
   const [hiddenTableIds, setHiddenTableIds] = useState<Set<string>>(() => {
@@ -379,24 +380,28 @@ export default function AdminPage({ user }: AdminPageProps) {
     // Polling for updates — fallback only; BroadcastChannel handles instant updates
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
-      getTablesForClubDay(clubDay.id)
-        .then(fetched => {
-          const pts = getPersistentTables();
-          const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
-          const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
-          fetched.forEach(t => {
-            if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
-          });
-          setTables(fetched);
-        })
-        .catch((err) => {
-          logError('Error polling tables:', err);
-        });
-      // Poll pending signups from DynamoDB (filter out dismissed/confirmed tokens)
-      getPendingSignupsFromDB().then(fetched => {
-        const filtered = fetched.filter(ps => ps.clubDayId === clubDay.id && !dismissedTokensRef.current.has(ps.token));
-        setPendingSignups(filtered);
-      }).catch(() => {});
+      if (isPollingRef.current) return; // Skip if previous poll still running
+      isPollingRef.current = true;
+      Promise.all([
+        getTablesForClubDay(clubDay.id)
+          .then(fetched => {
+            const pts = getPersistentTables();
+            const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
+            const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
+            fetched.forEach(t => {
+              if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
+            });
+            setTables(fetched);
+          })
+          .catch((err) => {
+            logError('Error polling tables:', err);
+          }),
+        // Poll pending signups from DynamoDB (filter out dismissed/confirmed tokens)
+        getPendingSignupsFromDB().then(fetched => {
+          const filtered = fetched.filter(ps => ps.clubDayId === clubDay.id && !dismissedTokensRef.current.has(ps.token));
+          setPendingSignups(filtered);
+        }).catch(() => {}),
+      ]).finally(() => { isPollingRef.current = false; });
     }, 10000); // 10s polling for cross-device sync
 
     // Initial load of pending signups

@@ -161,6 +161,27 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
 
       const displays: TableDisplay[] = [];
 
+      // Fetch ALL active waitlists in ONE query (eliminates N+1 per-player queries)
+      let allActiveWaitlists: any[] = [];
+      try {
+        const { data: wlData } = await client.models.TableWaitlist.list({
+          filter: {
+            clubDayId: { eq: clubDayId },
+            removedAt: { attributeExists: false },
+          },
+        });
+        allActiveWaitlists = wlData || [];
+      } catch { /* best effort */ }
+
+      // Build map: playerId -> set of tableIds they're waiting at
+      const playerWaitlistMap = new Map<string, Set<string>>();
+      for (const wl of allActiveWaitlists) {
+        if (!playerWaitlistMap.has(wl.playerId)) {
+          playerWaitlistMap.set(wl.playerId, new Set());
+        }
+        playerWaitlistMap.get(wl.playerId)!.add(wl.tableId);
+      }
+
       for (const table of tables) {
         // Use centralized counting function - SINGLE SOURCE OF TRUTH
         // CRITICAL: Pass clubDayId to prevent counting players from old club days
@@ -168,17 +189,17 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
         const seatsFilled = counts.seatedCount;
         const waitlistCount = counts.waitlistCount;
 
-        // Count players seated here who are waiting at another table
+        // Count players seated here who are waiting at another table (uses pre-fetched data)
         let playersWaitingElsewhere = 0;
         for (const seat of counts.seatedPlayers) {
-          const { data: otherWaitlists } = await client.models.TableWaitlist.list({
-            filter: {
-              playerId: { eq: seat.player_id },
-              removedAt: { attributeExists: false },
-            },
-          });
-          if (otherWaitlists && otherWaitlists.some((wl: { tableId: string }) => wl.tableId !== table.id)) {
-            playersWaitingElsewhere++;
+          const waitlistTableIds = playerWaitlistMap.get(seat.player_id);
+          if (waitlistTableIds) {
+            for (const wlTableId of waitlistTableIds) {
+              if (wlTableId !== table.id) {
+                playersWaitingElsewhere++;
+                break;
+              }
+            }
           }
         }
 

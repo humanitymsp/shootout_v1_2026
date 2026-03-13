@@ -210,7 +210,7 @@ export default function TVPage() {
         setHighHand(hand);
         if (hand) setHighHandRemaining(getRemainingTimeMs());
       }
-    }, 500);
+    }, 2000);
 
     return () => {
       window.removeEventListener('storage', handleHighHandUpdate);
@@ -262,7 +262,7 @@ export default function TVPage() {
           debouncedRefresh();
         }
       }
-    }, 2000); // Check every 2 seconds (was 200ms)
+    }, 5000); // Check every 5 seconds
 
     let channel: BroadcastChannel | null = null;
     try {
