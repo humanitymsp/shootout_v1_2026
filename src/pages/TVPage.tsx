@@ -663,7 +663,10 @@ export default function TVPage() {
             return (
               <div key={`${gameType}||${stakes}`} className="tv-column">
                 <div className="tv-column-header">
-                  <h2 className="tv-column-title">{headerLabel}</h2>
+                  <h2 className="tv-column-title">
+                    <span className="tv-column-game">{gameType}</span>
+                    {stakes && <span className="tv-column-stakes">{stakes}</span>}
+                  </h2>
                   {buyInLimits && (
                     <div className="tv-column-buyin">Buy-in: {buyInLimits}</div>
                   )}
@@ -749,7 +752,10 @@ export default function TVPage() {
               <div key={`presign-${gameType}||${stakes}`} className="tv-column tv-column-presign">
                 <div className="tv-column-header tv-column-header-presign">
                   <div className="tv-presign-label">PRE-SIGN UP</div>
-                  <h2 className="tv-column-title">{headerLabel}</h2>
+                  <h2 className="tv-column-title">
+                    <span className="tv-column-game">{gameType}</span>
+                    {stakes && <span className="tv-column-stakes">{stakes}</span>}
+                  </h2>
                   {buyInLimits && (
                     <div className="tv-column-buyin">Buy-in: {buyInLimits}</div>
                   )}
