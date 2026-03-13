@@ -524,7 +524,8 @@ export default function TVPage() {
               {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
             <span className="tv-time">
-              {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              {currentTime.getHours() % 12 || 12}:{currentTime.getMinutes().toString().padStart(2, '0')}
+              <span className="tv-seconds">:{currentTime.getSeconds().toString().padStart(2, '0')}</span>
             </span>
           </div>
           {isOffline && (

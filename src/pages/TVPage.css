@@ -253,6 +253,12 @@
   white-space: nowrap;
 }
 
+.tv-seconds {
+  color: #3b82f6;
+  font-size: 0.75em;
+  font-weight: 600;
+}
+
 .tv-time-period {
   font-size: 0.75em;
   font-weight: 600;
