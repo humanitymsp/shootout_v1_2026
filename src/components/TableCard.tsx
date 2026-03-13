@@ -1001,6 +1001,11 @@ function TableCard({
       const seat = seatedPlayers.find(s => s.id === seatId);
       await removePlayerFromSeat(seatId, table.id, adminUser);
       
+      // Optimistic: immediately remove from local state so UI updates instantly
+      setSeatedPlayers(prev => prev.filter(s => s.id !== seatId && s.player_id !== seat?.player_id));
+      optimisticPlayersRef.current.seated = optimisticPlayersRef.current.seated.filter(s => s.id !== seatId && s.player_id !== seat?.player_id);
+      saveOptimisticPlayers();
+      
       // Note: Busted out players remain on other game type waitlists (multi-game-type support)
       // Clean up TC label from localStorage if applicable (UI only)
       try {
