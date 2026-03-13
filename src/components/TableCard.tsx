@@ -43,6 +43,7 @@ interface TableCardProps {
   onDuplicateTable?: (table: PokerTable) => void;
   searchQuery?: string;
   isPersistent?: boolean;
+  prefetchedCounts?: { seatedPlayers: TableSeat[]; waitlistPlayers: TableWaitlist[] } | null;
 }
 
 function TableCard({
@@ -58,6 +59,7 @@ function TableCard({
   onDuplicateTable,
   searchQuery = '',
   isPersistent = false,
+  prefetchedCounts = null,
 }: TableCardProps) {
   const [seatedPlayers, setSeatedPlayers] = useState<TableSeat[]>([]);
   const [waitlistPlayers, setWaitlistPlayers] = useState<TableWaitlist[]>([]);
@@ -198,8 +200,26 @@ function TableCard({
     loadTableData();
   }, [table.id]); // Only reload when table.id changes, not on every render
 
-  // Auto-refresh persistent tables every 5 seconds
+  // Consume prefetched data from AdminPage (eliminates per-card polling)
   useEffect(() => {
+    if (!prefetchedCounts) return;
+    // Only apply prefetched data if no in-flight moves (preserve optimistic UI)
+    if (inFlightMovesRef.current.size > 0) return;
+    // Merge with optimistic players (same logic as loadTableData)
+    const serverSeated = prefetchedCounts.seatedPlayers.filter(s => !s.id.startsWith('temp-'));
+    const serverWaitlist = prefetchedCounts.waitlistPlayers.filter(w => !w.id.startsWith('temp-'));
+    const serverSeatedIds = new Set(serverSeated.map(s => s.player_id));
+    const serverWaitlistIds = new Set(serverWaitlist.map(w => w.player_id));
+    // Preserve optimistic players not yet confirmed by server
+    const optSeated = optimisticPlayersRef.current.seated.filter(o => !serverSeatedIds.has(o.player_id));
+    const optWaitlist = optimisticPlayersRef.current.waitlist.filter(o => !serverWaitlistIds.has(o.player_id));
+    setSeatedPlayers([...serverSeated, ...optSeated]);
+    setWaitlistPlayers([...serverWaitlist, ...optWaitlist]);
+  }, [prefetchedCounts]);
+
+  // Auto-refresh persistent tables — only when NOT receiving prefetched data from AdminPage
+  useEffect(() => {
+    if (prefetchedCounts) return; // AdminPage handles polling
     if (!isPersistent && !table.is_persistent) return;
     const interval = setInterval(async () => {
       if (document.hidden) return;
@@ -208,7 +228,7 @@ function TableCard({
       setRefreshing(false);
     }, 15000);
     return () => clearInterval(interval);
-  }, [table.id, isPersistent, table.is_persistent]);
+  }, [table.id, isPersistent, table.is_persistent, prefetchedCounts]);
 
   useEffect(() => {
     setBombPotCount(table.bomb_pot_count ?? 1);
@@ -502,20 +522,24 @@ function TableCard({
     // Track last processed update to avoid duplicate refreshes
     let lastProcessedUpdate: string | null = null;
 
-    // Poll localStorage for changes (since same-tab changes don't trigger storage events)
-    const pollInterval = setInterval(() => {
-      if (document.hidden) return;
-      const lastUpdate = localStorage.getItem('player-updated');
-      if (lastUpdate && lastUpdate !== lastProcessedUpdate) {
-        const lastUpdateTime = new Date(lastUpdate).getTime();
-        const now = Date.now();
-        // Only refresh if update was within last 5 seconds and we haven't processed it
-        if (now - lastUpdateTime < 5000) {
-          lastProcessedUpdate = lastUpdate;
-          setTimeout(() => loadTableData(), 200);
+    // Poll localStorage for changes — only when NOT receiving prefetched data from AdminPage
+    // When prefetchedCounts is provided, AdminPage handles polling centrally
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+    if (!prefetchedCounts) {
+      pollInterval = setInterval(() => {
+        if (document.hidden) return;
+        const lastUpdate = localStorage.getItem('player-updated');
+        if (lastUpdate && lastUpdate !== lastProcessedUpdate) {
+          const lastUpdateTime = new Date(lastUpdate).getTime();
+          const now = Date.now();
+          // Only refresh if update was within last 5 seconds and we haven't processed it
+          if (now - lastUpdateTime < 5000) {
+            lastProcessedUpdate = lastUpdate;
+            setTimeout(() => loadTableData(), 200);
+          }
         }
-      }
-    }, 10000);
+      }, 10000);
+    }
 
     return () => {
       if (broadcastChannel) {
@@ -524,9 +548,9 @@ function TableCard({
       }
       window.removeEventListener('player-update', handleCustomPlayerUpdate);
       window.removeEventListener('storage', handleStorageEvent);
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
     };
-  }, [table.id]);
+  }, [table.id, prefetchedCounts]);
 
   // ============================================================================
   // 🔒 LOCKED: loadTableData - Optimistic Player Preservation Logic

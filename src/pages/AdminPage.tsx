@@ -1,6 +1,7 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt, sendWaitlistToBottom } from '../lib/api';
+import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
@@ -265,22 +266,20 @@ export default function AdminPage({ user }: AdminPageProps) {
 
       setTables(tablesData);
 
-      // Load player data for table cards and called-in waiting room
+      // BATCH: Load ALL player data in 2 queries (instead of 2 per table)
       const seatedMap = new Map<string, TableSeat[]>();
       const waitlistMap = new Map<string, TableWaitlist[]>();
       
-      const openTables = tablesData.filter((table) => table.status !== 'CLOSED');
-      for (const table of openTables) {
-        try {
-          const [seated, waitlist] = await Promise.all([
-            getSeatedPlayersForTable(table.id),
-            getWaitlistForTable(table.id, activeDay.id),
-          ]);
-          seatedMap.set(table.id, seated);
-          waitlistMap.set(table.id, waitlist);
-        } catch (error) {
-          logError(`Error loading data for table ${table.id}:`, error);
+      try {
+        const { countsMap } = await getAllTableCountsForClubDay(activeDay.id);
+        const openTables = tablesData.filter((table) => table.status !== 'CLOSED');
+        for (const table of openTables) {
+          const counts = countsMap.get(table.id);
+          seatedMap.set(table.id, counts?.seatedPlayers || []);
+          waitlistMap.set(table.id, counts?.waitlistPlayers || []);
         }
+      } catch (error) {
+        logError('Error batch-loading player data:', error);
       }
       
       setSeatedPlayersMap(seatedMap);
@@ -1323,6 +1322,11 @@ export default function AdminPage({ user }: AdminPageProps) {
                       isPersistent={persistentApiTableIds.has(table.id) || persistentTableNumbers.has(table.table_number)}
                       onHideTable={handleHideTable}
                       onDuplicateTable={handleDuplicateTable}
+                      prefetchedCounts={
+                        seatedPlayersMap.has(table.id) || waitlistPlayersMap.has(table.id)
+                          ? { seatedPlayers: seatedPlayersMap.get(table.id) || [], waitlistPlayers: waitlistPlayersMap.get(table.id) || [] }
+                          : null
+                      }
                     />
                   ))
                 }
