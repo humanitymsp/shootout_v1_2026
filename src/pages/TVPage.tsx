@@ -672,7 +672,6 @@ export default function TVPage() {
                   )}
                   <div className="tv-column-stats">
                     <span className="tv-column-stat">{displays.length} Table{displays.length !== 1 ? 's' : ''}</span>
-                    <span className="tv-column-stat">{totalSeated} Seats</span>
                   </div>
                 </div>
 
