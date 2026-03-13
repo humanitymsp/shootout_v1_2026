@@ -999,11 +999,36 @@ function TableCard({
     try {
       log('Busting out player:', { seatId, tableId: table.id, adminUser });
       const seat = seatedPlayers.find(s => s.id === seatId);
-      await removePlayerFromSeat(seatId, table.id, adminUser);
+      const playerId = seat?.player_id;
       
-      // Optimistic: immediately remove from local state so UI updates instantly
-      setSeatedPlayers(prev => prev.filter(s => s.id !== seatId && s.player_id !== seat?.player_id));
-      optimisticPlayersRef.current.seated = optimisticPlayersRef.current.seated.filter(s => s.id !== seatId && s.player_id !== seat?.player_id);
+      try {
+        await removePlayerFromSeat(seatId, table.id, adminUser);
+      } catch (removeErr: any) {
+        logWarn('Primary bust-out failed, trying fallback by player_id:', removeErr.message);
+        // Fallback: find real seat by player_id and remove that
+        let fallbackRemoved = false;
+        if (playerId) {
+          try {
+            const realSeats = await getSeatedPlayersForTable(table.id, clubDayId);
+            const realSeat = realSeats.find(s => s.player_id === playerId);
+            if (realSeat) {
+              await removePlayerFromSeat(realSeat.id, table.id, adminUser);
+              fallbackRemoved = true;
+              log('Fallback bust-out succeeded with real seat:', realSeat.id);
+            }
+          } catch (fallbackErr) {
+            logWarn('Fallback bust-out also failed:', fallbackErr);
+          }
+        }
+        if (!fallbackRemoved) {
+          // No real seat in DB — this is a ghost/orphan entry, just clean local state
+          logWarn('No real seat found in DB — removing ghost entry from local state');
+        }
+      }
+      
+      // Always remove from local state so UI updates instantly
+      setSeatedPlayers(prev => prev.filter(s => s.id !== seatId && s.player_id !== playerId));
+      optimisticPlayersRef.current.seated = optimisticPlayersRef.current.seated.filter(s => s.id !== seatId && s.player_id !== playerId);
       saveOptimisticPlayers();
       
       // Note: Busted out players remain on other game type waitlists (multi-game-type support)
