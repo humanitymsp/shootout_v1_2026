@@ -1988,7 +1988,12 @@ export default function AdminPage({ user }: AdminPageProps) {
                                       className="admin-fab-seat-btn"
                                       title="Seat this player at a table"
                                       onClick={() => {
-                                        setTcSeatModal({ waitlist: wl, gameType, stakes });
+                                        const eligibleTables = tables.filter(t => t.game_type === gameType && t.stakes_text === stakes && t.status !== 'CLOSED');
+                                        if (eligibleTables.length === 1) {
+                                          seatPlayerAtTable(eligibleTables[0].id, wl);
+                                        } else {
+                                          setTcSeatModal({ waitlist: wl, gameType, stakes });
+                                        }
                                       }}
                                     >
                                       Seat
@@ -2054,7 +2059,7 @@ export default function AdminPage({ user }: AdminPageProps) {
 
     {/* TC Seat Selection Modal */}
       {tcSeatModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" style={{ zIndex: 2100 }}>
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
               <h3>Seat Player</h3>
