@@ -43,7 +43,6 @@ interface TableCardProps {
   onDuplicateTable?: (table: PokerTable) => void;
   searchQuery?: string;
   isPersistent?: boolean;
-  prefetchedCounts?: { seatedPlayers: TableSeat[]; waitlistPlayers: TableWaitlist[] } | null;
 }
 
 function TableCard({
@@ -59,7 +58,6 @@ function TableCard({
   onDuplicateTable,
   searchQuery = '',
   isPersistent = false,
-  prefetchedCounts = null,
 }: TableCardProps) {
   const [seatedPlayers, setSeatedPlayers] = useState<TableSeat[]>([]);
   const [waitlistPlayers, setWaitlistPlayers] = useState<TableWaitlist[]>([]);
@@ -96,7 +94,6 @@ function TableCard({
   const refreshCooldownRef = useRef<number>(2000); // 2s cooldown between refreshes (prevents cascade from multi-event triggers)
   const optimisticUpdatesRef = useRef<Set<string>>(new Set()); // Track players with optimistic updates
   const optimisticPlayersRef = useRef<{ seated: TableSeat[]; waitlist: TableWaitlist[] }>({ seated: [], waitlist: [] }); // Store optimistic players
-  const lastActionTimeRef = useRef<number>(0); // Track when last user action happened — prevents stale prefetchedCounts from overwriting fresh local state
   
   // localStorage keys for persisting optimistic players across refreshes
   const OPTIMISTIC_SEATED_KEY = `optimistic-seated-${table.id}`;
@@ -201,31 +198,8 @@ function TableCard({
     loadTableData();
   }, [table.id]); // Only reload when table.id changes, not on every render
 
-  // Consume prefetched data from AdminPage (eliminates per-card polling)
-  // Uses JSON comparison to avoid firing on every AdminPage render (object reference changes)
-  const prefetchedSeatedJson = prefetchedCounts ? JSON.stringify(prefetchedCounts.seatedPlayers.map(s => s.id).sort()) : '';
-  const prefetchedWaitlistJson = prefetchedCounts ? JSON.stringify(prefetchedCounts.waitlistPlayers.map(w => w.id).sort()) : '';
+  // Auto-refresh persistent tables every 15 seconds
   useEffect(() => {
-    if (!prefetchedCounts) return;
-    // Skip if a user action happened within the last 5 seconds — local loadTableData has fresher data
-    if (Date.now() - lastActionTimeRef.current < 5000) return;
-    // Only apply prefetched data if no in-flight moves (preserve optimistic UI)
-    if (inFlightMovesRef.current.size > 0) return;
-    // Merge with optimistic players (same logic as loadTableData)
-    const serverSeated = prefetchedCounts.seatedPlayers.filter(s => !s.id.startsWith('temp-'));
-    const serverWaitlist = prefetchedCounts.waitlistPlayers.filter(w => !w.id.startsWith('temp-'));
-    const serverSeatedIds = new Set(serverSeated.map(s => s.player_id));
-    const serverWaitlistIds = new Set(serverWaitlist.map(w => w.player_id));
-    // Preserve optimistic players not yet confirmed by server
-    const optSeated = optimisticPlayersRef.current.seated.filter(o => !serverSeatedIds.has(o.player_id));
-    const optWaitlist = optimisticPlayersRef.current.waitlist.filter(o => !serverWaitlistIds.has(o.player_id));
-    setSeatedPlayers([...serverSeated, ...optSeated]);
-    setWaitlistPlayers([...serverWaitlist, ...optWaitlist]);
-  }, [prefetchedSeatedJson, prefetchedWaitlistJson]);
-
-  // Auto-refresh persistent tables — only when NOT receiving prefetched data from AdminPage
-  useEffect(() => {
-    if (prefetchedCounts) return; // AdminPage handles polling
     if (!isPersistent && !table.is_persistent) return;
     const interval = setInterval(async () => {
       if (document.hidden) return;
@@ -234,7 +208,7 @@ function TableCard({
       setRefreshing(false);
     }, 15000);
     return () => clearInterval(interval);
-  }, [table.id, isPersistent, table.is_persistent, prefetchedCounts]);
+  }, [table.id, isPersistent, table.is_persistent]);
 
   useEffect(() => {
     setBombPotCount(table.bomb_pot_count ?? 1);
@@ -528,24 +502,20 @@ function TableCard({
     // Track last processed update to avoid duplicate refreshes
     let lastProcessedUpdate: string | null = null;
 
-    // Poll localStorage for changes — only when NOT receiving prefetched data from AdminPage
-    // When prefetchedCounts is provided, AdminPage handles polling centrally
-    let pollInterval: ReturnType<typeof setInterval> | null = null;
-    if (!prefetchedCounts) {
-      pollInterval = setInterval(() => {
-        if (document.hidden) return;
-        const lastUpdate = localStorage.getItem('player-updated');
-        if (lastUpdate && lastUpdate !== lastProcessedUpdate) {
-          const lastUpdateTime = new Date(lastUpdate).getTime();
-          const now = Date.now();
-          // Only refresh if update was within last 5 seconds and we haven't processed it
-          if (now - lastUpdateTime < 5000) {
-            lastProcessedUpdate = lastUpdate;
-            setTimeout(() => loadTableData(), 200);
-          }
+    // Poll localStorage for changes (since same-tab changes don't trigger storage events)
+    const pollInterval = setInterval(() => {
+      if (document.hidden) return;
+      const lastUpdate = localStorage.getItem('player-updated');
+      if (lastUpdate && lastUpdate !== lastProcessedUpdate) {
+        const lastUpdateTime = new Date(lastUpdate).getTime();
+        const now = Date.now();
+        // Only refresh if update was within last 5 seconds and we haven't processed it
+        if (now - lastUpdateTime < 5000) {
+          lastProcessedUpdate = lastUpdate;
+          setTimeout(() => loadTableData(), 200);
         }
-      }, 10000);
-    }
+      }
+    }, 10000);
 
     return () => {
       if (broadcastChannel) {
@@ -554,9 +524,9 @@ function TableCard({
       }
       window.removeEventListener('player-update', handleCustomPlayerUpdate);
       window.removeEventListener('storage', handleStorageEvent);
-      if (pollInterval) clearInterval(pollInterval);
+      clearInterval(pollInterval);
     };
-  }, [table.id, prefetchedCounts]);
+  }, [table.id]);
 
   // ============================================================================
   // 🔒 LOCKED: loadTableData - Optimistic Player Preservation Logic
@@ -576,7 +546,6 @@ function TableCard({
     }
     
     lastRefreshRef.current = now;
-    lastActionTimeRef.current = now; // Prevent prefetchedCounts from overwriting fresh local fetch
     log('🔄 Loading table data for table:', table.id);
     
     // CRITICAL: Pass clubDayId to prevent showing players from old club days after reset

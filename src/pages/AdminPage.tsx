@@ -1322,11 +1322,6 @@ export default function AdminPage({ user }: AdminPageProps) {
                       isPersistent={persistentApiTableIds.has(table.id) || persistentTableNumbers.has(table.table_number)}
                       onHideTable={handleHideTable}
                       onDuplicateTable={handleDuplicateTable}
-                      prefetchedCounts={
-                        seatedPlayersMap.has(table.id) || waitlistPlayersMap.has(table.id)
-                          ? { seatedPlayers: seatedPlayersMap.get(table.id) || [], waitlistPlayers: waitlistPlayersMap.get(table.id) || [] }
-                          : null
-                      }
                     />
                   ))
                 }
