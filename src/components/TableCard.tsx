@@ -822,11 +822,9 @@ function TableCard({
       });
     }
 
-    // Check TC status
-    let wasTC = false;
+    // Clean up TC label from localStorage (best effort, UI only)
     try {
       const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-      wasTC = tcList.some((entry: any) => entry.playerId === playerId);
       const cleaned = tcList.filter((entry: any) => entry.playerId !== playerId);
       localStorage.setItem('tc-list', JSON.stringify(cleaned));
     } catch {}
@@ -851,19 +849,17 @@ function TableCard({
     seatPlayer(targetTableId, playerId, clubDayId)
       .then(async () => {
         log('✅ Previous player seated successfully');
-        // Note: Player remains on other game type waitlists (multi-game-type support)
-        // If TC player, also remove from previous table's seat
-        if (wasTC) {
-          try {
-            const allSeats = await getSeatedPlayersForPlayer(playerId, clubDayId);
-            const oldSeats = allSeats.filter(s => s.table_id !== targetTableId);
-            for (const oldSeat of oldSeats) {
-              await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
-              log(`Removed TC previous player from old seat at table ${oldSeat.table_id}`);
-            }
-          } catch (err) {
-            logWarn('Failed to remove TC player from previous table:', err);
+        // Always check DB for existing seats at OTHER tables and remove them (TC handling)
+        // This works across devices — no dependency on localStorage tc-list
+        try {
+          const allSeats = await getSeatedPlayersForPlayer(playerId, clubDayId);
+          const oldSeats = allSeats.filter(s => s.table_id !== targetTableId);
+          for (const oldSeat of oldSeats) {
+            await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
+            log(`Removed player from old seat at table ${oldSeat.table_id}`);
           }
+        } catch (err) {
+          logWarn('Failed to remove player from previous table:', err);
         }
         localStorage.setItem('player-updated', new Date().toISOString());
         setTimeout(() => {
@@ -920,19 +916,22 @@ function TableCard({
       try {
         await seatPlayer(table.id, wl.player_id, clubDayId);
         seatedCount++;
-        // Check if TC player and remove from previous table
+        // Always check DB for existing seats at OTHER tables and remove them (TC handling)
+        // Works across devices — no dependency on localStorage tc-list
         try {
-          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-          const tcEntry = tcList.find((entry: any) => entry.playerId === wl.player_id);
-          if (tcEntry) {
-            const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDayId);
-            const oldSeats = allSeats.filter(s => s.table_id !== table.id);
-            for (const oldSeat of oldSeats) {
-              await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
-              log(`QuickSeat: removed TC player from old seat at table ${oldSeat.table_id}`);
-            }
-            const cleaned = tcList.filter((entry: any) => entry.playerId !== wl.player_id);
-            localStorage.setItem('tc-list', JSON.stringify(cleaned));
+          const allSeats = await getSeatedPlayersForPlayer(wl.player_id, clubDayId);
+          const oldSeats = allSeats.filter(s => s.table_id !== table.id);
+          for (const oldSeat of oldSeats) {
+            await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
+            log(`QuickSeat: removed player from old seat at table ${oldSeat.table_id}`);
+          }
+          // Clean up TC label from localStorage (best effort, UI only)
+          if (oldSeats.length > 0) {
+            try {
+              const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+              const cleaned = tcList.filter((entry: any) => entry.playerId !== wl.player_id);
+              localStorage.setItem('tc-list', JSON.stringify(cleaned));
+            } catch {}
           }
         } catch {}
         // Note: Player remains on other game type waitlists (multi-game-type support)
@@ -994,23 +993,14 @@ function TableCard({
       await removePlayerFromSeat(seatId, table.id, adminUser);
       
       // Note: Busted out players remain on other game type waitlists (multi-game-type support)
-      // If TC player, also remove from previous table's seat
+      // Clean up TC label from localStorage if applicable (UI only)
       try {
         const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-        const tcEntry = tcList.find((entry: any) => entry.playerId === seat?.player_id);
-        if (tcEntry) {
-          const allSeats = await getSeatedPlayersForPlayer(seat?.player_id, clubDayId);
-          const oldSeats = allSeats.filter(s => s.table_id !== table.id);
-          for (const oldSeat of oldSeats) {
-            await removePlayerFromSeat(oldSeat.id, oldSeat.table_id, adminUser);
-            log(`Removed TC player from old seat at table ${oldSeat.table_id}`);
-          }
-          const cleaned = tcList.filter((entry: any) => entry.playerId !== seat?.player_id);
+        const cleaned = tcList.filter((entry: any) => entry.playerId !== seat?.player_id);
+        if (cleaned.length !== tcList.length) {
           localStorage.setItem('tc-list', JSON.stringify(cleaned));
         }
-      } catch (err) {
-        logWarn('Failed to remove TC player from previous table:', err);
-      }
+      } catch {}
       
       // Broadcast update
       try {
