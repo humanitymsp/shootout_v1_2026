@@ -188,6 +188,18 @@
   font-weight: 600;
 }
 
+/* Header title */
+.public-page .mobile-tv-title {
+  font-size: clamp(0.65rem, 2.8vw, 1rem);
+  font-weight: 700;
+  color: #f5f5dc;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+
 /* Content */
 .public-page .mobile-tv-content {
   width: 100%;

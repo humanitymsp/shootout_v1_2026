@@ -516,6 +516,7 @@ export default function PublicPage() {
         <div className="mobile-tv-logo">
           <Logo />
         </div>
+        <div className="mobile-tv-title">CASH GAME WAITLIST</div>
         <div className="mobile-tv-date-time">
           <div className="mobile-tv-date">
             {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
