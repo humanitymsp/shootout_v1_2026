@@ -59,6 +59,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCheckIn, setShowCheckIn] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [showRefund, setShowRefund] = useState(false);
   const [showAddTable, setShowAddTable] = useState(false);
   const [showReports, setShowReports] = useState(false);
@@ -579,6 +580,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   }, []);
 
   const handleRefresh = () => {
+    setRefreshKey(k => k + 1);
     refreshData();
   };
 
@@ -1315,6 +1317,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                       adminUser={user.signInDetails?.loginId || user.username || 'admin'}
                       allTables={uniqueTables}
                       onRefresh={handleRefresh}
+                      refreshKey={refreshKey}
                       selectedPlayers={selectedPlayers}
                       onTogglePlayerSelection={handleTogglePlayerSelection}
                       onBreakTable={(tableId) => {

@@ -36,6 +36,7 @@ interface TableCardProps {
   adminUser: string;
   allTables: PokerTable[];
   onRefresh: () => void;
+  refreshKey?: number;
   selectedPlayers: Record<string, SelectedPlayerEntry>;
   onTogglePlayerSelection: (entry: SelectedPlayerEntry) => void;
   onBreakTable?: (tableId: string) => void;
@@ -51,6 +52,7 @@ function TableCard({
   adminUser,
   allTables,
   onRefresh,
+  refreshKey = 0,
   selectedPlayers,
   onTogglePlayerSelection,
   onBreakTable,
@@ -197,6 +199,13 @@ function TableCard({
     
     loadTableData();
   }, [table.id]); // Only reload when table.id changes, not on every render
+
+  // React to parent refreshKey changes — forces immediate reload after admin mutations
+  useEffect(() => {
+    if (refreshKey > 0) {
+      loadTableData(true);
+    }
+  }, [refreshKey]);
 
   // Auto-refresh persistent tables every 15 seconds
   useEffect(() => {
