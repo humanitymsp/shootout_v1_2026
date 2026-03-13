@@ -381,9 +381,25 @@ export default function TabletPage() {
       // Seat at new table
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
-      // Remove from ALL waitlists (the acted-on one + any other TC waitlists)
+      // Remove from waitlists of the SAME game type only (preserve other game type waitlists)
       try {
-        await removePlayerFromAllWaitlists(wl.player_id, clubDay.id);
+        const targetTable = tables.find(t => t.id === tableId);
+        const targetGameType = targetTable?.game_type;
+        if (targetGameType) {
+          const sameGameTableIds = new Set(
+            tables.filter(t => t.game_type === targetGameType).map(t => t.id)
+          );
+          for (const [tId, data] of tableData) {
+            if (!sameGameTableIds.has(tId)) continue;
+            for (const entry of data.waitlist) {
+              if (entry.player_id === wl.player_id && entry.club_day_id === clubDay.id) {
+                try { await removePlayerFromWaitlist(entry.id, adminUser); } catch {}
+              }
+            }
+          }
+        } else {
+          await removePlayerFromWaitlist(wl.id, adminUser);
+        }
       } catch {
         // Fallback: at least remove the specific waitlist entry
         await removePlayerFromWaitlist(wl.id, adminUser);
