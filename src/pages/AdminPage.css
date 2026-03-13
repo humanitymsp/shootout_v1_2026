@@ -274,6 +274,13 @@
   border: 1.5px solid rgba(255,255,255,0.3);
 }
 
+.fab-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1998;
+  background: transparent;
+}
+
 .players-popup {
   position: fixed;
   bottom: 4.5rem;

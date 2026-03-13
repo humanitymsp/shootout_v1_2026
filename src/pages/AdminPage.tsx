@@ -1722,6 +1722,14 @@ export default function AdminPage({ user }: AdminPageProps) {
         )}
       </div>
 
+      {/* Click-outside to close waitlist FAB */}
+      {showPlayersPopup && (
+        <div
+          className="fab-backdrop"
+          onClick={() => setShowPlayersPopup(false)}
+        />
+      )}
+
       {/* Floating Waitlist FAB — game-type panels */}
       {clubDay && (() => {
         const allWaitlist = Array.from(waitlistPlayersMap.values()).flat();
