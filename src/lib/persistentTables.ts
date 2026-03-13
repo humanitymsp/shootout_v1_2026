@@ -61,6 +61,8 @@ export function savePersistentTables(tables: PersistentTable[]): void {
     
     // Broadcast changes to other windows/tabs
     broadcastPersistentTableUpdate();
+    // Sync to DB for cross-device access (fire-and-forget)
+    syncPersistentTablesToDB().catch(() => {});
   } catch (error) {
     logError('Failed to save persistent tables', error);
   }
@@ -156,6 +158,8 @@ export function savePersistentWaitlist(waitlist: PersistentTableWaitlist[]): voi
     
     // Broadcast changes to other windows/tabs
     broadcastPersistentTableUpdate();
+    // Sync to DB for cross-device access (fire-and-forget)
+    syncPersistentTablesToDB().catch(() => {});
   } catch (error) {
     logError('Failed to save persistent waitlist', error);
   }
@@ -269,6 +273,109 @@ function recalculateWaitlistPositions(persistentTableId: string): void {
   const table = getPersistentTables().find(t => t.id === persistentTableId);
   if (table) {
     updatePersistentTable(persistentTableId, { waitlist_count: activeWaitlist.length });
+  }
+}
+
+const PERSISTENT_TABLES_SENTINEL = 'persistent-tables-sentinel';
+const PERSISTENT_WAITLIST_SENTINEL = 'persistent-waitlist-sentinel';
+
+/**
+ * Sync persistent tables + waitlist to DynamoDB for cross-device access.
+ * Uses the PlayerSync model with sentinel clubDayId (same pattern as SMS config / pending signups).
+ * Fire-and-forget — callers don't need to await.
+ */
+export async function syncPersistentTablesToDB(): Promise<void> {
+  try {
+    const { generateClient } = await import('./graphql-client');
+    const client = generateClient();
+
+    const tables = getPersistentTables();
+    const waitlist = getPersistentWaitlist();
+
+    // Sync tables
+    const tablesPayload = JSON.stringify(tables);
+    const { data: existingTables } = await client.models.PlayerSync.list({
+      filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
+      limit: 1,
+      authMode: 'apiKey',
+    });
+    if (existingTables && existingTables.length > 0) {
+      await client.models.PlayerSync.update({
+        id: existingTables[0].id,
+        playersJson: tablesPayload,
+        syncedAt: new Date().toISOString(),
+      }, { authMode: 'apiKey' });
+    } else {
+      await client.models.PlayerSync.create({
+        clubDayId: PERSISTENT_TABLES_SENTINEL,
+        playersJson: tablesPayload,
+        syncedAt: new Date().toISOString(),
+      }, { authMode: 'apiKey' });
+    }
+
+    // Sync waitlist
+    const waitlistPayload = JSON.stringify(waitlist);
+    const { data: existingWaitlist } = await client.models.PlayerSync.list({
+      filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
+      limit: 1,
+      authMode: 'apiKey',
+    });
+    if (existingWaitlist && existingWaitlist.length > 0) {
+      await client.models.PlayerSync.update({
+        id: existingWaitlist[0].id,
+        playersJson: waitlistPayload,
+        syncedAt: new Date().toISOString(),
+      }, { authMode: 'apiKey' });
+    } else {
+      await client.models.PlayerSync.create({
+        clubDayId: PERSISTENT_WAITLIST_SENTINEL,
+        playersJson: waitlistPayload,
+        syncedAt: new Date().toISOString(),
+      }, { authMode: 'apiKey' });
+    }
+
+    log('📡 Synced persistent tables + waitlist to DB');
+  } catch (error) {
+    logError('Failed to sync persistent tables to DB:', error);
+  }
+}
+
+/**
+ * Fetch persistent tables from DynamoDB (for cross-device access on Public/TV pages).
+ * Returns { tables, waitlist } or null if not found.
+ */
+export async function getPersistentTablesFromDB(): Promise<{ tables: PersistentTable[]; waitlist: PersistentTableWaitlist[] } | null> {
+  try {
+    const { generateClient } = await import('./graphql-client');
+    const client = generateClient();
+
+    const [tablesRes, waitlistRes] = await Promise.all([
+      client.models.PlayerSync.list({
+        filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
+        limit: 1,
+        authMode: 'apiKey',
+      }),
+      client.models.PlayerSync.list({
+        filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
+        limit: 1,
+        authMode: 'apiKey',
+      }),
+    ]);
+
+    let tables: PersistentTable[] = [];
+    let waitlist: PersistentTableWaitlist[] = [];
+
+    if (tablesRes.data && tablesRes.data.length > 0 && tablesRes.data[0].playersJson) {
+      tables = JSON.parse(tablesRes.data[0].playersJson as string);
+    }
+    if (waitlistRes.data && waitlistRes.data.length > 0 && waitlistRes.data[0].playersJson) {
+      waitlist = JSON.parse(waitlistRes.data[0].playersJson as string);
+    }
+
+    return { tables, waitlist };
+  } catch (error) {
+    logError('Failed to fetch persistent tables from DB:', error);
+    return null;
   }
 }
 

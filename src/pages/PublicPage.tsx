@@ -42,7 +42,7 @@ import { getActiveClubDay, getTablesForClubDay, getAllPlayers, getCheckInForPlay
 import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
 import { initializeLocalPlayers, startPlayerSyncPolling, getPlayerByIdLocal } from '../lib/localStoragePlayers';
-import { getPersistentTables, getTableWaitlist as getPersistentWaitlistForTable } from '../lib/persistentTables';
+import { getPersistentTables, getTableWaitlist as getPersistentWaitlistForTable, getPersistentTablesFromDB } from '../lib/persistentTables';
 import { createPendingSignup } from '../lib/pendingSignups';
 import { validatePhoneNumber } from '../lib/sms';
 import { log, logWarn, logError } from '../lib/logger';
@@ -364,8 +364,21 @@ export default function PublicPage() {
         new Map(allTables.map((table) => [table.table_number, table])).values()
       );
 
-      // Patch is_persistent flag from localStorage persistent metadata
-      const pts = getPersistentTables();
+      // Fetch persistent tables: try DB first (cross-device), fall back to localStorage
+      let pts = getPersistentTables();
+      let dbWaitlistEntries: any[] = [];
+      try {
+        const dbData = await getPersistentTablesFromDB();
+        if (dbData && dbData.tables.length > 0) {
+          pts = dbData.tables;
+          dbWaitlistEntries = dbData.waitlist;
+          log(`Public: Loaded ${pts.length} persistent tables from DB`);
+        }
+      } catch {
+        log('Public: DB persistent tables fetch failed, using localStorage');
+      }
+
+      // Patch is_persistent flag from persistent metadata
       const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
       const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
       dedupedTables.forEach(t => {
@@ -432,7 +445,7 @@ export default function PublicPage() {
         });
       }
 
-      // Add pre-sign up persistent tables from localStorage
+      // Add pre-sign up persistent tables (from DB or localStorage)
       // Show persistent tables that have public_signups enabled and are not CLOSED.
       // Filter out stale entries: if a persistent table has an api_table_id that no longer
       // exists in the API AND doesn't have public_signups, it's a ghost game.
@@ -449,7 +462,10 @@ export default function PublicPage() {
       log(`Public: All persistent tables: ${pts.map(pt => `T${pt.table_number} (id=${pt.id.slice(0,8)}, api=${pt.api_table_id?.slice(0,8) || 'none'}, signups=${pt.public_signups}, status=${pt.status})`).join(', ')}`);
       log(`Public: Filtered persistent for display: ${persistentOnly.map(pt => `T${pt.table_number}`).join(', ') || '(none)'}`);
       for (const pt of persistentOnly) {
-        const wl = getPersistentWaitlistForTable(pt.id);
+        // Use DB waitlist if available, otherwise fall back to localStorage
+        const wl = dbWaitlistEntries.length > 0
+          ? dbWaitlistEntries.filter(w => w.persistent_table_id === pt.id && !w.removed_at).sort((a: any, b: any) => a.position - b.position)
+          : getPersistentWaitlistForTable(pt.id);
         const syntheticTable: PokerTable = {
           id: pt.id,
           club_day_id: activeDay.id,
