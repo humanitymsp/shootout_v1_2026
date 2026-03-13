@@ -563,15 +563,18 @@ export default function AdminPage({ user }: AdminPageProps) {
     }
   }, [pendingSignups, seatedPlayersMap, waitlistPlayersMap]);
 
-  // Broadcast update to tablet/TV pages after admin makes changes
-  const broadcastUpdate = useCallback((action: string, tableId?: string, playerId?: string) => {
+  // Broadcast update to tablet/TV pages AND same-tab TableCards after admin makes changes
+  const broadcastUpdate = useCallback((action: string, tableId?: string, playerId?: string, extra?: Record<string, any>) => {
+    const payload = { type: 'player-update', action, tableId, playerId, ...extra };
     try {
       const channel = new BroadcastChannel('admin-updates');
-      channel.postMessage({ type: 'player-update', action, tableId, playerId });
+      channel.postMessage(payload);
       channel.close();
     } catch {
       // BroadcastChannel not supported
     }
+    // CRITICAL: Also dispatch same-tab CustomEvent — BroadcastChannel only reaches OTHER tabs
+    window.dispatchEvent(new CustomEvent('player-update', { detail: payload }));
     localStorage.setItem('player-updated', Date.now().toString());
   }, []);
 
@@ -650,7 +653,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       } else {
         showToast(`Seated ${playerName} at Table ${table?.table_number}`, 'success');
       }
-      broadcastUpdate('seat', tableId, wl.player_id);
+      broadcastUpdate('seat-next', tableId, wl.player_id, { playerData: wl.player });
       handleRefresh();
     } catch (err: any) {
       showToast(err.message || 'Failed to seat player', 'error');
