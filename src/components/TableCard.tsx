@@ -2620,7 +2620,9 @@ function TableCard({
                         let isTCLabeled = false;
                         try {
                           const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-                          isTCLabeled = tcList.some((entry: any) => entry.playerId === seat.player_id);
+                          // Only show TC on the player's ORIGINAL table (fromTableNumber)
+                          // Once seated at the new table, TC label should disappear
+                          isTCLabeled = tcList.some((entry: any) => entry.playerId === seat.player_id && entry.fromTableNumber === table.table_number);
                         } catch {}
                         return isTCLabeled ? <span className="player-tc-label" title="Table Change pending">TC</span> : null;
                       })()}
