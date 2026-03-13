@@ -80,7 +80,7 @@ export async function getTableCounts(tableId: string, clubDayId?: string, authMo
     const waitlistCount = uniqueWaitlistMap.size;
     const seatedPlayers = Array.from(uniqueSeatsMap.values());
     const waitlistPlayers = Array.from(uniqueWaitlistMap.values())
-      .sort((a, b) => (a.position || 0) - (b.position || 0));
+      .sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
     
     // Debug logging to help identify discrepancies
     if (seats.length !== filteredSeats.length) {
@@ -252,7 +252,7 @@ export async function getAllTableCountsForClubDay(
   const allTableIds = new Set([...seatsByTable.keys(), ...wlByTable.keys()]);
   for (const tableId of allTableIds) {
     const seats = seatsByTable.get(tableId) || [];
-    const waitlist = (wlByTable.get(tableId) || []).sort((a, b) => (a.position || 0) - (b.position || 0));
+    const waitlist = (wlByTable.get(tableId) || []).sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
 
     // Deduplicate by player_id
     const uniqueSeatsMap = new Map<string, TableSeat>();

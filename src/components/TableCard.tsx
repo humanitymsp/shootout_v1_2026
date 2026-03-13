@@ -155,7 +155,7 @@ function TableCard({
   const stakesLabel = (stakesText || table.stakes_text).replace(/No Limit/gi, 'NL');
   const activeWaitlistPlayers = waitlistPlayers
     .filter((wl) => !wl.called_in)
-    .sort((a, b) => (a.position || 0) - (b.position || 0));
+    .sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
 
   // Load check-in data for waitlist players to show buy-in amounts
   useEffect(() => {

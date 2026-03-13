@@ -1849,9 +1849,10 @@ export async function getWaitlistForTable(tableId: string, clubDayId?: string, a
   if (authMode) listOpts.authMode = authMode;
   const { data } = await getClient().models.TableWaitlist.list(listOpts);
   
-  // Convert to TableWaitlist format and sort by position for consistent ordering across all views
+  // Convert to TableWaitlist format and sort by added_at for consistent ordering across all views
+  // added_at is more reliable than position when players are added from multiple devices concurrently
   const waitlist: TableWaitlist[] = (data || []).map(toTableWaitlist);
-  waitlist.sort((a, b) => (a.position || 0) - (b.position || 0));
+  waitlist.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
   
   // Enrich with player data from localStorage (faster than backend lookup)
   try {
@@ -3527,7 +3528,7 @@ export async function resetClubDay(adminUser: string): Promise<void> {
     }
 
     const orderedPlayerIds = [...activeWaitlist]
-      .sort((a, b) => (a.position || 0) - (b.position || 0))
+      .sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime())
       .map((entry) => entry.player_id)
       .filter(Boolean);
 
