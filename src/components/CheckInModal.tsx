@@ -248,7 +248,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
           setIsSearching(false);
         }
       }
-    }, 800);
+    }, 200);
 
     return () => {
       clearTimeout(searchTimeout);
@@ -447,6 +447,9 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
       // type, so the player appears in the correct game-type lobby.
       const addedGameLabels: string[] = [];
       const addedTableIds: string[] = [];
+      
+      // Build waitlist add promises for all selected game types
+      const waitlistPromises: { gameLabel: string; tableId: string; promise: Promise<any> }[] = [];
       for (const gameTypeKey of selectedGameTypes) {
         const gameTypeTables = tables.filter((t: any) => {
           const key = `${t.game_type || 'Other'}||${t.stakes_text || ''}`;
@@ -456,15 +459,25 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         const lobbyTable = gameTypeTables[0];
         const [gameLabel] = gameTypeKey.split('||');
         log(`Adding player to ${gameLabel} lobby waitlist via Table ${lobbyTable.table_number}`);
-        try {
-          await addPlayerToWaitlist(lobbyTable.id, player.id, clubDayId, adminUser, { skipSeatCheck: true });
-          log(`Added to ${gameLabel} lobby waitlist (Table ${lobbyTable.table_number})`);
-          addedGameLabels.push(`${gameLabel}`);
-          addedTableIds.push(lobbyTable.id);
-        } catch (err: any) {
+        waitlistPromises.push({
+          gameLabel,
+          tableId: lobbyTable.id,
+          promise: addPlayerToWaitlist(lobbyTable.id, player.id, clubDayId, adminUser, { skipSeatCheck: true }),
+        });
+      }
+      
+      // Run all waitlist adds in parallel
+      const results = await Promise.allSettled(waitlistPromises.map(p => p.promise));
+      for (let i = 0; i < results.length; i++) {
+        const { gameLabel, tableId } = waitlistPromises[i];
+        if (results[i].status === 'fulfilled') {
+          log(`Added to ${gameLabel} lobby waitlist`);
+          addedGameLabels.push(gameLabel);
+          addedTableIds.push(tableId);
+        } else {
+          const err = (results[i] as PromiseRejectedResult).reason;
           logError(`Failed to add to ${gameLabel} lobby waitlist:`, err);
-          // Don't fail the whole operation — just skip this one
-          showToast(`Could not add to ${gameLabel} waitlist: ${err.message || 'already on it'}`, 'warning');
+          showToast(`Could not add to ${gameLabel} waitlist: ${err?.message || 'already on it'}`, 'warning');
         }
       }
       if (addedGameLabels.length === 0) {
@@ -498,42 +511,33 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
         window.dispatchEvent(new CustomEvent('player-update', { detail: updatePayload }));
       }
       
-      // Send SMS notification if enabled and player has phone number
+      // Send SMS notification if enabled and player has phone number (fire-and-forget — don't block UI)
       const smsCfg = getSMSSettings();
       const smsPhone = player.phone || playerPhone.trim();
-      if (smsCfg.enabled && !smsCfg.apiKey) {
-        showToast('SMS not sent: API key not saved. Open SMS Settings and click Save.', 'warning');
-      }
       if (smsCfg.enabled && smsCfg.apiKey && smsPhone) {
-        try {
-          const gameLabelsForSMS = addedGameLabels.join(', ');
-          let smsMsg = `Hi ${player.nick}! You're checked in for ${gameLabelsForSMS}`;
-          smsMsg += ` and on the waitlist`;
-          smsMsg += `. Good luck! - Final Table Poker Club`;
+        const gameLabelsForSMS = addedGameLabels.join(', ');
+        let smsMsg = `Hi ${player.nick}! You're checked in for ${gameLabelsForSMS}`;
+        smsMsg += ` and on the waitlist`;
+        smsMsg += `. Good luck! - Final Table Poker Club`;
 
-          showToast(`Sending SMS to ${smsPhone}…`, 'info');
-          const smsResult = await sendSMS({ to: smsPhone, message: smsMsg }, smsCfg.apiKey);
-          if (smsResult.success) {
-            showToast(`SMS sent ✓ (${smsPhone})`, 'success');
-            log('[CheckIn] SMS sent to', smsPhone);
-          } else {
-            logError('[CheckIn] SMS failed:', smsResult.error);
-            showToast(`SMS failed: ${smsResult.error} (${smsPhone})`, 'error');
-          }
-        } catch (smsError) {
-          logError('[CheckIn] SMS notification error:', smsError);
-        }
-      } else if (smsCfg.enabled && smsCfg.apiKey && !smsPhone) {
-        showToast(`SMS skipped: no phone number for ${player.nick}`, 'warning');
+        sendSMS({ to: smsPhone, message: smsMsg }, smsCfg.apiKey)
+          .then(smsResult => {
+            if (smsResult.success) {
+              log('[CheckIn] SMS sent to', smsPhone);
+            } else {
+              logError('[CheckIn] SMS failed:', smsResult.error);
+            }
+          })
+          .catch(smsError => {
+            logError('[CheckIn] SMS notification error:', smsError);
+          });
       }
       
       localStorage.setItem('player-updated', new Date().toISOString());
       onSuccess();
 
       if (!keepOpen) {
-        setTimeout(() => {
-          onClose();
-        }, 1000);
+        onClose();
       } else {
         setSelectedPlayer(null);
         setNick('');
