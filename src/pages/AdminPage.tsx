@@ -1834,10 +1834,8 @@ export default function AdminPage({ user }: AdminPageProps) {
                                     const dbApiKey = !localApiKey ? (await getSMSKeyFromDB()) || '' : '';
                                     const smsApiKey = (localApiKey || dbApiKey || '').trim();
 
-                                    if (!ps.playerPhone?.trim()) {
-                                      showToast('Added to waitlist, but SMS skipped: player has no phone number', 'error');
-                                    } else if (!smsApiKey) {
-                                      showToast('Added to waitlist, but SMS skipped: API key not configured', 'error');
+                                    if (!ps.playerPhone?.trim() || !smsApiKey) {
+                                      // Silently skip SMS if no phone or no API key
                                     } else {
                                       const smsMessage = `Hi ${ps.playerName}! You have been added to the waitlist for Table ${ps.tableNumber} (${ps.gameType} ${ps.stakesText}). Final Table Poker Club.`;
                                       const smsResult = await sendSMS(
