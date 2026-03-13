@@ -361,6 +361,8 @@
 .tv-column-header-presign {
   background: linear-gradient(135deg, rgba(52, 211, 153, 0.12) 0%, rgba(52, 211, 153, 0.04) 100%) !important;
   border-bottom-color: rgba(52, 211, 153, 0.25) !important;
+  /* Slightly taller to accommodate PRE-SIGN UP label */
+  height: clamp(6.5rem, 10.5vh, 9rem);
 }
 
 .tv-presign-label {
@@ -378,6 +380,13 @@
   border-bottom: 2px solid rgba(251, 191, 36, 0.25);
   text-align: center;
   flex-shrink: 0;
+  /* Fixed height so all game headers are identical */
+  height: clamp(5.5rem, 9vh, 8rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
 .tv-column-title {
@@ -388,20 +397,30 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .tv-column-buyin {
-  font-size: clamp(1.8rem, 2.8vh, 2.4rem);
+  font-size: clamp(1rem, 2.2vh, 1.8rem);
   font-weight: 700;
   color: #34d399;
   margin-bottom: 0.2vh;
   letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .tv-column-stats {
   display: flex;
   justify-content: center;
   gap: 0.5rem;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tv-column-stat {
