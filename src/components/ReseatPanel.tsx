@@ -79,7 +79,7 @@ export default function ReseatPanel({
     };
 
     loadRecentRemovals();
-    const interval = setInterval(loadRecentRemovals, 5000); // Refresh every 5 seconds
+    const interval = setInterval(loadRecentRemovals, 15000); // Refresh every 15 seconds
     return () => clearInterval(interval);
   }, []);
 

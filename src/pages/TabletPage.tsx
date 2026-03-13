@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
-import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, getSeatedPlayersForPlayer } from '../lib/api';
 import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, getCheckInForPlayer, swapWaitlistAddedAt } from '../lib/api';
 import { getTableCounts } from '../lib/tableCounts';
 import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
@@ -207,7 +207,7 @@ export default function TabletPage() {
       if (!isLoadingRef.current) {
         loadAllTableData();
       }
-    }, 5000); // 5s polling for cross-device sync
+    }, 10000); // 10s polling for cross-device sync
     return () => clearInterval(pollInterval);
   }, [clubDay, loadAllTableData]);
 

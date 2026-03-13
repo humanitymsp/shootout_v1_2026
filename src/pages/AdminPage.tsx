@@ -397,7 +397,7 @@ export default function AdminPage({ user }: AdminPageProps) {
         const filtered = fetched.filter(ps => ps.clubDayId === clubDay.id && !dismissedTokensRef.current.has(ps.token));
         setPendingSignups(filtered);
       }).catch(() => {});
-    }, 5000); // 5s polling for cross-device sync
+    }, 10000); // 10s polling for cross-device sync
 
     // Initial load of pending signups
     getPendingSignupsFromDB().then(fetched => {
@@ -428,7 +428,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       } catch (err) {
         logError('Auto-fix interval error:', err);
       }
-    }, 30000); // Run every 30 seconds
+    }, 120000); // Run every 2 minutes
 
     return () => {
       clearInterval(pollInterval);
@@ -591,7 +591,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       } catch { /* best effort */ }
 
       // Seat at new table
-      await seatPlayer(tableId, wl.player_id, clubDay.id, adminUser);
+      await seatPlayer(tableId, wl.player_id, clubDay.id);
       
       // Clear TC label from localStorage
       try {

@@ -206,7 +206,7 @@ function TableCard({
       setRefreshing(true);
       await loadTableData(true);
       setRefreshing(false);
-    }, 5000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [table.id, isPersistent, table.is_persistent]);
 

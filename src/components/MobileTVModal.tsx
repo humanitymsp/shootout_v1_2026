@@ -54,7 +54,7 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
       loadData();
-    }, 5000); // 5s polling
+    }, 10000); // 10s polling
 
     return () => clearInterval(pollInterval);
   }, [clubDay]);

@@ -2,6 +2,9 @@
 // Uses generateClient from aws-amplify/api to interact with AppSync
 import { generateClient as createApiClient } from 'aws-amplify/api';
 
+// In-flight request deduplication: if the same query is already running, return its promise
+const inflightRequests = new Map<string, Promise<any>>();
+
 // Helper to convert filter objects to GraphQL filter format
 function convertFilter(filter: any): any {
   if (!filter) return undefined;
@@ -103,6 +106,22 @@ function createModelHandler(modelName: string, apiClient: any) {
      * See docs/PAGINATION_CRITICAL_FIX.md for full documentation.
      */
     async list(options?: { filter?: any; limit?: number; nextToken?: string; authMode?: string }): Promise<{ data: any[] }> {
+      // Request deduplication: if the same query (model+filter+authMode) is already in-flight, return its promise
+      // Skip dedup for paginated requests (nextToken) since they're sequential
+      if (!options?.nextToken) {
+        const dedupKey = `list-${modelName}-${JSON.stringify(options?.filter || {})}-${options?.authMode || ''}`;
+        const existing = inflightRequests.get(dedupKey);
+        if (existing) return existing;
+        
+        const promise = this._listImpl(options);
+        inflightRequests.set(dedupKey, promise);
+        promise.finally(() => inflightRequests.delete(dedupKey));
+        return promise;
+      }
+      return this._listImpl(options);
+    },
+    
+    async _listImpl(options?: { filter?: any; limit?: number; nextToken?: string; authMode?: string }): Promise<{ data: any[] }> {
       // When using apiKey auth, skip relationship fields (e.g. player { ... })
       // because related models like Player may not allow publicApiKey reads,
       // which causes the entire query to fail with "Not Authorized"
@@ -123,10 +142,10 @@ function createModelHandler(modelName: string, apiClient: any) {
       if (options?.filter) {
         variables.filter = convertFilter(options.filter);
       }
-      // CRITICAL: Set a high limit to ensure we get all results (default is 100, but we want all)
-      // For tables with up to 9 seats + waitlist, we need at least 18, but set higher for safety
-      // DO NOT reduce this limit - it will break player counting after ~6-100 players
-      const limit = options?.limit ?? 1000;
+      // Set a reasonable limit - pagination handles overflow for larger result sets
+      // 200 covers typical use (tables have <20 seats, <50 waitlist entries)
+      // Pagination still fetches all results if more exist
+      const limit = options?.limit ?? 200;
       
       // Runtime validation: Only warn if limit wasn't explicitly set by the caller.
       // Sentinel-record lookups (SMS config, pending signups) intentionally use limit: 1.
@@ -190,11 +209,11 @@ function createModelHandler(modelName: string, apiClient: any) {
         // CRITICAL: Handle pagination - fetch all pages recursively
         // This is essential for accurate player counts. DO NOT remove this logic.
         if (nextToken) {
-          const nextPage: { data: any[] } = await createModelHandler(modelName, apiClient).list({
+          const nextPage: { data: any[] } = await this._listImpl({
             filter: options?.filter,
-            limit: options?.limit ?? 1000, // Maintain same limit for consistency
-            nextToken, // Use the new nextToken from this response
-            authMode: options?.authMode, // Preserve auth mode across pages
+            limit: options?.limit ?? 200,
+            nextToken,
+            authMode: options?.authMode,
           });
           // Combine results from all pages
           return { data: [...items, ...(nextPage.data || [])] };

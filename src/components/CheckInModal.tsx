@@ -136,7 +136,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
     const refreshInterval = setInterval(() => {
       if (document.hidden) return;
       enrichTablesWithCounts(tables);
-    }, 8000);
+    }, 20000);
     return () => clearInterval(refreshInterval);
   }, [tables]);
 

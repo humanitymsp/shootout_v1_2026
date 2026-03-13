@@ -1423,11 +1423,11 @@ export async function getBustedPlayersForClubDay(clubDayId: string): Promise<Tab
   // Enrich with player data from localStorage
   try {
     const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
-    const enriched = await enrichArrayWithPlayerData(seats);
+    const enriched = await enrichArrayWithPlayerData(seats) as TableSeat[];
     // Sort by left_at descending (most recent first)
     enriched.sort((a, b) => {
-      const timeA = a.left_at ? new Date(a.left_at).getTime() : 0;
-      const timeB = b.left_at ? new Date(b.left_at).getTime() : 0;
+      const timeA = (a as any).left_at ? new Date((a as any).left_at).getTime() : 0;
+      const timeB = (b as any).left_at ? new Date((b as any).left_at).getTime() : 0;
       return timeB - timeA;
     });
     return enriched;

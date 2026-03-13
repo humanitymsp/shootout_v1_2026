@@ -133,14 +133,14 @@ export default function TVPage() {
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       // Players are synced — data used when displaying seats/waitlists
-    }, 5000); // Poll every 5 seconds
+    }, 15000); // Poll every 15 seconds
 
-    // Single polling interval at 3 seconds — event-driven updates handle the rest
+    // Polling interval at 10 seconds — event-driven updates handle instant changes
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
       if (isOffline) return;
       loadData();
-    }, 3000);
+    }, 10000);
 
     return () => {
       clearInterval(pollInterval);
@@ -148,16 +148,6 @@ export default function TVPage() {
     };
   }, [clubDay, isOffline]);
 
-  // Guaranteed full refresh every 2 minutes regardless of events or clubDay state
-  useEffect(() => {
-    const autoRefreshInterval = setInterval(() => {
-      if (!document.hidden && !isOffline) {
-        // Auto-refresh (2 min interval)
-        loadData();
-      }
-    }, 2 * 60 * 1000);
-    return () => clearInterval(autoRefreshInterval);
-  }, [isOffline]);
 
   useEffect(() => {
     // Update clock every second + high hand countdown
@@ -415,30 +405,46 @@ export default function TVPage() {
 
     const displays: TableDisplay[] = [];
 
+    // Fetch ALL active waitlists for this club day in ONE query (eliminates N+1 per-player queries)
+    let allActiveWaitlists: any[] = [];
+    try {
+      const { data: wlData } = await client.models.TableWaitlist.list({
+        filter: {
+          clubDayId: { eq: activeClubDay?.id || '' },
+          removedAt: { attributeExists: false },
+        },
+      });
+      allActiveWaitlists = wlData || [];
+    } catch { /* best effort */ }
+
+    // Build a set of playerIds that are on ANY waitlist, keyed by tableId
+    const playerWaitlistMap = new Map<string, Set<string>>(); // playerId -> set of tableIds they're waiting at
+    for (const wl of allActiveWaitlists) {
+      if (!playerWaitlistMap.has(wl.playerId)) {
+        playerWaitlistMap.set(wl.playerId, new Set());
+      }
+      playerWaitlistMap.get(wl.playerId)!.add(wl.tableId);
+    }
+
     for (const table of activeTables) {
       // Use centralized counting function - SINGLE SOURCE OF TRUTH
       // CRITICAL: Pass clubDayId to prevent counting players from old club days
-      // Use activeClubDay parameter (not state) to ensure we have the correct ID
       const counts = await getTableCounts(table.id, activeClubDay?.id);
       const seatsFilled = counts.seatedCount;
       const waitlistCount = counts.waitlistCount;
-      
-      // Debug logging for Table 14 specifically
-      if (table.table_number === 14) {
-        // Table 14 debug data processed
-      }
 
-      // Count players seated here who are waiting at another table
+      // Count players seated here who are waiting at another table (uses pre-fetched data, no extra queries)
       let playersWaitingElsewhere = 0;
       for (const seat of counts.seatedPlayers) {
-        const { data: otherWaitlists } = await client.models.TableWaitlist.list({
-          filter: {
-            playerId: { eq: seat.player_id },
-            removedAt: { attributeExists: false },
-          },
-        });
-        if (otherWaitlists && otherWaitlists.some((wl: { tableId: string }) => wl.tableId !== table.id)) {
-          playersWaitingElsewhere++;
+        const waitlistTableIds = playerWaitlistMap.get(seat.player_id);
+        if (waitlistTableIds) {
+          // Check if they're on a waitlist for a DIFFERENT table
+          for (const wlTableId of waitlistTableIds) {
+            if (wlTableId !== table.id) {
+              playersWaitingElsewhere++;
+              break;
+            }
+          }
         }
       }
 
