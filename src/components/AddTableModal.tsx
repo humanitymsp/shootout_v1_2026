@@ -17,7 +17,7 @@ const TABLE_TEMPLATES = [
   { name: 'NLH 1/3', gameType: 'NLH' as const, stakesText: '$1/$3 No Limit', seatsTotal: 20, buyInLimits: '$300-$1000', bombPotCount: 1 },
   { name: 'NLH 1/2/5', gameType: 'NLH' as const, stakesText: '$1/$2/$5 No Limit', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
   { name: 'NLH 2/5', gameType: 'NLH' as const, stakesText: '$2/$5 No Limit', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
-  { name: 'PLO', gameType: 'PLO' as const, stakesText: 'PLO', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
+  { name: 'PLO 5', gameType: 'PLO' as const, stakesText: '$1/$2/$5 PLO', seatsTotal: 20, buyInLimits: '$200-$1000', bombPotCount: 1 },
   { name: 'Big-O', gameType: 'BigO' as const, stakesText: 'Big-O', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
   { name: 'Limit', gameType: 'Limit' as const, stakesText: 'Limit', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
   { name: 'Mixed', gameType: 'Mixed' as const, stakesText: 'Mixed', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
