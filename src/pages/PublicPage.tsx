@@ -365,17 +365,24 @@ export default function PublicPage() {
       );
 
       // Fetch persistent tables: try DB first (cross-device), fall back to localStorage
-      let pts = getPersistentTables();
+      const localPts = getPersistentTables();
+      log(`Public: localStorage persistent tables: ${localPts.length}`);
+      let pts = localPts;
       let dbWaitlistEntries: any[] = [];
       try {
         const dbData = await getPersistentTablesFromDB();
+        log(`Public: DB persistent tables result: tables=${dbData?.tables?.length ?? 'null'}, waitlist=${dbData?.waitlist?.length ?? 'null'}`);
         if (dbData && dbData.tables.length > 0) {
           pts = dbData.tables;
           dbWaitlistEntries = dbData.waitlist;
-          log(`Public: Loaded ${pts.length} persistent tables from DB`);
+          log(`Public: Using ${pts.length} persistent tables from DB`);
+        } else if (localPts.length > 0) {
+          log(`Public: DB empty but localStorage has ${localPts.length} tables — using localStorage`);
+        } else {
+          log(`Public: No persistent tables from DB or localStorage`);
         }
-      } catch {
-        log('Public: DB persistent tables fetch failed, using localStorage');
+      } catch (dbErr: any) {
+        log(`Public: DB persistent tables fetch FAILED: ${dbErr?.message || dbErr} — using localStorage (${localPts.length} tables)`);
       }
 
       // Patch is_persistent flag from persistent metadata
@@ -450,17 +457,25 @@ export default function PublicPage() {
       // Filter out stale entries: if a persistent table has an api_table_id that no longer
       // exists in the API AND doesn't have public_signups, it's a ghost game.
       const validApiTableIds = new Set(allTables.map(t => t.id));
+      log(`Public: Filtering ${pts.length} persistent tables. Valid API table IDs: ${allTables.length}`);
       const persistentOnly = pts.filter(pt => {
-        if (pt.status === 'CLOSED') return false;
-        // Always show tables with public_signups enabled
-        if (pt.public_signups) return true;
-        // Tables without api_table_id are pure pre-signup — show them
-        if (!pt.api_table_id) return true;
-        // Tables with api_table_id but no public_signups — only show if the API table still exists
-        return validApiTableIds.has(pt.api_table_id);
+        if (pt.status === 'CLOSED') {
+          log(`Public: PT T${pt.table_number} EXCLUDED — status CLOSED`);
+          return false;
+        }
+        if (pt.public_signups) {
+          log(`Public: PT T${pt.table_number} INCLUDED — public_signups enabled`);
+          return true;
+        }
+        if (!pt.api_table_id) {
+          log(`Public: PT T${pt.table_number} INCLUDED — no api_table_id (pure pre-signup)`);
+          return true;
+        }
+        const exists = validApiTableIds.has(pt.api_table_id);
+        log(`Public: PT T${pt.table_number} ${exists ? 'INCLUDED' : 'EXCLUDED'} — api_table_id=${pt.api_table_id?.slice(0,8)}, exists in API=${exists}`);
+        return exists;
       });
-      log(`Public: All persistent tables: ${pts.map(pt => `T${pt.table_number} (id=${pt.id.slice(0,8)}, api=${pt.api_table_id?.slice(0,8) || 'none'}, signups=${pt.public_signups}, status=${pt.status})`).join(', ')}`);
-      log(`Public: Filtered persistent for display: ${persistentOnly.map(pt => `T${pt.table_number}`).join(', ') || '(none)'}`);
+      log(`Public: All persistent tables: ${pts.map(pt => `T${pt.table_number} (id=${pt.id.slice(0,8)}, api=${pt.api_table_id?.slice(0,8) || 'none'}, signups=${pt.public_signups}, status=${pt.status})`).join(', ') || '(none)'}`);
       for (const pt of persistentOnly) {
         // Use DB waitlist if available, otherwise fall back to localStorage
         const wl = dbWaitlistEntries.length > 0

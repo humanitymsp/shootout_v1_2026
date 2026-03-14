@@ -291,52 +291,67 @@ export async function syncPersistentTablesToDB(): Promise<void> {
 
     const tables = getPersistentTables();
     const waitlist = getPersistentWaitlist();
+    log(`📡 syncPersistentTablesToDB: ${tables.length} tables, ${waitlist.length} waitlist entries`);
 
     // Sync tables
     const tablesPayload = JSON.stringify(tables);
-    const { data: existingTables } = await client.models.PlayerSync.list({
-      filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
-      limit: 1,
-      authMode: 'apiKey',
-    });
-    if (existingTables && existingTables.length > 0) {
-      await client.models.PlayerSync.update({
-        id: existingTables[0].id,
-        playersJson: tablesPayload,
-        syncedAt: new Date().toISOString(),
-      }, { authMode: 'apiKey' });
-    } else {
-      await client.models.PlayerSync.create({
-        clubDayId: PERSISTENT_TABLES_SENTINEL,
-        playersJson: tablesPayload,
-        syncedAt: new Date().toISOString(),
-      }, { authMode: 'apiKey' });
+    try {
+      const { data: existingTables } = await client.models.PlayerSync.list({
+        filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
+        limit: 10,
+        authMode: 'apiKey',
+      });
+      log(`📡 Tables sentinel lookup: found ${existingTables?.length || 0} records`);
+      if (existingTables && existingTables.length > 0) {
+        await client.models.PlayerSync.update({
+          id: existingTables[0].id,
+          playersJson: tablesPayload,
+          syncedAt: new Date().toISOString(),
+        }, { authMode: 'apiKey' });
+        log(`📡 Updated tables sentinel: id=${existingTables[0].id}`);
+      } else {
+        const result = await client.models.PlayerSync.create({
+          clubDayId: PERSISTENT_TABLES_SENTINEL,
+          playersJson: tablesPayload,
+          syncedAt: new Date().toISOString(),
+        }, { authMode: 'apiKey' });
+        log(`📡 Created tables sentinel: id=${result?.data?.id}`);
+      }
+    } catch (tablesErr: any) {
+      logError('📡 Tables sentinel sync FAILED:', tablesErr?.message || tablesErr);
     }
 
     // Sync waitlist
     const waitlistPayload = JSON.stringify(waitlist);
-    const { data: existingWaitlist } = await client.models.PlayerSync.list({
-      filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
-      limit: 1,
-      authMode: 'apiKey',
-    });
-    if (existingWaitlist && existingWaitlist.length > 0) {
-      await client.models.PlayerSync.update({
-        id: existingWaitlist[0].id,
-        playersJson: waitlistPayload,
-        syncedAt: new Date().toISOString(),
-      }, { authMode: 'apiKey' });
-    } else {
-      await client.models.PlayerSync.create({
-        clubDayId: PERSISTENT_WAITLIST_SENTINEL,
-        playersJson: waitlistPayload,
-        syncedAt: new Date().toISOString(),
-      }, { authMode: 'apiKey' });
+    try {
+      const { data: existingWaitlist } = await client.models.PlayerSync.list({
+        filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
+        limit: 10,
+        authMode: 'apiKey',
+      });
+      log(`📡 Waitlist sentinel lookup: found ${existingWaitlist?.length || 0} records`);
+      if (existingWaitlist && existingWaitlist.length > 0) {
+        await client.models.PlayerSync.update({
+          id: existingWaitlist[0].id,
+          playersJson: waitlistPayload,
+          syncedAt: new Date().toISOString(),
+        }, { authMode: 'apiKey' });
+        log(`📡 Updated waitlist sentinel: id=${existingWaitlist[0].id}`);
+      } else {
+        const result = await client.models.PlayerSync.create({
+          clubDayId: PERSISTENT_WAITLIST_SENTINEL,
+          playersJson: waitlistPayload,
+          syncedAt: new Date().toISOString(),
+        }, { authMode: 'apiKey' });
+        log(`📡 Created waitlist sentinel: id=${result?.data?.id}`);
+      }
+    } catch (waitlistErr: any) {
+      logError('📡 Waitlist sentinel sync FAILED:', waitlistErr?.message || waitlistErr);
     }
 
-    log('📡 Synced persistent tables + waitlist to DB');
-  } catch (error) {
-    logError('Failed to sync persistent tables to DB:', error);
+    log('📡 Synced persistent tables + waitlist to DB ✓');
+  } catch (error: any) {
+    logError('Failed to sync persistent tables to DB:', error?.message || error);
   }
 }
 
@@ -349,32 +364,98 @@ export async function getPersistentTablesFromDB(): Promise<{ tables: PersistentT
     const { generateClient } = await import('./graphql-client');
     const client = generateClient();
 
-    const [tablesRes, waitlistRes] = await Promise.all([
-      client.models.PlayerSync.list({
-        filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
-        limit: 1,
-        authMode: 'apiKey',
-      }),
-      client.models.PlayerSync.list({
-        filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
-        limit: 1,
-        authMode: 'apiKey',
-      }),
-    ]);
-
+    log(`📡 getPersistentTablesFromDB: fetching sentinels...`);
+    
     let tables: PersistentTable[] = [];
     let waitlist: PersistentTableWaitlist[] = [];
 
-    if (tablesRes.data && tablesRes.data.length > 0 && tablesRes.data[0].playersJson) {
-      tables = JSON.parse(tablesRes.data[0].playersJson as string);
+    // Strategy 1: Try Amplify model layer
+    try {
+      const [tablesRes, waitlistRes] = await Promise.all([
+        client.models.PlayerSync.list({
+          filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
+          limit: 10,
+          authMode: 'apiKey',
+        }),
+        client.models.PlayerSync.list({
+          filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
+          limit: 10,
+          authMode: 'apiKey',
+        }),
+      ]);
+      log(`📡 Model layer: tables=${tablesRes?.data?.length || 0}, waitlist=${waitlistRes?.data?.length || 0}`);
+
+      if (tablesRes?.data && tablesRes.data.length > 0 && tablesRes.data[0].playersJson) {
+        const raw = tablesRes.data[0].playersJson;
+        tables = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+        log(`📡 Parsed ${tables.length} persistent tables via model layer`);
+      }
+      if (waitlistRes?.data && waitlistRes.data.length > 0 && waitlistRes.data[0].playersJson) {
+        const raw = waitlistRes.data[0].playersJson;
+        waitlist = typeof raw === 'string' ? JSON.parse(raw) : (Array.isArray(raw) ? raw : []);
+        log(`📡 Parsed ${waitlist.length} waitlist entries via model layer`);
+      }
+    } catch (modelErr: any) {
+      logWarn('📡 Model layer fetch failed:', modelErr?.message || modelErr);
     }
-    if (waitlistRes.data && waitlistRes.data.length > 0 && waitlistRes.data[0].playersJson) {
-      waitlist = JSON.parse(waitlistRes.data[0].playersJson as string);
+
+    // Strategy 2: If model layer returned nothing, try raw GraphQL (bypasses relationship issues)
+    if (tables.length === 0) {
+      log('📡 Model layer returned no tables — trying raw GraphQL fallback...');
+      try {
+        const query = `
+          query ListPlayerSyncs($filter: ModelPlayerSyncFilterInput, $limit: Int) {
+            listPlayerSyncs(filter: $filter, limit: $limit) {
+              items {
+                id
+                clubDayId
+                playersJson
+                syncedAt
+              }
+            }
+          }
+        `;
+        const [tablesGql, waitlistGql] = await Promise.all([
+          client.graphql({
+            query,
+            variables: { filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } }, limit: 10 },
+            authMode: 'apiKey',
+          }),
+          client.graphql({
+            query,
+            variables: { filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } }, limit: 10 },
+            authMode: 'apiKey',
+          }),
+        ]);
+
+        const tablesItems = (tablesGql as any)?.data?.listPlayerSyncs?.items || [];
+        const waitlistItems = (waitlistGql as any)?.data?.listPlayerSyncs?.items || [];
+        log(`📡 Raw GraphQL: tables=${tablesItems.length}, waitlist=${waitlistItems.length}`);
+
+        if (tablesItems.length > 0 && tablesItems[0].playersJson) {
+          let raw = tablesItems[0].playersJson;
+          if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { /* keep as-is */ } }
+          tables = Array.isArray(raw) ? raw : [];
+          log(`📡 Parsed ${tables.length} persistent tables via raw GraphQL`);
+        }
+        if (waitlistItems.length > 0 && waitlistItems[0].playersJson) {
+          let raw = waitlistItems[0].playersJson;
+          if (typeof raw === 'string') { try { raw = JSON.parse(raw); } catch { /* keep as-is */ } }
+          waitlist = Array.isArray(raw) ? raw : [];
+          log(`📡 Parsed ${waitlist.length} waitlist entries via raw GraphQL`);
+        }
+      } catch (gqlErr: any) {
+        logError('📡 Raw GraphQL fallback also failed:', gqlErr?.message || gqlErr);
+      }
+    }
+
+    if (tables.length === 0) {
+      log('📡 No persistent tables found in DB via any strategy');
     }
 
     return { tables, waitlist };
-  } catch (error) {
-    logError('Failed to fetch persistent tables from DB:', error);
+  } catch (error: any) {
+    logError('Failed to fetch persistent tables from DB:', error?.message || error);
     return null;
   }
 }

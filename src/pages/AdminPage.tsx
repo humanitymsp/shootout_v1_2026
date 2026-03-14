@@ -5,7 +5,7 @@ import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
 import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
-import { getPersistentTables, getTableWaitlist, addToPersistentWaitlist, removeFromPersistentWaitlist, listenForPersistentTableUpdates } from '../lib/persistentTables';
+import { getPersistentTables, getTableWaitlist, addToPersistentWaitlist, removeFromPersistentWaitlist, listenForPersistentTableUpdates, syncPersistentTablesToDB } from '../lib/persistentTables';
 import type { ClubDay, PokerTable, PersistentTable, PersistentTableWaitlist } from '../types';
 import AdminHeader from '../components/AdminHeader';
 import TableCard from '../components/TableCard';
@@ -335,6 +335,19 @@ export default function AdminPage({ user }: AdminPageProps) {
     });
     setPersistentWaitlists(waitlists);
     
+    // Immediately sync persistent tables to DB for cross-device access
+    if (tables.length > 0) {
+      syncPersistentTablesToDB().catch(() => {});
+    }
+    
+    // Periodic sync every 30 seconds to keep DB up-to-date for public/TV pages
+    const syncInterval = setInterval(() => {
+      const currentPts = getPersistentTables();
+      if (currentPts.length > 0) {
+        syncPersistentTablesToDB().catch(() => {});
+      }
+    }, 30000);
+    
     // Set up real-time sync for persistent tables
     const cleanup = listenForPersistentTableUpdates(() => {
       // Reload persistent tables when updates occur
@@ -349,7 +362,10 @@ export default function AdminPage({ user }: AdminPageProps) {
       setPersistentWaitlists(updatedWaitlists);
     });
     
-    return cleanup;
+    return () => {
+      cleanup();
+      clearInterval(syncInterval);
+    };
   }, []);
 
   // Keyboard shortcuts
