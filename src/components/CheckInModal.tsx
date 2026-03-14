@@ -663,26 +663,17 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
               </div>
             )}
 
-            {/* Existing Check-in Warning */}
+            {/* Existing Check-in Notice */}
             {existingCheckIn && (
-              <div className="warning-section">
-                <div className="warning-header"><span>⚠️</span><strong>Already Checked In</strong></div>
-                <div className="warning-info">
-                  <div>Paid: {new Date(existingCheckIn.checkin_time).toLocaleString()}</div>
-                  <div>Receipt: #{existingCheckIn.receipt?.receipt_number}</div>
-                </div>
-                <div className="radio-group">
-                  <label className="radio-option">
-                    <input type="radio" name="buyinChoice" checked={useExistingBuyIn} onChange={() => { setUseExistingBuyIn(true); setShowOverride(false); setOverrideReason(''); }} />
-                    <span>Use existing buy-in</span>
-                  </label>
-                  <label className="radio-option">
-                    <input type="radio" name="buyinChoice" checked={!useExistingBuyIn && showOverride} onChange={() => { setUseExistingBuyIn(false); setShowOverride(true); }} />
-                    <span>Charge again</span>
-                  </label>
-                </div>
-                {showOverride && !useExistingBuyIn && (
-                  <input type="text" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Reason for charging again..." required className="override-input" />
+              <div className="existing-checkin-notice">
+                <span className="existing-checkin-text">✓ Already bought in</span>
+                {!showOverride ? (
+                  <button type="button" className="existing-checkin-charge-link" onClick={() => { setUseExistingBuyIn(false); setShowOverride(true); }}>Charge again?</button>
+                ) : (
+                  <div className="existing-checkin-override">
+                    <input type="text" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Reason..." required className="override-input" />
+                    <button type="button" className="existing-checkin-cancel" onClick={() => { setUseExistingBuyIn(true); setShowOverride(false); setOverrideReason(''); }}>Cancel</button>
+                  </div>
                 )}
               </div>
             )}

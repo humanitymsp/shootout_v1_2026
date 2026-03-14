@@ -266,6 +266,67 @@
   border-radius: 6px;
 }
 
+/* Compact existing check-in notice */
+.existing-checkin-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 6px;
+  flex-wrap: wrap;
+}
+
+.existing-checkin-text {
+  color: #22c55e;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.existing-checkin-charge-link {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.existing-checkin-charge-link:hover {
+  color: #fbbf24;
+}
+
+.existing-checkin-override {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.existing-checkin-override .override-input {
+  flex: 1;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.4rem;
+  min-width: 80px;
+}
+
+.existing-checkin-cancel {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0.1rem 0.3rem;
+  white-space: nowrap;
+}
+
+.existing-checkin-cancel:hover {
+  color: #f87171;
+}
+
 .warning-header {
   display: flex;
   align-items: center;
