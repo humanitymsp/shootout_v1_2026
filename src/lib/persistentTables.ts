@@ -279,10 +279,20 @@ function recalculateWaitlistPositions(persistentTableId: string): void {
 const PERSISTENT_TABLES_SENTINEL = 'persistent-tables-sentinel';
 const PERSISTENT_WAITLIST_SENTINEL = 'persistent-waitlist-sentinel';
 
+// Cache sentinel record IDs to avoid re-querying them every sync cycle (saves 2 list queries per cycle)
+let _tablesSentinelId: string | null = null;
+let _waitlistSentinelId: string | null = null;
+let _lastTablesPayload: string | null = null;
+let _lastWaitlistPayload: string | null = null;
+
 /**
  * Sync persistent tables + waitlist to DynamoDB for cross-device access.
  * Uses the PlayerSync model with sentinel clubDayId (same pattern as SMS config / pending signups).
  * Fire-and-forget — callers don't need to await.
+ * 
+ * Optimizations:
+ * - Caches sentinel IDs after first lookup (avoids 2 list queries per cycle)
+ * - Skips sync if payload hasn't changed since last sync
  */
 export async function syncPersistentTablesToDB(): Promise<void> {
   try {
@@ -291,65 +301,79 @@ export async function syncPersistentTablesToDB(): Promise<void> {
 
     const tables = getPersistentTables();
     const waitlist = getPersistentWaitlist();
-    log(`📡 syncPersistentTablesToDB: ${tables.length} tables, ${waitlist.length} waitlist entries`);
 
-    // Sync tables
+    // Sync tables — skip if payload unchanged
     const tablesPayload = JSON.stringify(tables);
-    try {
-      const { data: existingTables } = await client.models.PlayerSync.list({
-        filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
-        limit: 10,
-        authMode: 'apiKey',
-      });
-      log(`📡 Tables sentinel lookup: found ${existingTables?.length || 0} records`);
-      if (existingTables && existingTables.length > 0) {
-        await client.models.PlayerSync.update({
-          id: existingTables[0].id,
-          playersJson: tablesPayload,
-          syncedAt: new Date().toISOString(),
-        }, { authMode: 'apiKey' });
-        log(`📡 Updated tables sentinel: id=${existingTables[0].id}`);
-      } else {
-        const result = await client.models.PlayerSync.create({
-          clubDayId: PERSISTENT_TABLES_SENTINEL,
-          playersJson: tablesPayload,
-          syncedAt: new Date().toISOString(),
-        }, { authMode: 'apiKey' });
-        log(`📡 Created tables sentinel: id=${result?.data?.id}`);
+    if (tablesPayload !== _lastTablesPayload) {
+      try {
+        // If we don't have the sentinel ID cached, look it up
+        if (!_tablesSentinelId) {
+          const { data: existingTables } = await client.models.PlayerSync.list({
+            filter: { clubDayId: { eq: PERSISTENT_TABLES_SENTINEL } },
+            limit: 10,
+            authMode: 'apiKey',
+          });
+          if (existingTables && existingTables.length > 0) {
+            _tablesSentinelId = existingTables[0].id;
+          }
+        }
+
+        if (_tablesSentinelId) {
+          await client.models.PlayerSync.update({
+            id: _tablesSentinelId,
+            playersJson: tablesPayload,
+            syncedAt: new Date().toISOString(),
+          }, { authMode: 'apiKey' });
+        } else {
+          const result = await client.models.PlayerSync.create({
+            clubDayId: PERSISTENT_TABLES_SENTINEL,
+            playersJson: tablesPayload,
+            syncedAt: new Date().toISOString(),
+          }, { authMode: 'apiKey' });
+          _tablesSentinelId = result?.data?.id || null;
+        }
+        _lastTablesPayload = tablesPayload;
+      } catch (tablesErr: any) {
+        logError('📡 Tables sentinel sync FAILED:', tablesErr?.message || tablesErr);
+        _tablesSentinelId = null; // Reset cache on error so next sync retries lookup
       }
-    } catch (tablesErr: any) {
-      logError('📡 Tables sentinel sync FAILED:', tablesErr?.message || tablesErr);
     }
 
-    // Sync waitlist
+    // Sync waitlist — skip if payload unchanged
     const waitlistPayload = JSON.stringify(waitlist);
-    try {
-      const { data: existingWaitlist } = await client.models.PlayerSync.list({
-        filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
-        limit: 10,
-        authMode: 'apiKey',
-      });
-      log(`📡 Waitlist sentinel lookup: found ${existingWaitlist?.length || 0} records`);
-      if (existingWaitlist && existingWaitlist.length > 0) {
-        await client.models.PlayerSync.update({
-          id: existingWaitlist[0].id,
-          playersJson: waitlistPayload,
-          syncedAt: new Date().toISOString(),
-        }, { authMode: 'apiKey' });
-        log(`📡 Updated waitlist sentinel: id=${existingWaitlist[0].id}`);
-      } else {
-        const result = await client.models.PlayerSync.create({
-          clubDayId: PERSISTENT_WAITLIST_SENTINEL,
-          playersJson: waitlistPayload,
-          syncedAt: new Date().toISOString(),
-        }, { authMode: 'apiKey' });
-        log(`📡 Created waitlist sentinel: id=${result?.data?.id}`);
-      }
-    } catch (waitlistErr: any) {
-      logError('📡 Waitlist sentinel sync FAILED:', waitlistErr?.message || waitlistErr);
-    }
+    if (waitlistPayload !== _lastWaitlistPayload) {
+      try {
+        if (!_waitlistSentinelId) {
+          const { data: existingWaitlist } = await client.models.PlayerSync.list({
+            filter: { clubDayId: { eq: PERSISTENT_WAITLIST_SENTINEL } },
+            limit: 10,
+            authMode: 'apiKey',
+          });
+          if (existingWaitlist && existingWaitlist.length > 0) {
+            _waitlistSentinelId = existingWaitlist[0].id;
+          }
+        }
 
-    log('📡 Synced persistent tables + waitlist to DB ✓');
+        if (_waitlistSentinelId) {
+          await client.models.PlayerSync.update({
+            id: _waitlistSentinelId,
+            playersJson: waitlistPayload,
+            syncedAt: new Date().toISOString(),
+          }, { authMode: 'apiKey' });
+        } else {
+          const result = await client.models.PlayerSync.create({
+            clubDayId: PERSISTENT_WAITLIST_SENTINEL,
+            playersJson: waitlistPayload,
+            syncedAt: new Date().toISOString(),
+          }, { authMode: 'apiKey' });
+          _waitlistSentinelId = result?.data?.id || null;
+        }
+        _lastWaitlistPayload = waitlistPayload;
+      } catch (waitlistErr: any) {
+        logError('📡 Waitlist sentinel sync FAILED:', waitlistErr?.message || waitlistErr);
+        _waitlistSentinelId = null; // Reset cache on error
+      }
+    }
   } catch (error: any) {
     logError('Failed to sync persistent tables to DB:', error?.message || error);
   }

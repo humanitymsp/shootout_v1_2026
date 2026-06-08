@@ -155,42 +155,76 @@ export async function getMultipleTableCounts(tableIds: string[]): Promise<Map<st
  */
 export async function getAllTableCountsForClubDay(
   clubDayId: string,
-  authMode?: string
+  authMode?: string,
+  prefetched?: { seats: any[]; waitlist: any[] }
 ): Promise<{ countsMap: Map<string, TableCounts>; allWaitlists: any[] }> {
-  const { generateClient } = await import('./graphql-client');
-  const client = generateClient();
+  let allSeatsRaw: any[];
+  let allWaitlistsRaw: any[];
 
-  // TWO queries instead of 2N queries
-  const seatListOpts: any = {
-    filter: {
-      and: [
-        { clubDayId: { eq: clubDayId } },
-        { leftAt: { attributeExists: false } },
-      ],
-    },
-    limit: 1000,
-  };
-  const wlListOpts: any = {
-    filter: {
-      and: [
-        { clubDayId: { eq: clubDayId } },
-        { removedAt: { attributeExists: false } },
-      ],
-    },
-    limit: 1000,
-  };
-  if (authMode) {
-    seatListOpts.authMode = authMode;
-    wlListOpts.authMode = authMode;
+  if (prefetched && (prefetched.seats.length > 0 || prefetched.waitlist.length > 0)) {
+    // Use pre-fetched data from compound query — zero extra AppSync calls
+    allSeatsRaw = prefetched.seats.filter((s: any) => !s.leftAt);
+    allWaitlistsRaw = prefetched.waitlist.filter((w: any) => !w.removedAt);
+  } else if (!prefetched) {
+    // No prefetched data — fetch via GSI queries (original path)
+    const { generateClient } = await import('./graphql-client');
+    const client = generateClient();
+
+    // Use GSI-based queries (DynamoDB Query) instead of Scan.
+    // The ClubDay relationship resolvers hit gsi-ClubDay.seats and gsi-ClubDay.waitlist,
+    // reading only items for this clubDayId instead of scanning the entire table.
+    // Falls back to Scan if GSI query returns empty (edge case).
+    const { querySeatsByClubDay, queryWaitlistByClubDay } = await import('./gsiQueries');
+
+    // Try GSI queries first (much cheaper)
+    const [gsiSeats, gsiWaitlists] = await Promise.all([
+      querySeatsByClubDay(clubDayId, authMode),
+      queryWaitlistByClubDay(clubDayId, authMode),
+    ]);
+
+    if (gsiSeats.length > 0 || gsiWaitlists.length > 0) {
+      // GSI returned data — filter client-side for leftAt/removedAt
+      allSeatsRaw = gsiSeats.filter((s: any) => !s.leftAt);
+      allWaitlistsRaw = gsiWaitlists.filter((w: any) => !w.removedAt);
+    } else {
+      // Fallback to Scan (original behavior) — only if GSI returned nothing
+      // This handles edge cases like brand-new club days with no data yet
+      const seatListOpts: any = {
+        filter: {
+          and: [
+            { clubDayId: { eq: clubDayId } },
+            { leftAt: { attributeExists: false } },
+          ],
+        },
+        limit: 1000,
+      };
+      const wlListOpts: any = {
+        filter: {
+          and: [
+            { clubDayId: { eq: clubDayId } },
+            { removedAt: { attributeExists: false } },
+          ],
+        },
+        limit: 1000,
+      };
+      if (authMode) {
+        seatListOpts.authMode = authMode;
+        wlListOpts.authMode = authMode;
+      }
+
+      const [seatResult, wlResult] = await Promise.all([
+        client.models.TableSeat.list(seatListOpts),
+        client.models.TableWaitlist.list(wlListOpts),
+      ]);
+
+      allSeatsRaw = seatResult.data || [];
+      allWaitlistsRaw = wlResult.data || [];
+    }
+  } else {
+    // prefetched was provided but both arrays empty — brand-new club day, no data yet
+    allSeatsRaw = [];
+    allWaitlistsRaw = [];
   }
-
-  const [seatResult, wlResult] = await Promise.all([
-    client.models.TableSeat.list(seatListOpts),
-    client.models.TableWaitlist.list(wlListOpts),
-  ]);
-
-  const allSeatsRaw = seatResult.data || [];
-  const allWaitlistsRaw = wlResult.data || [];
 
   // Convert raw Amplify records to app types
   const toSeat = (r: any): TableSeat => ({
@@ -220,12 +254,15 @@ export async function getAllTableCountsForClubDay(
   let allSeats = allSeatsRaw.map(toSeat);
   let allWaitlists = allWaitlistsRaw.map(toWl);
 
-  // Enrich with player data from localStorage (async function — must await)
+  // Enrich with player data: AppSync relation → localStorage → Player.list → Player.get
+  // All auth modes (userPool, apiKey) are fully supported through every fallback layer.
   try {
     const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
-    allSeats = await enrichArrayWithPlayerData(allSeats);
-    allWaitlists = await enrichArrayWithPlayerData(allWaitlists);
-  } catch { /* fallback: no enrichment */ }
+    allSeats = await enrichArrayWithPlayerData(allSeats, authMode);
+    allWaitlists = await enrichArrayWithPlayerData(allWaitlists, authMode);
+  } catch (err) {
+    console.error('⚠️ getAllTableCountsForClubDay: enrichment failed, player names may show as placeholders:', err);
+  }
 
   // Group by table_id
   const seatsByTable = new Map<string, TableSeat[]>();

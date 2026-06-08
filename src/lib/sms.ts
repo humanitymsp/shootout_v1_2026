@@ -16,6 +16,7 @@ export interface SMSResult {
 export interface SMSSettings {
   enabled: boolean;
   apiKey: string;
+  fromNumber: string;
   checkInNotifications: boolean;
   marketingMessages: boolean;
   marketingMessage?: string;
@@ -91,7 +92,7 @@ export async function syncSMSKeyToDB(): Promise<void> {
       limit: 1,
       authMode: 'apiKey',
     });
-    const payload = JSON.stringify({ apiKey: settings.apiKey, enabled: settings.enabled });
+    const payload = JSON.stringify({ apiKey: settings.apiKey, fromNumber: settings.fromNumber, enabled: settings.enabled });
     if (existing && existing.length > 0) {
       await client.models.PlayerSync.update({
         id: existing[0].id,
@@ -127,7 +128,7 @@ export async function getSMSKeyFromDB(): Promise<string | null> {
       const config = typeof data[0].playersJson === 'string'
         ? JSON.parse(data[0].playersJson)
         : data[0].playersJson;
-      if (config?.enabled && config?.apiKey) return config.apiKey;
+      if (config?.enabled && config?.apiKey) return `${config.apiKey}::${config.fromNumber || ''}`;
     }
   } catch (error) {
     logError('[SMS] Failed to read API key from DynamoDB:', error);
@@ -136,17 +137,16 @@ export async function getSMSKeyFromDB(): Promise<string | null> {
 }
 
 /**
- * Send SMS via AppSync sendSMS mutation → Lambda → TextBelt.
+ * Send SMS via AppSync sendSMS mutation → Lambda → Telnyx.
  *
- * The Lambda handler uses URLSearchParams with Content-Type:
- * application/x-www-form-urlencoded, which is REQUIRED for TextBelt
- * to actually deliver SMS. (JSON requests get success:true from TextBelt
- * but carriers mark them FAILED and the message never arrives.)
+ * The `key` parameter carries "telnyxApiKey::fromNumber" so the Lambda
+ * can split them and call the Telnyx v2/messages API.
  *
  * Uses apiKey authMode so the unauthenticated public page can call it.
  */
 export async function sendSMS(message: SMSMessage, apiKey: string): Promise<SMSResult> {
   const phone = normalizePhone(message.to);
+  // apiKey may already be encoded as "key::from" (from getSMSKeyFromDB) or plain key
   const normalizedApiKey = (apiKey || '').trim();
 
   log('[SMS] Starting send to:', phone);
@@ -168,7 +168,7 @@ export async function sendSMS(message: SMSMessage, apiKey: string): Promise<SMSR
     return { success: false, error: 'API key is required' };
   }
 
-  // Use AppSync sendSMS mutation (deployed Amplify backend → Lambda → TextBelt)
+  // Use AppSync sendSMS mutation (deployed Amplify backend → Lambda → Telnyx)
   // Try userPool auth first (admin), fall back to apiKey (public page)
   const mutation = `
     mutation SendSMS($phone: String!, $message: String!, $key: String!) {
@@ -210,7 +210,7 @@ export async function sendSMS(message: SMSMessage, apiKey: string): Promise<SMSR
             };
           }
           lastError = data.error || `sendSMS returned unsuccessful (${authMode})`;
-          logError('[SMS] TextBelt rejected message:', lastError);
+          logError('[SMS] Telnyx rejected message:', lastError);
           return { success: false, error: lastError };
         }
 
@@ -250,9 +250,17 @@ export function getSMSSettings(): SMSSettings {
   return {
     enabled: false,
     apiKey: '',
+    fromNumber: '',
     checkInNotifications: false,
     marketingMessages: false,
   };
+}
+
+/**
+ * Build the combined key string for the Lambda: "apiKey::fromNumber"
+ */
+export function buildSMSKey(settings: SMSSettings): string {
+  return `${settings.apiKey}::${settings.fromNumber || ''}`;
 }
 
 /**
@@ -304,7 +312,7 @@ export async function sendCheckInNotification(
 
   const result = await sendSMS(
     { to: phoneNumber, message },
-    settings.apiKey
+    buildSMSKey(settings)
   );
 
   if (!result.success) {
@@ -371,6 +379,7 @@ export async function sendMarketingSMS(players: { name: string; phone: string }[
 
   const results: SMSResult[] = [];
   const errors: string[] = [];
+  const combinedKey = buildSMSKey(settings);
 
   for (const player of players) {
     try {
@@ -378,7 +387,7 @@ export async function sendMarketingSMS(players: { name: string; phone: string }[
       const result = await sendSMS({
         to: player.phone,
         message: personalizedMessage,
-      }, settings.apiKey);
+      }, combinedKey);
       
       results.push(result);
       
@@ -660,6 +669,7 @@ declare module './sms' {
   interface SMSSettings {
     enabled: boolean;
     apiKey: string;
+    fromNumber: string;
     checkInNotifications: boolean;
     marketingMessages: boolean;
     marketingMessage?: string;

@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, toPokerTable } from '../lib/api';
+import { queryClubDayCompound } from '../lib/gsiQueries';
 import { getAllTableCountsForClubDay } from '../lib/tableCounts';
-import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
+import { initializeLocalPlayers, startPlayerSyncPolling, setActiveClubDayIdForCache } from '../lib/localStoragePlayers';
 import { log, logWarn, logError } from '../lib/logger';
 import { getHighHand, isHighHandEnabled, getRemainingTimeMs, getHighHandWinners } from '../lib/highHand';
 import type { HighHand, HighHandWinner } from '../lib/highHand';
@@ -10,6 +11,7 @@ import type { ClubDay, PokerTable, TableSeat, TableWaitlist } from '../types';
 import Logo from '../components/Logo';
 import PlayingCard from '../components/PlayingCard';
 import { useGoogleCast } from '../hooks/useGoogleCast';
+import { createWorkerInterval } from '../lib/workerTimer';
 import './TVPage.css';
 import '../components/HighHandBanner.css';
 
@@ -78,15 +80,23 @@ export default function TVPage() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isOffline, setIsOffline] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [isCasting, setIsCasting] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
   const retryTimeoutRef = useRef<any>(null);
   const isLoadingRef = useRef(false);
   const debounceTimerRef = useRef<any>(null);
+  const fastDebounceTimerRef = useRef<any>(null);
   
   // Google Cast functionality
   const cast = useGoogleCast();
   const retryCountRef = useRef(0);
+  const clubDayIdRef = useRef<string | null>(null);
   
+  // Sync isCasting state with cast.isConnected for CSS class
+  useEffect(() => {
+    setIsCasting(cast.isConnected);
+  }, [cast.isConnected]);
+
   // Keyboard shortcut for casting (Ctrl+Shift+C)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,34 +141,50 @@ export default function TVPage() {
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       // Players are synced — data used when displaying seats/waitlists
-    }, 15000); // Poll every 15 seconds
+    }, 30000, 'apiKey'); // Poll every 30 seconds, use apiKey auth for TV
 
-    // Polling interval at 10 seconds — event-driven updates handle instant changes
-    const pollInterval = setInterval(() => {
-      if (document.hidden) return;
+    // Use Worker-based timer for data polling — immune to Chrome's background
+    // tab throttling which can stall setInterval to 1min+ (or 10min+ in some cases).
+    // This ensures the TV display updates reliably even when the tab is being cast.
+    const stopWorkerPoll = createWorkerInterval(() => {
       if (isOffline) return;
       loadData();
-    }, 10000);
+    }, 30000); // 30s — worker ensures it fires reliably even in background tabs
+
+    // Immediate refresh when tab visibility changes (e.g. user switches back to tab)
+    const handleVisibility = () => {
+      if (!document.hidden && !isOffline) {
+        loadData();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      clearInterval(pollInterval);
+      stopWorkerPoll();
       stopPlayerSync();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [clubDay, isOffline]);
 
 
   useEffect(() => {
-    // Update clock every second + high hand countdown
+    // Update clock every 60s — seconds display removed to prevent per-second
+    // re-renders, which cause Chrome tab-capture to classify the page as animated
+    // and permanently downgrade Chromecast resolution.
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
-      // Update high hand countdown
-      if (highHandEnabled) {
-        const ms = getRemainingTimeMs();
-        setHighHandRemaining(ms);
-      }
-    }, 1000);
+    }, 60000);
 
     return () => clearInterval(clockInterval);
+  }, []);
+
+  useEffect(() => {
+    // High hand countdown — keep separate so clock changes don't retrigger this
+    if (!highHandEnabled) return;
+    const hhInterval = setInterval(() => {
+      setHighHandRemaining(getRemainingTimeMs());
+    }, 1000);
+    return () => clearInterval(hhInterval);
   }, [highHandEnabled]);
 
   // Listen for high hand updates from admin
@@ -244,51 +270,28 @@ export default function TVPage() {
     };
     window.addEventListener('storage', handleStorage);
 
-    // Poll for localStorage changes (since same-tab changes don't trigger storage events)
-    let lastProcessedUpdate: string | null = null;
-    const pollInterval = setInterval(() => {
-      const lastTableUpdate = localStorage.getItem('table-updated');
-      const lastPlayerUpdate = localStorage.getItem('player-updated');
-      const lastTvUpdate = localStorage.getItem('tv-updated');
-      
-      const latestUpdate = lastTableUpdate || lastPlayerUpdate || lastTvUpdate;
-      if (latestUpdate && latestUpdate !== lastProcessedUpdate) {
-        const updateTime = new Date(latestUpdate).getTime();
-        const now = Date.now();
-        if (now - updateTime < 10000) {
-          lastProcessedUpdate = latestUpdate;
-          debouncedRefresh();
-        }
-      }
-    }, 5000); // Check every 5 seconds
-
-    let channel: BroadcastChannel | null = null;
+    // tv-updates: table show/hide toggles, table management actions
+    let tvChannel: BroadcastChannel | null = null;
     try {
-      channel = new BroadcastChannel('tv-updates');
-      channel.onmessage = () => {
-        debouncedRefresh();
-      };
+      tvChannel = new BroadcastChannel('tv-updates');
+      tvChannel.onmessage = () => fastRefresh();
     } catch {
       // BroadcastChannel not supported
     }
-    
-    // Also listen to admin-updates channel for table changes
+
+    // admin-updates: player seat/move/remove — admin and TV are on the same device,
+    // so BroadcastChannel delivers this instantly (<5ms). Use fast 300ms debounce.
     let adminChannel: BroadcastChannel | null = null;
     try {
       adminChannel = new BroadcastChannel('admin-updates');
-      adminChannel.onmessage = (event) => {
-        if (event.data?.type === 'player-update' || event.data?.type === 'table-update') {
-          debouncedRefresh();
-        }
-      };
+      adminChannel.onmessage = () => fastRefresh();
     } catch {
       // BroadcastChannel not supported
     }
 
     return () => {
       window.removeEventListener('storage', handleStorage);
-      clearInterval(pollInterval);
-      if (channel) channel.close();
+      if (tvChannel) tvChannel.close();
       if (adminChannel) adminChannel.close();
     };
   }, []);
@@ -325,11 +328,29 @@ export default function TVPage() {
     isLoadingRef.current = true;
     
     try {
-      const activeDay = await getActiveClubDay();
-      if (activeDay) {
-        setClubDay(activeDay);
-        const tablesData = await getTablesForClubDay(activeDay.id);
-        await loadTableDisplays(tablesData, activeDay);
+      // Only fetch activeClubDay on first load or if not cached yet.
+      // ClubDay ID doesn't change during a session — skip the extra AppSync call on polls.
+      let activeDayId = clubDayIdRef.current;
+      if (!activeDayId) {
+        const activeDay = await getActiveClubDay();
+        if (activeDay) {
+          activeDayId = activeDay.id;
+          clubDayIdRef.current = activeDayId;
+          setActiveClubDayIdForCache(activeDay.id);
+          setClubDay(activeDay);
+        }
+      }
+      if (activeDayId) {
+        // COMPOUND QUERY: tables + seats + waitlist in ONE GraphQL request (4 ops vs 7)
+        const compound = await queryClubDayCompound(activeDayId);
+        const compoundOk = compound.tables.length > 0;
+        const tablesData = compoundOk
+          ? compound.tables.map(toPokerTable)
+          : await getTablesForClubDay(activeDayId); // fallback
+        const prefetchedForCounts = compoundOk
+          ? { seats: compound.seats, waitlist: compound.waitlist }
+          : undefined;
+        await loadTableDisplays(tablesData, clubDay, prefetchedForCounts);
         
         // Success - reset retry count and update timestamp
         retryCountRef.current = 0;
@@ -375,24 +396,48 @@ export default function TVPage() {
     }
   };
 
-  // Debounced refresh — coalesces rapid-fire events into one loadData call
+  // Fast debounce (300ms) — for direct same-device signals from admin-updates channel.
+  // Admin and TV are on the same machine; no need to wait for AppSync propagation.
+  const fastRefresh = () => {
+    if (fastDebounceTimerRef.current) clearTimeout(fastDebounceTimerRef.current);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    fastDebounceTimerRef.current = setTimeout(() => {
+      loadData();
+    }, 300);
+  };
+
+  // Slow debounce (3s) — for storage events which may arrive slightly after the write
   const debouncedRefresh = () => {
+    if (fastDebounceTimerRef.current) return; // fast path already scheduled, skip
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       loadData();
-    }, 500);
+    }, 3000);
   };
 
-  const loadTableDisplays = async (tables: PokerTable[], activeClubDay: ClubDay | null) => {
+  const loadTableDisplays = async (tables: PokerTable[], activeClubDay: ClubDay | null, prefetchedData?: { seats: any[]; waitlist: any[] }) => {
     // Deduplicate tables by table_number (keep latest)
     const uniqueTables = Array.from(
       new Map(tables.map((table) => [table.table_number, table])).values()
     );
     
-    // Patch is_persistent flag from localStorage persistent metadata
+    // Validate persistent tables against current club day's API tables
+    // If api_table_id is stale (from a previous day), rebind by table_number
     const pts = getPersistentTables();
-    const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
-    const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
+    const validTableIds = new Set(tables.map(t => t.id));
+    const apiTableByNumber = new Map(tables.map(t => [t.table_number, t]));
+    const validPts = pts.map(pt => {
+      if (pt.status === 'CLOSED') return null;
+      if (pt.api_table_id && validTableIds.has(pt.api_table_id)) return pt;
+      if (pt.api_table_id && !validTableIds.has(pt.api_table_id)) {
+        const match = apiTableByNumber.get(pt.table_number);
+        if (match && match.status !== 'CLOSED') return { ...pt, api_table_id: match.id };
+        return null;
+      }
+      return pt;
+    }).filter(Boolean) as typeof pts;
+    const ptIds = new Set(validPts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
+    const ptNumsNoId = new Set(validPts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
     uniqueTables.forEach(t => {
       if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
     });
@@ -403,9 +448,11 @@ export default function TVPage() {
 
     const displays: TableDisplay[] = [];
 
-    // BATCH: Fetch ALL seats + ALL waitlists for the entire club day in just 2 queries
-    // (replaces per-table getTableCounts which was 2 queries × N tables)
-    const { countsMap, allWaitlists } = await getAllTableCountsForClubDay(activeClubDay?.id || '');
+    // Use prefetched data from compound query when available (0 extra AppSync calls),
+    // otherwise fall back to separate GSI queries (2 calls)
+    const { countsMap, allWaitlists } = await getAllTableCountsForClubDay(
+      activeClubDay?.id || '', undefined, prefetchedData
+    );
 
     // Build playerWaitlistMap for cross-table lookups
     const playerWaitlistMap = new Map<string, Set<string>>();
@@ -450,7 +497,7 @@ export default function TVPage() {
     displays.sort((a, b) => new Date(a.table.created_at).getTime() - new Date(b.table.created_at).getTime());
 
     // Add pre-sign up persistent tables (without api_table_id) from localStorage
-    const persistentOnly = pts.filter(pt => !pt.api_table_id && pt.status !== 'CLOSED');
+    const persistentOnly = validPts.filter(pt => !pt.api_table_id);
     for (const pt of persistentOnly) {
       const wl = getPersistentWaitlist(pt.id);
       const syntheticTable: PokerTable = {
@@ -508,7 +555,7 @@ export default function TVPage() {
   }
 
   return (
-    <div className="tv-page">
+    <div className={`tv-page${isCasting ? ' casting' : ''}`}>
       <div className="tv-header">
         <div className="tv-header-left">
           <div className="tv-logo-section">
@@ -525,7 +572,7 @@ export default function TVPage() {
             </span>
             <span className="tv-time">
               {currentTime.getHours() % 12 || 12}:{currentTime.getMinutes().toString().padStart(2, '0')}
-              <span className="tv-seconds">:{currentTime.getSeconds().toString().padStart(2, '0')}</span>
+              <span className="tv-time-ampm">{currentTime.getHours() < 12 ? 'AM' : 'PM'}</span>
             </span>
           </div>
           {isOffline && (
@@ -604,16 +651,18 @@ export default function TVPage() {
             return a.stakes.localeCompare(b.stakes);
           });
 
-          // Build global set of seated player IDs across ALL tables for TC detection
-          const allSeatedPlayerIds = new Set<string>();
-          for (const d of tableDisplays) {
-            for (const seat of d.seatedPlayers) {
-              allSeatedPlayerIds.add(seat.player_id);
-            }
-          }
-
           const regularColumns = sortedGroups.map(({ gameType, stakes, displays }) => {
-            const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
+            const cleanStakes = stakes.replace(/No Limit\s*/gi, '').trim();
+            const headerLabel = cleanStakes ? `${gameType} — ${cleanStakes}` : gameType;
+
+            // Build seated player IDs ONLY for this game type + stakes group
+            // A player is only TC if seated at a table of the SAME game type, not a different game
+            const groupSeatedPlayerIds = new Set<string>();
+            for (const d of displays) {
+              for (const seat of d.seatedPlayers) {
+                groupSeatedPlayerIds.add(seat.player_id);
+              }
+            }
 
             // Aggregate unique waitlisted players across all tables in this group
             // Sort by added_at for consistent ordering across all merged views
@@ -625,8 +674,8 @@ export default function TVPage() {
             }
             // Sort to prioritize TC players: TCs first (by added_at), then regular players (by added_at)
             allWaitlistEntries.sort((a, b) => {
-              const aIsTC = allSeatedPlayerIds.has(a.player_id);
-              const bIsTC = allSeatedPlayerIds.has(b.player_id);
+              const aIsTC = groupSeatedPlayerIds.has(a.player_id);
+              const bIsTC = groupSeatedPlayerIds.has(b.player_id);
               
               // TC players come first
               if (aIsTC && !bIsTC) return -1;
@@ -648,10 +697,11 @@ export default function TVPage() {
               }
             }
 
-            // TC detection: player is on waitlist AND seated at any table (live data, not localStorage)
+            // TC detection: player is on waitlist AND seated at a table in THIS SAME game type group
+            // Being seated at NLH while on PLO waitlist is NOT a TC — it's a multi-game player
             const tcPlayerIds = new Set<string>();
             for (const wl of allWaitlistEntries) {
-              if (allSeatedPlayerIds.has(wl.player_id)) {
+              if (groupSeatedPlayerIds.has(wl.player_id)) {
                 tcPlayerIds.add(wl.player_id);
               }
             }
@@ -666,7 +716,7 @@ export default function TVPage() {
                 <div className="tv-column-header">
                   <h2 className="tv-column-title">
                     <span className="tv-column-game">{gameType}</span>
-                    {stakes && <span className="tv-column-stakes">{stakes}</span>}
+                    {cleanStakes && <span className="tv-column-stakes">{cleanStakes}{totalSeated === 0 && <span className="tv-interest-inline"> - Interest</span>}</span>}
                   </h2>
                   {buyInLimits && (
                     <div className="tv-column-buyin">Buy-in: {buyInLimits}</div>
@@ -682,7 +732,7 @@ export default function TVPage() {
                     {displays.map((d) => (
                       <div key={d.table.id} className="tv-summary-table-row">
                         <span className="tv-summary-table-num">Table {d.table.table_number}</span>
-                        <span className="tv-summary-table-seats">{d.seatsFilled} Seats</span>
+                        <span className="tv-summary-table-seats">{d.seatsFilled} Player{d.seatsFilled !== 1 ? 's' : ''}</span>
                         {(d.table.bomb_pot_count || 0) > 0 && (
                           <span className="tv-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
                         )}
@@ -729,7 +779,8 @@ export default function TVPage() {
 
           // Render pre-sign up persistent table columns
           const persistentColumns = sortedPersistentGroups.map(({ gameType, stakes, displays }) => {
-            const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
+            const cleanStakes = stakes.replace(/No Limit\s*/gi, '').trim();
+            const headerLabel = cleanStakes ? `${gameType} — ${cleanStakes}` : gameType;
             const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
             // Aggregate waitlist from persistent tables
@@ -754,7 +805,7 @@ export default function TVPage() {
                   <div className="tv-presign-label">PRE-SIGN UP</div>
                   <h2 className="tv-column-title">
                     <span className="tv-column-game">{gameType}</span>
-                    {stakes && <span className="tv-column-stakes">{stakes}</span>}
+                    {cleanStakes && <span className="tv-column-stakes">{cleanStakes}</span>}
                   </h2>
                   {buyInLimits && (
                     <div className="tv-column-buyin">Buy-in: {buyInLimits}</div>
@@ -769,7 +820,7 @@ export default function TVPage() {
                     {displays.map((d) => (
                       <div key={d.table.id} className="tv-summary-table-row">
                         <span className="tv-summary-table-num">Table {d.table.table_number}</span>
-                        <span className="tv-summary-table-seats">0 Seats</span>
+                        <span className="tv-summary-table-seats">0 Players</span>
                       </div>
                     ))}
                   </div>

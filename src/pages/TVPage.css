@@ -28,10 +28,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  -webkit-font-smoothing: subpixel-antialiased;
-  -moz-osx-font-smoothing: auto;
-  text-rendering: geometricPrecision;
-  image-rendering: crisp-edges;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 .tv-page.loading {
@@ -86,7 +85,6 @@
     rgba(30, 58, 138, 0.3) 100%
   );
   border-bottom: 2px solid rgba(251, 191, 36, 0.4);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(251, 191, 36, 0.1);
   gap: 0.5rem;
   flex-wrap: nowrap;
   position: sticky;
@@ -198,9 +196,6 @@
   );
   border-radius: 8px;
   border: 1px solid rgba(251, 191, 36, 0.4);
-  box-shadow: 
-    0 2px 8px rgba(30, 58, 138, 0.3),
-    inset 0 1px 0 rgba(251, 191, 36, 0.1);
 }
 
 .tv-datetime-separator {
@@ -224,12 +219,39 @@
 }
 
 .tv-logo-section > .logo-container > .logo-svg {
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5)) 
-          drop-shadow(0 0 15px rgba(251, 191, 36, 0.4))
-          drop-shadow(0 0 8px rgba(30, 58, 138, 0.3));
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
+}
+
+/* Override Logo.css animations for TV — continuous animations trigger Chrome's
+   tab-capture "animated content" detector, lowering capture resolution */
+.tv-page .card-back-left,
+.tv-page .card-back-right,
+.tv-page .card-front {
+  animation: none !important;
+}
+
+/* When casting: kill ALL animations and transitions so Chrome tab-capture
+   treats the page as static content and uses maximum capture resolution.
+   Toggle this class via JS when a Chromecast session is active. */
+.tv-page.casting *,
+.tv-page.casting *::before,
+.tv-page.casting *::after {
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Preserve layout-critical transforms even in casting mode */
+.tv-page.casting .tv-table-center-logo {
+  transform: translate(-50%, -50%) !important;
+}
+
+.tv-page .spade-symbol,
+.tv-page .spade-symbol path,
+.tv-page .spade-symbol rect {
+  filter: none !important;
 }
 
 .tv-date {
@@ -253,10 +275,11 @@
   white-space: nowrap;
 }
 
-.tv-seconds {
+.tv-time-ampm {
   color: #3b82f6;
   font-size: 0.75em;
   font-weight: 600;
+  margin-left: 0.2em;
 }
 
 .tv-time-period {
@@ -276,18 +299,6 @@
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 6px;
-  animation: pulse-offline 2s ease-in-out infinite;
-}
-
-@keyframes pulse-offline {
-  0%, 100% {
-    opacity: 0.8;
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-  }
-  50% {
-    opacity: 1;
-    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0);
-  }
 }
 
 .tv-offline-icon {
@@ -378,6 +389,19 @@
   color: #34d399;
   letter-spacing: 0.15em;
   margin-bottom: 0.2vh;
+}
+
+.tv-interest-label {
+  font-size: clamp(0.7rem, 1.2vh, 0.9rem);
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.2vh;
+}
+
+.tv-interest-inline {
+  color: #fbbf24;
+  font-weight: 700;
 }
 
 /* Column header — game type + stakes */
@@ -613,9 +637,6 @@
   flex-direction: column;
   gap: 0.3vh;
   transition: none;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(251, 191, 36, 0.1);
   position: relative;
   box-sizing: border-box;
   overflow: hidden;
@@ -638,10 +659,6 @@
 }
 
 .tv-table-card:hover {
-  box-shadow: 
-    0 8px 20px rgba(0, 0, 0, 0.5),
-    0 0 20px rgba(251, 191, 36, 0.2),
-    inset 0 1px 0 rgba(251, 191, 36, 0.2);
   border-color: rgba(251, 191, 36, 0.6);
 }
 
@@ -665,10 +682,6 @@
     rgba(251, 191, 36, 0.15) 50%,
     rgba(58, 58, 63, 0.85) 100%
   );
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    0 0 15px rgba(251, 191, 36, 0.2),
-    inset 0 1px 0 rgba(251, 191, 36, 0.2);
 }
 
 .tv-table-card.full {
@@ -683,10 +696,6 @@
 /* Persistent / Pre-Sign Up table */
 .tv-table-card.tv-persistent {
   border-color: rgba(139, 92, 246, 0.6);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    0 0 16px rgba(139, 92, 246, 0.15),
-    inset 0 1px 0 rgba(139, 92, 246, 0.15);
 }
 
 .tv-persistent-label {
@@ -1020,7 +1029,6 @@
   align-items: center;
   justify-content: center;
   transition: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -1088,20 +1096,11 @@
   fill: rgba(251, 191, 36, 0.7);
   stroke: rgba(251, 191, 36, 0.3);
   stroke-width: 1;
-  animation: seatDotPulse 2.7s ease-in-out infinite;
-  filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.4));
 }
 
-@keyframes seatDotPulse {
-  0%, 100% {
-    fill: rgba(251, 191, 36, 0.5);
-    filter: drop-shadow(0 0 2px rgba(251, 191, 36, 0.3));
-  }
-  50% {
-    fill: rgba(251, 191, 36, 0.9);
-    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.6));
-  }
-}
+/* seatDotPulse animation removed — continuous CSS animations trigger Chrome's
+   tab-capture "animated content" detector, which aggressively lowers capture
+   resolution to maintain frame rate. Static content = max resolution. */
 
 /* Logo in center of table */
 .tv-table-center-logo {
@@ -1111,7 +1110,6 @@
   transform: translate(-50%, -50%);
   width: clamp(90px, 18vw, 150px);
   opacity: 1;
-  animation: logoGlow 3s ease-in-out infinite;
 }
 
 .tv-table-center-logo .logo-container {
@@ -1125,21 +1123,7 @@
   height: auto !important;
 }
 
-@keyframes logoGlow {
-  0%, 100% {
-    opacity: 0.85;
-    transform: translate(-50%, -50%) scale(1);
-    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))
-            drop-shadow(0 0 20px rgba(251, 191, 36, 0.2));
-  }
-  50% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1.06);
-    filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.7))
-            drop-shadow(0 0 40px rgba(251, 191, 36, 0.35))
-            drop-shadow(0 0 60px rgba(30, 58, 138, 0.2));
-  }
-}
+/* logoGlow animation removed — see seatDotPulse comment above */
 
 /* Game Cards - Compact for casting */
 .tv-game-card {
@@ -1150,7 +1134,6 @@
   transition: none;
   position: relative;
   overflow: visible;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
   animation: none;
   display: flex;
   flex-direction: column;
@@ -1162,10 +1145,6 @@
 
 .tv-game-card * {
   transition: none;
-}
-
-.tv-game-card:hover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes cardFadeIn {
@@ -1187,17 +1166,10 @@
   right: 0;
   height: 4px;
   background: linear-gradient(90deg, #3b82f6, #fbbf24, #9ca3af, #3b82f6);
-  animation: shimmer 4s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
 }
 
 .tv-game-card.open {
   border-color: rgba(30, 64, 175, 0.6);
-  box-shadow: 0 0 50px rgba(30, 64, 175, 0.4), inset 0 0 30px rgba(30, 64, 175, 0.1);
   background: rgba(30, 64, 175, 0.05);
 }
 
@@ -1208,7 +1180,6 @@
 
 .tv-game-card.busy {
   border-color: rgba(251, 191, 36, 0.6);
-  box-shadow: 0 0 50px rgba(251, 191, 36, 0.4), inset 0 0 30px rgba(251, 191, 36, 0.1);
   background: rgba(251, 191, 36, 0.05);
 }
 
@@ -1219,7 +1190,6 @@
 
 .tv-game-card.full {
   border-color: rgba(239, 68, 68, 0.6);
-  box-shadow: 0 0 50px rgba(239, 68, 68, 0.4), inset 0 0 30px rgba(239, 68, 68, 0.1);
   background: rgba(239, 68, 68, 0.05);
 }
 
@@ -1317,7 +1287,6 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: none !important;
-  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.7));
 }
 
 .tv-game-stakes {
@@ -1456,7 +1425,6 @@
   background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%);
   border: 1.5px solid rgba(251, 191, 36, 0.4);
   border-radius: 10px;
-  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.15);
 }
 
 .tv-waitlist-number {
@@ -1822,28 +1790,19 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer-progress 2s infinite;
-}
-
-@keyframes shimmer-progress {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
 }
 
 .tv-capacity-progress-fill.open {
   background: linear-gradient(90deg, #3b82f6, #60a5fa);
-  box-shadow: 0 0 20px rgba(30, 64, 175, 0.6);
 }
 
 .tv-capacity-progress-fill.busy {
   background: linear-gradient(90deg, #fbbf24, #fcd34d);
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
 }
 
 .tv-capacity-progress-fill.full {
   background: linear-gradient(90deg, #ef4444, #f87171);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
 }
 
 .tv-capacity-progress-text {
@@ -1902,7 +1861,6 @@
   background: rgba(251, 191, 36, 0.35) !important;
   border: 1px solid rgba(251, 191, 36, 0.8) !important;
   padding: clamp(0.35rem, 1vw, 0.6rem) clamp(0.6rem, 1.5vw, 1rem) !important;
-  box-shadow: 0 0 12px rgba(251, 191, 36, 0.5) !important;
   display: flex !important;
   align-items: center !important;
   gap: clamp(0.35rem, 0.75vw, 0.5rem) !important;

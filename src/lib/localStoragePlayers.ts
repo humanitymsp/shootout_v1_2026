@@ -17,6 +17,44 @@ const PLAYERS_SYNC_CHANNEL = 'players-sync';
 const PLAYERS_STORAGE_EVENT_KEY = 'players-updated';
 
 /**
+ * Query PlayerSync records for a clubDayId using the GSI (efficient Query)
+ * instead of PlayerSync.list + filter which does a full table Scan.
+ *
+ * Uses the ClubDay.playerSyncs relationship resolver which AppSync maps to
+ * a DynamoDB Query on index "gsi-ClubDay.playerSyncs" (~4.5 RCUs vs ~120+ RCUs for Scan).
+ */
+async function queryPlayerSyncByClubDay(clubDayId: string, authMode?: string): Promise<any[]> {
+  try {
+    const { getClient } = await import('./api');
+    const client = getClient();
+    if (!client?.graphql) return [];
+
+    const query = `
+      query GetClubDayPlayerSyncs($id: ID!) {
+        getClubDay(id: $id) {
+          playerSyncs {
+            items {
+              id
+              clubDayId
+              playersJson
+              syncedAt
+            }
+          }
+        }
+      }
+    `;
+    const options: any = { query, variables: { id: clubDayId } };
+    if (authMode) options.authMode = authMode;
+    const result: any = await client.graphql(options);
+    const items = result?.data?.getClubDay?.playerSyncs?.items;
+    return Array.isArray(items) ? items : [];
+  } catch (error) {
+    logWarn('queryPlayerSyncByClubDay failed, falling back to list:', error);
+    return [];
+  }
+}
+
+/**
  * Get the current business day ID (respects 9am-3am boundary)
  */
 function getBusinessDayString(): string {
@@ -53,7 +91,7 @@ function checkAndResetIfNewDay(): void {
 /**
  * Get all players for today
  */
-function getTodayPlayers(): Player[] {
+export function getTodayPlayers(): Player[] {
   checkAndResetIfNewDay();
   const key = getTodayStorageKey();
   const stored = localStorage.getItem(key);
@@ -120,14 +158,19 @@ async function syncPlayersToBackend(players: Player[], clubDayId?: string): Prom
       return;
     }
     
-    // Check if PlayerSync entry exists for this club day
-    const { data: existingSyncs } = await client.models.PlayerSync.list({
-      filter: { clubDayId: { eq: clubDayId } },
-      authMode: 'apiKey',
-    }).catch((error: any) => {
-      logWarn('PlayerSync.list failed - model may not exist:', error);
-      return { data: [] };
-    });
+    // Check if PlayerSync entry exists for this club day (uses GSI query, not Scan)
+    let existingSyncs: any[] = await queryPlayerSyncByClubDay(clubDayId, 'apiKey');
+    if (existingSyncs.length === 0) {
+      // Fallback to list if GSI query failed (e.g. ClubDay doesn't exist yet)
+      const fallback = await client.models.PlayerSync.list({
+        filter: { clubDayId: { eq: clubDayId } },
+        authMode: 'apiKey',
+      }).catch((error: any) => {
+        logWarn('PlayerSync.list fallback failed:', error);
+        return { data: [] };
+      });
+      existingSyncs = fallback.data || [];
+    }
     
     if (existingSyncs && existingSyncs.length > 0) {
       // Update existing sync
@@ -213,12 +256,17 @@ export async function loadPlayersFromBackend(clubDayId: string, authMode?: strin
       return getTodayPlayers();
     }
 
-    // Try to fetch from backend PlayerSync model
-    const listOpts: any = {
-      filter: { clubDayId: { eq: clubDayId } },
-    };
-    if (authMode) listOpts.authMode = authMode;
-    const { data: syncEntries } = await client.models.PlayerSync.list(listOpts);
+    // Try to fetch from backend PlayerSync model (GSI query, not Scan)
+    let syncEntries: any[] = await queryPlayerSyncByClubDay(clubDayId, authMode);
+    if (syncEntries.length === 0) {
+      // Fallback to list if GSI query returned nothing
+      const listOpts: any = {
+        filter: { clubDayId: { eq: clubDayId } },
+      };
+      if (authMode) listOpts.authMode = authMode;
+      const fallback = await client.models.PlayerSync.list(listOpts);
+      syncEntries = fallback.data || [];
+    }
     
     if (syncEntries && syncEntries.length > 0) {
       const latestSync = syncEntries[0]; // Should only be one per club day
@@ -565,93 +613,282 @@ export async function syncPlayersFromAdmin(clubDayId: string): Promise<Player[]>
 }
 
 /**
- * Enrich TableSeat or TableWaitlist with player data from localStorage
- * This replaces the backend player relationship lookup
+ * Check if a player object has a valid, displayable nickname.
+ * Returns false for undefined, null, empty string, 'Unknown', or 'Player-xxxxxx' placeholders.
+ */
+function hasValidNick(player?: Player): boolean {
+  if (!player) return false;
+  const nick = player.nick;
+  if (!nick || nick === 'Unknown' || nick.startsWith('Player-')) return false;
+  // Also reject empty/whitespace-only nicks
+  if (nick.trim().length === 0) return false;
+  return true;
+}
+
+/**
+ * Enrich TableSeat or TableWaitlist with player data from localStorage.
+ * SYNC-ONLY: checks localStorage cache. Does NOT make API calls.
+ * If player is not in cache, creates a placeholder that will be resolved
+ * by the async enrichArrayWithPlayerData function.
  */
 export function enrichWithPlayerData<T extends { player_id: string; player?: Player }>(item: T): T {
-  if (item.player) {
-    // Already has player data, return as-is
+  // If item already has valid player data (e.g. from AppSync relation), keep it
+  if (hasValidNick(item.player)) {
     return item;
   }
   
-  // Look up player from localStorage
+  // Look up player from localStorage (scans all cache keys)
   const playerData = getPlayerByIdLocal(item.player_id);
-  if (playerData) {
+  if (playerData && hasValidNick(playerData)) {
     return {
       ...item,
       player: playerData,
     };
   }
   
-  // Player not found in localStorage, return with undefined player
-  return item;
+  // Placeholder — will be resolved by enrichArrayWithPlayerData async fallbacks
+  const shortId = item.player_id ? item.player_id.slice(-6) : '???';
+  return {
+    ...item,
+    player: {
+      id: item.player_id,
+      name: `Player-${shortId}`,
+      nick: `Player-${shortId}`,
+      created_at: '',
+      updated_at: '',
+    },
+  };
+}
+
+/**
+ * Helper: check if any items have unresolved player names.
+ */
+function hasUnresolvedPlayers<T extends { player_id: string; player?: Player }>(items: T[]): T[] {
+  return items.filter(item =>
+    item.player_id && !hasValidNick(item.player)
+  );
 }
 
 /**
  * Enrich an array of TableSeat or TableWaitlist items with player data.
- * First tries localStorage, then fetches any missing players from DynamoDB
- * and caches them locally for future lookups.
+ *
+ * Resolution order (each layer is independent — later layers catch earlier failures):
+ *   1. AppSync query relation (player already on item from GraphQL response)
+ *   2. localStorage cache (sync, instant)
+ *   3. Player.list bulk fetch (async, 1 API call for ALL players)
+ *   4. Individual Player.get per missing ID (async, N calls — last resort)
+ *
+ * After ALL layers, any remaining "Player-xxxxxx" placeholders are logged with
+ * their IDs for diagnostics. This function NEVER silently swallows failures.
  */
-export async function enrichArrayWithPlayerData<T extends { player_id: string; player?: Player }>(items: T[]): Promise<T[]> {
-  // First pass: enrich from localStorage
+export async function enrichArrayWithPlayerData<T extends { player_id: string; player?: Player }>(items: T[], authMode?: string): Promise<T[]> {
+  if (items.length === 0) return items;
+
+  // ── Layer 1: Items may already have player data from AppSync relation ──
+  // (No action needed — data comes from the GraphQL query itself)
+
+  // ── Layer 2: Sync localStorage cache lookup ──
   let enriched = items.map(enrichWithPlayerData);
-  
-  // Find items still missing player data
-  const missing = enriched.filter(item => !item.player && item.player_id);
-  if (missing.length === 0) return enriched;
-  
-  // Deduplicate missing player IDs
-  const missingIds = [...new Set(missing.map(item => item.player_id))];
-  
-  // Batch-fetch from DynamoDB Player table
+  let unresolved = hasUnresolvedPlayers(enriched);
+  if (unresolved.length === 0) return enriched;
+
+  // ── Layer 3: Bulk Player.list → populate cache, then re-enrich ──
   try {
-    const { getClient } = await import('./api');
-    const client = getClient();
-    if (!client?.models?.Player) return enriched;
-    
-    const fetchedMap = new Map<string, Player>();
-    // Fetch in parallel (max 10 concurrent to avoid throttling)
-    const batchSize = 10;
-    for (let i = 0; i < missingIds.length; i += batchSize) {
-      const batch = missingIds.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(async (pid) => {
-          const { data } = await client.models.Player.get({ id: pid }, { authMode: 'apiKey' });
-          return data;
-        })
-      );
-      for (const result of results) {
-        if (result.status === 'fulfilled' && result.value) {
-          const raw = result.value as any;
-          const player: Player = {
-            id: raw.id,
-            name: raw.name || '',
-            nick: raw.nick || raw.name || '',
-            phone: raw.phone || undefined,
-            email: raw.email || undefined,
-            created_at: raw.createdAt || raw.created_at || '',
-            updated_at: raw.updatedAt || raw.updated_at || '',
-          };
-          fetchedMap.set(player.id, player);
-          // Cache locally so future lookups are instant
-          upsertPlayerLocal(player);
+    await loadAllPlayersToCache(authMode, true); // force=true: bypass cooldown when placeholders exist
+    enriched = enriched.map(item => !hasValidNick(item.player) ? enrichWithPlayerData(item) : item);
+    unresolved = hasUnresolvedPlayers(enriched);
+    if (unresolved.length === 0) return enriched;
+  } catch (error) {
+    logWarn('⚠️ enrichment Layer 3 (Player.list bulk) failed:', error);
+  }
+
+  // ── Layer 4: Individual Player.get for each missing ID ──
+  // NOTE: Player.get and Player.list lack @aws_api_key authorization in the AppSync schema.
+  // So this layer ONLY works for userPool auth (admin). For apiKey (tablet/TV), skip it.
+  if (unresolved.length > 0 && authMode !== 'apiKey') {
+    try {
+      const { getClient } = await import('./api');
+      const client = getClient();
+      if (client?.models?.Player) {
+        const missingIds = [...new Set(unresolved.map(item => item.player_id))];
+        log(`📥 Layer 4: Fetching ${missingIds.length} individual player(s) by ID (userPool)`);
+        const fetchedMap = new Map<string, Player>();
+        await Promise.allSettled(
+          missingIds.map(async (pid) => {
+            try {
+              const { data } = await client.models.Player.get({ id: pid });
+              if (data) {
+                const player: Player = {
+                  id: data.id,
+                  name: (data as any).name || '',
+                  nick: (data as any).nick || (data as any).name || '',
+                  phone: (data as any).phone || undefined,
+                  email: (data as any).email || undefined,
+                  created_at: (data as any).createdAt || '',
+                  updated_at: (data as any).updatedAt || '',
+                };
+                fetchedMap.set(player.id, player);
+                upsertPlayerLocal(player); // cache for future lookups
+              } else {
+                logWarn(`⚠️ Player.get returned null for ID ${pid} — player may have been deleted`);
+              }
+            } catch (err) {
+              logWarn(`⚠️ Player.get failed for ID ${pid}:`, err);
+            }
+          })
+        );
+        if (fetchedMap.size > 0) {
+          enriched = enriched.map(item => {
+            if (item.player_id && fetchedMap.has(item.player_id)) {
+              return { ...item, player: fetchedMap.get(item.player_id)! };
+            }
+            return item;
+          });
         }
       }
+    } catch (error) {
+      logWarn('⚠️ enrichment Layer 4 (individual Player.get) failed:', error);
     }
-    
-    if (fetchedMap.size > 0) {
-      log(`📥 Fetched ${fetchedMap.size} missing player(s) from DynamoDB for enrichment`);
-      // Second pass: enrich items that were missing
-      enriched = enriched.map(item => {
-        if (!item.player && fetchedMap.has(item.player_id)) {
-          return { ...item, player: fetchedMap.get(item.player_id)! };
-        }
-        return item;
-      });
-    }
-  } catch (error) {
-    logWarn('Failed to fetch missing players from DynamoDB:', error);
+  }
+
+  // ── Final diagnostic: log any STILL unresolved player IDs ──
+  const finalUnresolved = hasUnresolvedPlayers(enriched);
+  if (finalUnresolved.length > 0) {
+    const ids = [...new Set(finalUnresolved.map(i => i.player_id))];
+    logError(`🚨 UNRESOLVED PLAYERS after all enrichment layers (${ids.length}): ${ids.join(', ')}`);
+    logError('   This means these player IDs do not exist in the Player table or all fetch methods failed.');
+  }
+
+  return enriched;
+}
+
+// Time-based cache cooldown: allows periodic re-fetches without hammering the API.
+// Replaces the old boolean _allPlayersCacheLoaded which blocked ALL retries.
+let _lastPlayerCacheLoadTime = 0;
+const PLAYER_CACHE_COOLDOWN_MS = 30_000; // 30 seconds
+
+// Module-level active club day ID — set by pages on init so enrichment can
+// use it for apiKey PlayerSync lookups without threading through every call.
+let _activeClubDayId: string | undefined;
+
+/**
+ * Set the active club day ID for player cache operations.
+ * Call this from any page after loading the active club day.
+ */
+export function setActiveClubDayIdForCache(clubDayId: string): void {
+  _activeClubDayId = clubDayId;
+}
+
+/**
+ * Bulk-load ALL players from DynamoDB into localStorage cache.
+ * Uses a 30-second cooldown to prevent excessive API calls, but the `force` parameter
+ * bypasses the cooldown when enrichment detects unresolved placeholders.
+ *
+ * CRITICAL: The AppSync schema does NOT grant @aws_api_key access to listPlayers or
+ * getPlayer queries. So for apiKey auth (tablet/TV/public), this function loads players
+ * from the PlayerSync model instead, which DOES have @aws_api_key authorization.
+ * For userPool auth (admin), it uses Player.list directly.
+ *
+ * @param authMode - 'apiKey' for tablet/TV, omit for admin (uses userPool default)
+ * @param force - bypass cooldown (used when enrichment detected placeholders)
+ * @param clubDayId - required for apiKey auth to query PlayerSync; optional for userPool
+ */
+export async function loadAllPlayersToCache(authMode?: string, force = false, clubDayId?: string): Promise<void> {
+  const now = Date.now();
+  if (!force && _lastPlayerCacheLoadTime > 0 && (now - _lastPlayerCacheLoadTime) < PLAYER_CACHE_COOLDOWN_MS) {
+    return; // Within cooldown, skip (unless forced by enrichment)
   }
   
-  return enriched;
+  try {
+    // ── apiKey path: use PlayerSync (Player.list lacks @aws_api_key) ──
+    if (authMode === 'apiKey') {
+      if (!clubDayId) clubDayId = _activeClubDayId;
+      if (!clubDayId) {
+        // Last resort: try to get clubDayId from the active club day
+        try {
+          const { getActiveClubDay } = await import('./api');
+          const activeDay = await getActiveClubDay('apiKey');
+          clubDayId = activeDay?.id;
+          if (clubDayId) _activeClubDayId = clubDayId;
+        } catch { /* ignore */ }
+      }
+      if (clubDayId) {
+        const players = await loadPlayersFromBackend(clubDayId, 'apiKey');
+        if (players.length > 0) {
+          _lastPlayerCacheLoadTime = now;
+          log(`📥 Bulk-loaded ${players.length} players from PlayerSync (apiKey, clubDay=${clubDayId.slice(-6)})`);
+          return;
+        }
+        logWarn('⚠️ loadAllPlayersToCache: PlayerSync returned 0 players for apiKey auth');
+      } else {
+        logWarn('⚠️ loadAllPlayersToCache: No clubDayId available for apiKey PlayerSync lookup');
+      }
+      // Don't update cooldown — let next call retry
+      return;
+    }
+    
+    // ── userPool path: use Player.list directly ──
+    const { getClient } = await import('./api');
+    const client = getClient();
+    if (!client?.models?.Player) {
+      logWarn('⚠️ loadAllPlayersToCache: Player model not available on client');
+      return;
+    }
+    
+    const { data } = await client.models.Player.list({ limit: 10000 });
+    if (!data || data.length === 0) {
+      logWarn('⚠️ loadAllPlayersToCache: Player.list returned 0 results (userPool) — may be auth race, will retry');
+      return; // Don't update cooldown — next call will retry
+    }
+    
+    // Build map of fetched players
+    const fetchedMap = new Map<string, Player>();
+    for (const raw of data as any[]) {
+      const player: Player = {
+        id: raw.id,
+        name: raw.name || '',
+        nick: raw.nick || raw.name || '',
+        phone: raw.phone || undefined,
+        email: raw.email || undefined,
+        created_at: raw.createdAt || raw.created_at || '',
+        updated_at: raw.updatedAt || raw.updated_at || '',
+      };
+      fetchedMap.set(player.id, player);
+    }
+    
+    // CRITICAL: Also load from PlayerSync to recover player-{timestamp}-random IDs.
+    // Player.list only returns DynamoDB Player records (UUID IDs, phone-number players).
+    // Most players have player-{timestamp}-random IDs stored only in PlayerSync.
+    // Without this, a cache reset (e.g., business day flip) loses all those players.
+    const effectiveClubDayId = clubDayId || _activeClubDayId;
+    if (effectiveClubDayId) {
+      try {
+        const syncPlayers = await loadPlayersFromBackend(effectiveClubDayId);
+        for (const p of syncPlayers) {
+          if (p.id && !fetchedMap.has(p.id)) {
+            fetchedMap.set(p.id, p);
+          }
+        }
+      } catch { /* non-fatal — PlayerSync unavailable */ }
+    }
+    
+    // Merge into localStorage in ONE batch
+    const localPlayers = getTodayPlayers();
+    const merged = new Map<string, Player>();
+    // DB players first (source of truth)
+    fetchedMap.forEach((p, id) => merged.set(id, p));
+    // Local players fill gaps (may have edits not yet in DB)
+    localPlayers.forEach(p => {
+      if (!merged.has(p.id)) merged.set(p.id, p);
+    });
+    
+    const mergedArray = Array.from(merged.values());
+    saveTodayPlayers(mergedArray, false); // false = don't sync back to backend
+    
+    _lastPlayerCacheLoadTime = now;
+    log(`📥 Bulk-loaded ${fetchedMap.size} players into localStorage cache (Player.list + PlayerSync, userPool)`);
+  } catch (error) {
+    logError('🚨 loadAllPlayersToCache FAILED:', error);
+    // Do NOT update _lastPlayerCacheLoadTime — next call will retry immediately
+  }
 }

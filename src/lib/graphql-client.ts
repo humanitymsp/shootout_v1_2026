@@ -122,10 +122,10 @@ function createModelHandler(modelName: string, apiClient: any) {
     },
     
     async _listImpl(options?: { filter?: any; limit?: number; nextToken?: string; authMode?: string }): Promise<{ data: any[] }> {
-      // When using apiKey auth, skip relationship fields (e.g. player { ... })
-      // because related models like Player may not allow publicApiKey reads,
-      // which causes the entire query to fail with "Not Authorized"
-      const includeRelationships = options?.authMode !== 'apiKey';
+      // Include relationship fields (e.g. player { id name nick }) in all queries.
+      // Player, ClubDay, PokerTable all have allow.publicApiKey().to(['read']),
+      // so apiKey queries can safely resolve these relationships.
+      const includeRelationships = true;
       const query = `
         query List${modelName}s($filter: Model${modelName}FilterInput, $limit: Int, $nextToken: String) {
           list${modelName}s(filter: $filter, limit: $limit, nextToken: $nextToken) {
@@ -234,7 +234,7 @@ function createModelHandler(modelName: string, apiClient: any) {
       }
     },
     
-    async get(options: { id: string }) {
+    async get(options: { id: string }, extra?: { authMode?: string }) {
       const query = `
         query Get${modelName}($id: ID!) {
           get${modelName}(id: $id) {
@@ -245,7 +245,11 @@ function createModelHandler(modelName: string, apiClient: any) {
       `;
       
       try {
-        const result = await apiClient.graphql({ query, variables: { id: options.id } });
+        const graphqlOptions: any = { query, variables: { id: options.id } };
+        if (extra?.authMode) {
+          graphqlOptions.authMode = extra.authMode;
+        }
+        const result = await apiClient.graphql(graphqlOptions);
         return { data: (result as any).data?.[`get${modelName}`] };
       } catch (error) {
         console.error(`Error getting ${modelName}:`, error);

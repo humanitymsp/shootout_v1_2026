@@ -1,10 +1,11 @@
 // AdminPage - Updated to remove observeQuery and use polling instead
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt, sendWaitlistToBottom } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, createClubDay, checkClubDayStale, getSeatedPlayersForTable, getSeatedPlayersForPlayer, getWaitlistForTable, autoFixTableIntegrity, purgeOldPlayers, recoverRecentlyRemovedPlayers, collectBuyIn, getCheckInForPlayer, getCheckInsForClubDay, addPlayerToWaitlist, removePlayerFromWaitlist, removePlayerFromAllWaitlists, removePlayerFromSeat, seatPlayer, createPlayer, createTable, swapWaitlistAddedAt, sendWaitlistToBottom, toPokerTable } from '../lib/api';
+import { queryClubDayCompound } from '../lib/gsiQueries';
 import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { getPendingSignupsFromDB, removePendingSignupFromDB } from '../lib/pendingSignups';
 import type { PendingSignup } from '../lib/pendingSignups';
-import { initializeLocalPlayers, upsertPlayerLocal } from '../lib/localStoragePlayers';
+import { initializeLocalPlayers, upsertPlayerLocal, loadAllPlayersToCache, setActiveClubDayIdForCache } from '../lib/localStoragePlayers';
 import { getPersistentTables, getTableWaitlist, addToPersistentWaitlist, removeFromPersistentWaitlist, listenForPersistentTableUpdates, syncPersistentTablesToDB } from '../lib/persistentTables';
 import type { ClubDay, PokerTable, PersistentTable, PersistentTableWaitlist } from '../types';
 import AdminHeader from '../components/AdminHeader';
@@ -28,6 +29,7 @@ import { TableCardSkeleton } from '../components/LoadingSkeleton';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import Tooltip from '../components/Tooltip';
 import DoorFeeModal from '../components/DoorFeeModal';
+import FinancialDashboard from '../components/FinancialDashboard';
 import BulkAddTestPlayers from '../components/BulkAddTestPlayers';
 import BulkBustOutModal from '../components/BulkBustOutModal';
 import BustedPlayersModal from '../components/BustedPlayersModal';
@@ -104,6 +106,7 @@ export default function AdminPage({ user }: AdminPageProps) {
     return localStorage.getItem('high-hand-feature-visible') !== 'false';
   });
   const [showBustedPlayers, setShowBustedPlayers] = useState(false);
+  const [showFinancialDashboard, setShowFinancialDashboard] = useState(false);
   const [pendingSignups, setPendingSignups] = useState<PendingSignup[]>([]);
   const [tcSeatModal, setTcSeatModal] = useState<{ waitlist: TableWaitlist; gameType: string; stakes: string } | null>(null);
   const dismissedTokensRef = useRef<Set<string>>(new Set());
@@ -240,7 +243,7 @@ export default function AdminPage({ user }: AdminPageProps) {
   };
 
   // Refresh data without running auto-reset logic
-  const refreshData = async () => {
+  const refreshData = async (includeCheckIns = true) => {
     try {
       const activeDay = await getActiveClubDay();
       if (!activeDay) {
@@ -253,8 +256,13 @@ export default function AdminPage({ user }: AdminPageProps) {
       }
       
       setClubDay(activeDay);
-      const tablesData = await getTablesForClubDay(activeDay.id);
-      // Tables loaded successfully
+      
+      // COMPOUND QUERY: tables + seats + waitlist in ONE GraphQL request
+      const compound = await queryClubDayCompound(activeDay.id);
+      const compoundOk = compound.tables.length > 0;
+      const tablesData = compoundOk
+        ? compound.tables.map(toPokerTable)
+        : await getTablesForClubDay(activeDay.id); // fallback
 
       // Patch is_persistent flag using persistent table metadata
       const pts = getPersistentTables();
@@ -267,12 +275,17 @@ export default function AdminPage({ user }: AdminPageProps) {
 
       setTables(tablesData);
 
-      // BATCH: Load ALL player data in 2 queries (instead of 2 per table)
+      // Process seats + waitlist — use prefetched data only if compound succeeded
       const seatedMap = new Map<string, TableSeat[]>();
       const waitlistMap = new Map<string, TableWaitlist[]>();
       
       try {
-        const { countsMap } = await getAllTableCountsForClubDay(activeDay.id);
+        const prefetchedForCounts = compoundOk
+          ? { seats: compound.seats, waitlist: compound.waitlist }
+          : undefined;
+        const { countsMap } = await getAllTableCountsForClubDay(
+          activeDay.id, undefined, prefetchedForCounts
+        );
         const openTables = tablesData.filter((table) => table.status !== 'CLOSED');
         for (const table of openTables) {
           const counts = countsMap.get(table.id);
@@ -285,6 +298,26 @@ export default function AdminPage({ user }: AdminPageProps) {
       
       setSeatedPlayersMap(seatedMap);
       setWaitlistPlayersMap(waitlistMap);
+      
+      // Batch-load ALL check-ins for the club day in ONE query.
+      // This populates checkInStatusMap so TableCards don't need per-player queries.
+      // Skip on routine poll/broadcast refreshes — check-in status is maintained via
+      // optimistic updates (collectBuyIn handler) and only needs full reload on initial
+      // load, manual refresh, or after check-in/refund actions.
+      if (includeCheckIns) {
+        try {
+          const allCheckIns = await getCheckInsForClubDay(activeDay.id, false);
+          const ciMap = new Map<string, { hasPaid: boolean; amount: number; isPrevious: boolean }>();
+          for (const ci of allCheckIns) {
+            ciMap.set(ci.player_id, {
+              hasPaid: true,
+              amount: ci.door_fee_amount,
+              isPrevious: ci.door_fee_amount === 0,
+            });
+          }
+          setCheckInStatusMap(ciMap);
+        } catch { /* non-fatal */ }
+      }
       
       // Notify tablet/TV of data changes
       try {
@@ -307,8 +340,31 @@ export default function AdminPage({ user }: AdminPageProps) {
       // Initialize localStorage players system
       initializeLocalPlayers();
       
+      // Get active club day FIRST so we can set the clubDayId for PlayerSync lookups.
+      // This is critical: without a clubDayId, loadAllPlayersToCache can't fetch
+      // player-{timestamp} IDs from PlayerSync and only gets UUID players from Player.list.
+      const activeDay = await getActiveClubDay();
+      if (activeDay) {
+        setActiveClubDayIdForCache(activeDay.id);
+      }
+      
+      // Bulk-load ALL players into localStorage cache (Player.list + PlayerSync merge).
+      // This must happen before refreshData so enrichment is instant (pure cache).
+      // On fresh login from a new device, the auth token may not be ready yet —
+      // the retry after 2s catches this race condition.
+      try {
+        await loadAllPlayersToCache(undefined, false, activeDay?.id);
+      } catch { /* non-fatal */ }
+      
       // Load the data
       await refreshData();
+      
+      // Delayed retry: if first load returned 0 (auth race on fresh login), try again
+      setTimeout(async () => {
+        try {
+          await loadAllPlayersToCache(undefined, true, activeDay?.id); // force=true bypasses cooldown
+        } catch { /* non-fatal */ }
+      }, 2000);
     } catch (error) {
       logError('Error in initial load:', error);
       setError(error instanceof Error ? error.message : 'Failed to load data');
@@ -320,7 +376,7 @@ export default function AdminPage({ user }: AdminPageProps) {
     loadData();
     
     // Tutorial is available via Help menu but no longer auto-launches
-  }, [loading]);
+  }, []);
 
   // Load persistent tables and set up real-time sync
   useEffect(() => {
@@ -399,15 +455,45 @@ export default function AdminPage({ user }: AdminPageProps) {
       if (isPollingRef.current) return; // Skip if previous poll still running
       isPollingRef.current = true;
       Promise.all([
-        getTablesForClubDay(clubDay.id)
-          .then(fetched => {
-            const pts = getPersistentTables();
-            const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
-            const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
-            fetched.forEach(t => {
-              if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
-            });
-            setTables(fetched);
+        // COMPOUND QUERY: tables + seats + waitlist in ONE request (replaces separate getTablesForClubDay)
+        queryClubDayCompound(clubDay.id)
+          .then(async (compound) => {
+            const compoundOk = compound.tables.length > 0;
+            if (compoundOk) {
+              const fetched = compound.tables.map(toPokerTable);
+              const pts = getPersistentTables();
+              const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
+              const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
+              fetched.forEach(t => {
+                if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
+              });
+              setTables(fetched);
+              // Also update seats/waitlist from the same compound response (free!)
+              try {
+                const { countsMap } = await getAllTableCountsForClubDay(
+                  clubDay.id, undefined, { seats: compound.seats, waitlist: compound.waitlist }
+                );
+                const sm = new Map<string, any[]>();
+                const wm = new Map<string, any[]>();
+                for (const [tid, c] of countsMap) {
+                  sm.set(tid, c.seatedPlayers || []);
+                  wm.set(tid, c.waitlistPlayers || []);
+                }
+                setSeatedPlayersMap(sm);
+                setWaitlistPlayersMap(wm);
+              } catch { /* non-fatal */ }
+            } else {
+              // compound failed — fall back to separate getTablesForClubDay
+              getTablesForClubDay(clubDay.id).then(fetched => {
+                const pts = getPersistentTables();
+                const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
+                const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
+                fetched.forEach(t => {
+                  if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
+                });
+                setTables(fetched);
+              }).catch(() => {});
+            }
           })
           .catch((err) => {
             logError('Error polling tables:', err);
@@ -426,7 +512,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       setPendingSignups(filtered);
     }).catch(() => {});
 
-    // Auto-fix integrity issues silently in the background (every 30 seconds)
+    // Auto-fix integrity issues silently in the background (every 5 minutes)
     const autoFixInterval = setInterval(async () => {
       try {
         // Skip auto-fix if bulk operation is in progress
@@ -449,7 +535,7 @@ export default function AdminPage({ user }: AdminPageProps) {
       } catch (err) {
         logError('Auto-fix interval error:', err);
       }
-    }, 120000); // Run every 2 minutes
+    }, 300000); // Run every 5 minutes
 
     return () => {
       clearInterval(pollInterval);
@@ -457,30 +543,18 @@ export default function AdminPage({ user }: AdminPageProps) {
     };
   }, [clubDay]);
 
-  // Load check-in status for waitlisted players when popup is open
+  // Check-in status is now batch-loaded in refreshData via getCheckInsForClubDay.
+  // Re-load only when popup opens and map is empty (edge case).
   useEffect(() => {
-    if (!showPlayersPopup || !clubDay) return;
-    const allWaitlisted: TableWaitlist[] = (Array.from(waitlistPlayersMap.values()) as TableWaitlist[][]).flat();
-    const unpaidPlayers = allWaitlisted.filter((wl: TableWaitlist) => !wl.called_in);
-    if (unpaidPlayers.length === 0) return;
-
-    const uniquePlayerIds = [...new Set(unpaidPlayers.map((wl: TableWaitlist) => wl.player_id))];
-    Promise.all(
-      uniquePlayerIds.map(async (playerId) => {
-        const checkIn = await getCheckInForPlayer(playerId, clubDay.id).catch(() => null);
-        return {
-          playerId,
-          hasPaid: !!checkIn,
-          amount: checkIn?.door_fee_amount ?? 0,
-          isPrevious: checkIn ? checkIn.door_fee_amount === 0 : false,
-        };
-      })
-    ).then(results => {
+    if (!showPlayersPopup || !clubDay || checkInStatusMap.size > 0) return;
+    getCheckInsForClubDay(clubDay.id, false).then(checkIns => {
       const map = new Map<string, { hasPaid: boolean; amount: number; isPrevious: boolean }>();
-      results.forEach(({ playerId, hasPaid, amount, isPrevious }) => map.set(playerId, { hasPaid, amount, isPrevious }));
+      for (const ci of checkIns) {
+        map.set(ci.player_id, { hasPaid: true, amount: ci.door_fee_amount, isPrevious: ci.door_fee_amount === 0 });
+      }
       setCheckInStatusMap(map);
-    });
-  }, [showPlayersPopup, waitlistPlayersMap, clubDay]);
+    }).catch(() => {});
+  }, [showPlayersPopup, clubDay]);
 
   // Check if club day is stale (older than 24 hours) — show warning banner
   const [staleDayWarning, setStaleDayWarning] = useState<string | null>(null);
@@ -597,8 +671,30 @@ export default function AdminPage({ user }: AdminPageProps) {
 
   const handleRefresh = () => {
     setRefreshKey(k => k + 1);
-    refreshData();
+    // Skip check-in re-fetch on routine refreshes — check-in status is maintained
+    // via optimistic updates (collectBuyIn) and the Players popup useEffect.
+    refreshData(false);
   };
+
+  // TableCard notifies us when its seated/waitlist state changes (optimistic updates,
+  // drag-drop, bust, move, etc.). We mirror the change into seatedPlayersMap/waitlistPlayersMap
+  // so dashboard stats, group headers, and waitlist panels update instantly — zero API cost.
+  const handlePlayersChanged = useCallback((tableId: string, seated: TableSeat[], waitlist: TableWaitlist[]) => {
+    setSeatedPlayersMap(prev => {
+      const existing = prev.get(tableId);
+      if (existing === seated) return prev; // Same reference — skip update
+      const next = new Map(prev);
+      next.set(tableId, seated);
+      return next;
+    });
+    setWaitlistPlayersMap(prev => {
+      const existing = prev.get(tableId);
+      if (existing === waitlist) return prev; // Same reference — skip update
+      const next = new Map(prev);
+      next.set(tableId, waitlist);
+      return next;
+    });
+  }, []);
 
   const seatPlayerAtTable = async (tableId: string, wl: TableWaitlist) => {
     try {
@@ -625,30 +721,11 @@ export default function AdminPage({ user }: AdminPageProps) {
         localStorage.setItem('tc-list', JSON.stringify(cleaned));
       } catch {}
       
-      // Remove from waitlists of the SAME game type only (preserve other game type waitlists)
+      // Remove only the specific waitlist entry being seated (preserve all other waitlists)
       try {
-        const targetTable = tables.find(t => t.id === tableId);
-        const targetGameType = targetTable?.game_type;
-        if (targetGameType) {
-          const sameGameTableIds = new Set(
-            tables.filter(t => t.game_type === targetGameType).map(t => t.id)
-          );
-          // Get all waitlist entries for this player
-          for (const [tId, wlist] of waitlistPlayersMap) {
-            if (!sameGameTableIds.has(tId)) continue;
-            for (const entry of wlist) {
-              if (entry.player_id === wl.player_id && entry.club_day_id === clubDay.id) {
-                try { await removePlayerFromWaitlist(entry.id, adminUser); } catch {}
-              }
-            }
-          }
-        } else {
-          // Fallback: just remove the specific waitlist entry
-          await removePlayerFromWaitlist(wl.id, adminUser);
-        }
-      } catch {
-        // Fallback: at least remove the specific waitlist entry
         await removePlayerFromWaitlist(wl.id, adminUser);
+      } catch {
+        // Already removed by seatPlayer
       }
       
       // If TC player, remove from previous table seat(s)
@@ -835,24 +912,30 @@ export default function AdminPage({ user }: AdminPageProps) {
   }, [activeTables, searchQuery, seatedPlayersMap, visibleWaitlistForTable]);
 
   // Group tables by game type for better visual organization
+  // NLH tables are further split by stakes (e.g. "NLH 1/2", "NLH 1/3")
+  // Other game types are grouped by game_type only
   const tablesByGameType = useMemo(() => {
     const grouped = filteredTablesForSearch.reduce((acc, table) => {
       const gameType = table.game_type || 'Other';
-      if (!acc[gameType]) acc[gameType] = [];
-      acc[gameType].push(table);
+      // NLH tables: group by game_type + stakes for separate 1/2, 1/3, etc. groups
+      const groupKey = gameType === 'NLH' && table.stakes_text
+        ? `${gameType} ${table.stakes_text}`
+        : gameType;
+      if (!acc[groupKey]) acc[groupKey] = [];
+      acc[groupKey].push(table);
       return acc;
     }, {} as Record<string, typeof filteredTablesForSearch>);
     
     // Sort tables within each group by creation time (new tables at end)
-    Object.keys(grouped).forEach(gameType => {
-      grouped[gameType].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    Object.keys(grouped).forEach(groupKey => {
+      grouped[groupKey].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     });
     
     return grouped;
   }, [filteredTablesForSearch]);
   
   // Sort game types in a preferred order (NLH first, then PLO, BigO, etc.)
-  // Within NLH, 1/2 stakes get highest priority
+  // NLH groups are sub-sorted: 1/2 first, then 1/3, then others
   const sortedGameTypes = useMemo(() => {
     const gameTypeOrder: Record<string, number> = {
       'NLH': 1,
@@ -865,14 +948,17 @@ export default function AdminPage({ user }: AdminPageProps) {
     };
     
     return Object.keys(tablesByGameType).sort((a, b) => {
-      const orderA = gameTypeOrder[a] || 50;
-      const orderB = gameTypeOrder[b] || 50;
+      // Extract base game type (e.g. "NLH" from "NLH 1/2")
+      const baseA = a.split(' ')[0];
+      const baseB = b.split(' ')[0];
+      const orderA = gameTypeOrder[baseA] || 50;
+      const orderB = gameTypeOrder[baseB] || 50;
       if (orderA !== orderB) return orderA - orderB;
-      // Within same game type, prioritize groups that have 1/2 tables
-      const aHas12 = tablesByGameType[a]?.some(t => (t.stakes_text || '').includes('1/2'));
-      const bHas12 = tablesByGameType[b]?.some(t => (t.stakes_text || '').includes('1/2'));
-      if (aHas12 && !bHas12) return -1;
-      if (!aHas12 && bHas12) return 1;
+      // Within same base game type, sort by stakes: 1/2 first, then 1/3, etc.
+      const stakesA = a.replace(baseA, '').trim();
+      const stakesB = b.replace(baseB, '').trim();
+      if (stakesA.includes('1/2') && !stakesB.includes('1/2')) return -1;
+      if (!stakesA.includes('1/2') && stakesB.includes('1/2')) return 1;
       return a.localeCompare(b);
     });
   }, [tablesByGameType]);
@@ -970,6 +1056,14 @@ export default function AdminPage({ user }: AdminPageProps) {
           onPlayerManagement={() => {}}
           onShowTutorial={() => {}}
           onShowKnowledgeBase={() => {}}
+          onPurgeOldPlayers={() => {}}
+          onRecoverState={() => {}}
+          onCashRecon={() => {}}
+          onSMSSettings={() => {}}
+          onHighHand={() => {}}
+          highHandVisible={highHandVisible}
+          onToggleHighHandVisible={() => {}}
+          onFinancialDashboard={() => {}}
         />
         <div className="admin-controls">
           <div className="search-filter-bar">
@@ -1077,6 +1171,7 @@ export default function AdminPage({ user }: AdminPageProps) {
             setHighHandVisible(next);
             localStorage.setItem('high-hand-feature-visible', next ? 'true' : 'false');
           }}
+          onFinancialDashboard={() => setShowFinancialDashboard(true)}
         />
 
       {/* Dashboard Summary Bar */}
@@ -1344,6 +1439,10 @@ export default function AdminPage({ user }: AdminPageProps) {
                       isPersistent={persistentApiTableIds.has(table.id) || persistentTableNumbers.has(table.table_number)}
                       onHideTable={handleHideTable}
                       onDuplicateTable={handleDuplicateTable}
+                      initialSeated={seatedPlayersMap.get(table.id)}
+                      initialWaitlist={waitlistPlayersMap.get(table.id)}
+                      checkInStatusMap={checkInStatusMap}
+                      onPlayersChanged={handlePlayersChanged}
                     />
                   ))
                 }
@@ -1407,7 +1506,7 @@ export default function AdminPage({ user }: AdminPageProps) {
             return filteredTables;
           })()}
           onClose={() => setShowCheckIn(false)}
-          onSuccess={handleRefresh}
+          onSuccess={() => { setRefreshKey(k => k + 1); refreshData(true); }}
         />
       )}
 
@@ -1421,20 +1520,29 @@ export default function AdminPage({ user }: AdminPageProps) {
           showTableSelection={false}
           hasAlreadyPaid={buyInModal.hasAlreadyPaid}
           onConfirm={async (amount, _tableId, isPreviousPlayer) => {
-            if (isPreviousPlayer) {
-              // Previous player: create a $0 check-in to mark them as bought in, but no receipt/accounting
-              await collectBuyIn(buyInModal.entry.player_id, clubDay.id, 0, adminUser);
-              // Toast removed per user request
-            } else {
-              await collectBuyIn(buyInModal.entry.player_id, clubDay.id, amount, adminUser);
-              // Toast removed per user request
-            }
-            setBuyInModal(null);
-            // Refresh check-in status map
+            const playerId = buyInModal.entry.player_id;
+            const finalAmount = isPreviousPlayer ? 0 : amount;
+
+            // OPTIMISTIC: Update UI instantly — close modal + mark as paid
             setCheckInStatusMap((prev) => {
               const next = new Map(prev);
-              next.set(buyInModal.entry.player_id, { hasPaid: true, amount: buyInModal.defaultAmount, isPrevious: false });
+              next.set(playerId, { hasPaid: true, amount: finalAmount, isPrevious: isPreviousPlayer || false });
               return next;
+            });
+            setBuyInModal(null);
+
+            // FIRE-AND-FORGET: Backend call runs in background.
+            // Do NOT await — DoorFeeModal awaits onConfirm, so awaiting here
+            // would block the modal from closing until the backend finishes.
+            collectBuyIn(playerId, clubDay.id, finalAmount, adminUser).catch((err: any) => {
+              // Revert optimistic update on failure
+              setCheckInStatusMap((prev) => {
+                const next = new Map(prev);
+                next.delete(playerId);
+                return next;
+              });
+              logError('Buy-in failed:', err);
+              showToast(err.message || 'Buy-in failed — please try again', 'error');
             });
           }}
           onClose={() => setBuyInModal(null)}
@@ -1446,7 +1554,7 @@ export default function AdminPage({ user }: AdminPageProps) {
           clubDayId={clubDay!.id}
           adminUser={adminUser}
           onClose={() => setShowRefund(false)}
-          onSuccess={handleRefresh}
+          onSuccess={() => { setRefreshKey(k => k + 1); refreshData(true); }}
         />
       )}
 
@@ -1766,25 +1874,10 @@ export default function AdminPage({ user }: AdminPageProps) {
           gameTypeGroups.get(key)!.push(t);
         });
 
-        // Build seated player IDs for TC detection
-        const seatedPlayerIds = new Set(
+        // Global seated player IDs (for localStorage tc-list fallback only)
+        const globalSeatedPlayerIds = new Set(
           Array.from(seatedPlayersMap.values()).flat().map(s => s.player_id)
         );
-        const tcPlayerIds = new Set<string>();
-        for (const [, wlist] of waitlistPlayersMap) {
-          for (const wl of wlist) {
-            if (seatedPlayerIds.has(wl.player_id)) tcPlayerIds.add(wl.player_id);
-          }
-        }
-        // Also include label-only TC players from localStorage (no target table yet)
-        try {
-          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-          for (const entry of tcList) {
-            if (entry.playerId && seatedPlayerIds.has(entry.playerId)) {
-              tcPlayerIds.add(entry.playerId);
-            }
-          }
-        } catch {}
 
         return (
           <>
@@ -1905,6 +1998,38 @@ export default function AdminPage({ user }: AdminPageProps) {
                   const totalSeated = gameTables.reduce((sum, t) => sum + (seatedPlayersMap.get(t.id)?.length || 0), 0);
                   const totalSeats = gameTables.reduce((sum, t) => sum + (t.seats_total || 20), 0);
 
+                  // Build seated player IDs ONLY for this game type + stakes group
+                  // A player is only TC if seated at a table of the SAME game type, not a different game
+                  const groupSeatedPlayerIds = new Set<string>();
+                  for (const t of gameTables) {
+                    const seated = seatedPlayersMap.get(t.id) || [];
+                    for (const s of seated) {
+                      groupSeatedPlayerIds.add(s.player_id);
+                    }
+                  }
+
+                  // TC detection: player on waitlist AND seated in THIS SAME game type group
+                  const tcPlayerIds = new Set<string>();
+                  for (const t of gameTables) {
+                    const wlist = waitlistPlayersMap.get(t.id) || [];
+                    for (const wl of wlist) {
+                      if (groupSeatedPlayerIds.has(wl.player_id)) {
+                        tcPlayerIds.add(wl.player_id);
+                      }
+                    }
+                  }
+                  // Also include label-only TC players from localStorage (explicit TC via menu)
+                  // Only include if the player's source table (fromTableNumber) is in THIS game type group
+                  const groupTableNumbers = new Set(gameTables.map(t => t.table_number));
+                  try {
+                    const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                    for (const entry of tcList) {
+                      if (entry.playerId && globalSeatedPlayerIds.has(entry.playerId) && groupTableNumbers.has(entry.fromTableNumber)) {
+                        tcPlayerIds.add(entry.playerId);
+                      }
+                    }
+                  } catch {}
+
                   // Merge waitlists from all tables of this game type, deduplicate by player_id
                   const allEntries: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
                   for (const t of gameTables) {
@@ -1949,7 +2074,7 @@ export default function AdminPage({ user }: AdminPageProps) {
                           mergedWaitlist.map(({ wl, tableId }, idx) => {
                             const isTC = tcPlayerIds.has(wl.player_id);
                             const ciStatus = checkInStatusMap.get(wl.player_id);
-                            const needsBuyIn = ciStatus ? !ciStatus.hasPaid : false;
+                            const needsBuyIn = !ciStatus || !ciStatus.hasPaid;
                             return (
                               <div key={wl.id} className="popup-waitlist-item admin-fab-item-stacked">
                                 <div className="admin-fab-name-row">
@@ -2107,6 +2232,14 @@ export default function AdminPage({ user }: AdminPageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Financial Dashboard Modal */}
+      {showFinancialDashboard && (
+        <FinancialDashboard
+          onClose={() => setShowFinancialDashboard(false)}
+          adminUser={adminUser}
+        />
       )}
     </div>
   );

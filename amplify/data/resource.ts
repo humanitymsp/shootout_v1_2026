@@ -21,7 +21,10 @@ const schema = a.schema({
       waitlist: a.hasMany('TableWaitlist', 'playerId'),
       ledgerEntries: a.hasMany('LedgerEntry', 'playerId'),
     })
-    .authorization((allow) => [allow.authenticated().to(['create', 'read', 'update', 'delete'])]),
+    .authorization((allow) => [
+      allow.authenticated().to(['create', 'read', 'update', 'delete']),
+      allow.publicApiKey().to(['read']), // Allow tablet/TV/public to read player names via apiKey
+    ]),
 
   ClubDay: a
     .model({

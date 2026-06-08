@@ -1563,6 +1563,14 @@
   cursor: pointer;
 }
 
+.tc-option-label.tc-option-danger {
+  color: var(--color-danger, #ef4444);
+}
+
+.tc-option-label.tc-option-danger input[type="checkbox"] {
+  accent-color: var(--color-danger, #ef4444);
+}
+
 /* TC group headers */
 .tc-group-header {
   display: flex;

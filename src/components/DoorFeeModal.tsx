@@ -67,7 +67,7 @@ export default function DoorFeeModal({
         }, 100);
       }
     }
-  }, [defaultAmount]);
+  }, [hasAlreadyPaid, defaultAmount]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,6 +228,10 @@ export default function DoorFeeModal({
             )}
           </div>}
 
+          <button type="submit" style={{ display: 'none' }} />
+        </form>
+
+        <div className="door-fee-footer">
           <div className="door-fee-actions">
             <button
               type="button"
@@ -238,14 +242,15 @@ export default function DoorFeeModal({
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
               className="door-fee-confirm"
               disabled={loading || (showTableSelection && !selectedTableId)}
+              onClick={handleSubmit as any}
             >
               {loading ? 'Processing...' : isPreviousPlayer ? 'Seat Player' : `Pay $${useCustom ? (parseFloat(amount) || 0) : parseFloat(amount) || 20} & Seat`}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

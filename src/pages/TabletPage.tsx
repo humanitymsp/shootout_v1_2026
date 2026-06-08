@@ -2,10 +2,11 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import { format } from 'date-fns';
-import { getActiveClubDay, getTablesForClubDay, getSeatedPlayersForPlayer } from '../lib/api';
+import { getActiveClubDay, getTablesForClubDay, getSeatedPlayersForPlayer, toPokerTable } from '../lib/api';
+import { queryClubDayCompound } from '../lib/gsiQueries';
 import { seatPlayer, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, getCheckInForPlayer, swapWaitlistAddedAt } from '../lib/api';
 import { getAllTableCountsForClubDay } from '../lib/tableCounts';
-import { initializeLocalPlayers, startPlayerSyncPolling } from '../lib/localStoragePlayers';
+import { initializeLocalPlayers, startPlayerSyncPolling, loadAllPlayersToCache, setActiveClubDayIdForCache } from '../lib/localStoragePlayers';
 import { showToast } from '../components/Toast';
 import { logError, log } from '../lib/logger';
 import type { PokerTable, TableSeat, TableWaitlist, ClubDay } from '../types';
@@ -68,6 +69,15 @@ export default function TabletPage() {
           return;
         }
         
+        // Store clubDayId so enrichment can use it for PlayerSync lookups
+        setActiveClubDayIdForCache(activeDay.id);
+        
+        // Bulk-load ALL players into localStorage cache before table data loads.
+        // CRITICAL: Player.list lacks @aws_api_key, so this uses PlayerSync instead.
+        try {
+          await loadAllPlayersToCache('apiKey', false, activeDay.id);
+        } catch { /* non-fatal */ }
+        
         setClubDay(activeDay);
         const tablesData = await getTablesForClubDay(activeDay.id);
         setTables(tablesData);
@@ -91,7 +101,7 @@ export default function TabletPage() {
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       log(`📡 Tablet: Synced ${players.length} players from admin`);
-    }, 10000); // Poll every 10 seconds
+    }, 30000, 'apiKey'); // Poll every 30 seconds, use apiKey auth for tablet
     
     return () => {
       stopPlayerSync();
@@ -108,8 +118,8 @@ export default function TabletPage() {
     return tables.filter(t => t.status !== 'CLOSED').map(t => t.id).sort().join(',');
   }, [tables]);
 
-  // Load function - uses tables from ref to avoid dependency issues
-  const loadAllTableData = useCallback(async () => {
+  // Load function - uses compound query to fetch tables + seats + waitlist in ONE request
+  const loadAllTableData = useCallback(async (prefetchedData?: { tables: any[]; seats: any[]; waitlist: any[] }) => {
     if (!clubDay) return;
     
     // Prevent concurrent loads
@@ -121,10 +131,28 @@ export default function TabletPage() {
     setLoading(true);
     const data = new Map<string, { seated: TableSeat[]; waitlist: TableWaitlist[] }>();
     
-    // BATCH: Fetch ALL seats + ALL waitlists for the entire club day in just 2 queries
-    // (replaces per-table getTableCounts which was 2 queries × N tables)
     try {
-      const { countsMap } = await getAllTableCountsForClubDay(clubDay.id);
+      // Use compound query data if provided, otherwise fetch fresh
+      let compound = prefetchedData;
+      if (!compound) {
+        compound = await queryClubDayCompound(clubDay.id);
+      }
+      
+      // Update tables from compound data if available
+      const compoundOk = compound.tables.length > 0;
+      if (compoundOk) {
+        const freshTables = compound.tables.map(toPokerTable);
+        setTables(freshTables);
+        tablesRef.current = freshTables;
+      }
+      
+      // Only pass prefetched data if compound succeeded — otherwise fall back to GSI/Scan
+      const prefetchedForCounts = compoundOk
+        ? { seats: compound.seats, waitlist: compound.waitlist }
+        : undefined;
+      const { countsMap } = await getAllTableCountsForClubDay(
+        clubDay.id, undefined, prefetchedForCounts
+      );
       const currentTables = tablesRef.current.filter(t => t.status !== 'CLOSED');
       for (const table of currentTables) {
         const counts = countsMap.get(table.id);
@@ -198,15 +226,11 @@ export default function TabletPage() {
     if (!clubDay) return;
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
-      // Refresh tables list
-      getTablesForClubDay(clubDay.id)
-        .then(fetched => setTables(fetched))
-        .catch(() => {});
-      // Refresh seat/waitlist data
+      // COMPOUND QUERY: tables + seats + waitlist in ONE request (was 3 separate calls)
       if (!isLoadingRef.current) {
         loadAllTableData();
       }
-    }, 10000); // 10s polling for cross-device sync
+    }, 30000); // 30s polling for cross-device sync
     return () => clearInterval(pollInterval);
   }, [clubDay, loadAllTableData]);
 
@@ -380,28 +404,11 @@ export default function TabletPage() {
       // Seat at new table
       await seatPlayer(tableId, wl.player_id, clubDay.id);
       
-      // Remove from waitlists of the SAME game type only (preserve other game type waitlists)
+      // Remove only the specific waitlist entry being seated (preserve all other waitlists)
       try {
-        const targetTable = tables.find(t => t.id === tableId);
-        const targetGameType = targetTable?.game_type;
-        if (targetGameType) {
-          const sameGameTableIds = new Set(
-            tables.filter(t => t.game_type === targetGameType).map(t => t.id)
-          );
-          for (const [tId, data] of tableData) {
-            if (!sameGameTableIds.has(tId)) continue;
-            for (const entry of data.waitlist) {
-              if (entry.player_id === wl.player_id && entry.club_day_id === clubDay.id) {
-                try { await removePlayerFromWaitlist(entry.id, adminUser); } catch {}
-              }
-            }
-          }
-        } else {
-          await removePlayerFromWaitlist(wl.id, adminUser);
-        }
-      } catch {
-        // Fallback: at least remove the specific waitlist entry
         await removePlayerFromWaitlist(wl.id, adminUser);
+      } catch {
+        // Already removed by seatPlayer
       }
       
       // If TC player, remove from previous table seat(s)
@@ -732,21 +739,9 @@ export default function TabletPage() {
       });
     }
     
-    // Sort by total players (seated + waitlist) - largest first
-    filtered.sort((a, b) => {
-      const dataA = tableData.get(a.id) || { seated: [], waitlist: [] };
-      const dataB = tableData.get(b.id) || { seated: [], waitlist: [] };
-      const totalA = dataA.seated.length + dataA.waitlist.length;
-      const totalB = dataB.seated.length + dataB.waitlist.length;
-      
-      // Sort by total players descending (most players first)
-      if (totalB !== totalA) {
-        return totalB - totalA;
-      }
-      
-      // If same number of players, sort by table number ascending
-      return a.table_number - b.table_number;
-    });
+    // Sort by table number ascending — stable order that doesn't shift
+    // when player counts change (bust, move, seat actions).
+    filtered.sort((a, b) => a.table_number - b.table_number);
     
     return filtered;
   }, [activeTables, tableData, filterStatus, searchQuery]);
@@ -804,7 +799,7 @@ export default function TabletPage() {
           <div className="tablet-header-actions">
             <button 
               className="tablet-refresh-btn" 
-              onClick={loadAllTableData}
+              onClick={() => loadAllTableData()}
               disabled={isLoadingRef.current}
             >
               🔄 Refresh
@@ -1083,30 +1078,13 @@ export default function TabletPage() {
 
       {/* Game Type Waitlist Lobby */}
       {activeTables.length > 0 && (() => {
-        // Compute TC player IDs: players who are seated at any table AND on a waitlist OR in tc-list
-        const seatedPlayerIds = new Set<string>();
+        // Global seated player IDs (for localStorage tc-list fallback only)
+        const globalSeatedPlayerIds = new Set<string>();
         for (const [, data] of tableData) {
           for (const seat of data.seated) {
-            seatedPlayerIds.add(seat.player_id);
+            globalSeatedPlayerIds.add(seat.player_id);
           }
         }
-        const tcPlayerIds = new Set<string>();
-        for (const [, data] of tableData) {
-          for (const wl of data.waitlist) {
-            if (seatedPlayerIds.has(wl.player_id)) {
-              tcPlayerIds.add(wl.player_id);
-            }
-          }
-        }
-        // Also include label-only TC players from localStorage
-        try {
-          const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
-          for (const entry of tcList) {
-            if (entry.playerId && seatedPlayerIds.has(entry.playerId)) {
-              tcPlayerIds.add(entry.playerId);
-            }
-          }
-        } catch {}
 
         // Group tables by game type + stakes
         const gameTypeGroups = new Map<string, PokerTable[]>();
@@ -1125,6 +1103,42 @@ export default function TabletPage() {
                 const totalSeated = gameTables.reduce((sum, t) => sum + (tableData.get(t.id)?.seated.length || 0), 0);
                 const totalSeats = gameTables.length * 20; // 20 seats per table
 
+                // Build seated player IDs ONLY for this game type + stakes group
+                // A player is only TC if seated at a table of the SAME game type, not a different game
+                const groupSeatedPlayerIds = new Set<string>();
+                for (const t of gameTables) {
+                  const data = tableData.get(t.id);
+                  if (data) {
+                    for (const seat of data.seated) {
+                      groupSeatedPlayerIds.add(seat.player_id);
+                    }
+                  }
+                }
+
+                // TC detection: player on waitlist AND seated in THIS SAME game type group
+                const tcPlayerIds = new Set<string>();
+                for (const t of gameTables) {
+                  const data = tableData.get(t.id);
+                  if (data?.waitlist) {
+                    for (const wl of data.waitlist) {
+                      if (groupSeatedPlayerIds.has(wl.player_id)) {
+                        tcPlayerIds.add(wl.player_id);
+                      }
+                    }
+                  }
+                }
+                // Also include label-only TC players from localStorage (explicit TC via menu)
+                // Only include if the player's source table (fromTableNumber) is in THIS game type group
+                const groupTableNumbers = new Set(gameTables.map(t => t.table_number));
+                try {
+                  const tcList = JSON.parse(localStorage.getItem('tc-list') || '[]');
+                  for (const entry of tcList) {
+                    if (entry.playerId && globalSeatedPlayerIds.has(entry.playerId) && groupTableNumbers.has(entry.fromTableNumber)) {
+                      tcPlayerIds.add(entry.playerId);
+                    }
+                  }
+                } catch {}
+
                 // Merge waitlists from all tables of this game type, deduplicating by player_id
                 // Sort by added_at so players appear in buy-in order (earliest first)
                 const allEntries: { wl: TableWaitlist; tableId: string; tableNumber: number }[] = [];
@@ -1137,20 +1151,9 @@ export default function TabletPage() {
                   }
                 }
                 // Sort to prioritize TC players: TCs first (by added_at), then regular players (by added_at)
-                // Build set of all seated players for TC detection
-                const allSeatedPlayerIds = new Set<string>();
-                for (const t of gameTables) {
-                  const data = tableData.get(t.id);
-                  if (data) {
-                    for (const seat of data.seated) {
-                      allSeatedPlayerIds.add(seat.player_id);
-                    }
-                  }
-                }
-                
                 allEntries.sort((a, b) => {
-                  const aIsTC = allSeatedPlayerIds.has(a.wl.player_id);
-                  const bIsTC = allSeatedPlayerIds.has(b.wl.player_id);
+                  const aIsTC = tcPlayerIds.has(a.wl.player_id);
+                  const bIsTC = tcPlayerIds.has(b.wl.player_id);
                   
                   // TC players come first
                   if (aIsTC && !bIsTC) return -1;

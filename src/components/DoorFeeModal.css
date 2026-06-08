@@ -27,8 +27,11 @@
   border: 1px solid var(--admin-border);
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  width: 90%;
-  max-width: 420px;
+  width: 94%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   animation: slideUp 0.3s ease;
   overflow: hidden;
 }
@@ -45,12 +48,13 @@
 }
 
 .door-fee-modal-header {
-  padding: 1.5rem;
+  padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--admin-border);
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  flex-shrink: 0;
 }
 
 .door-fee-modal-title {
@@ -110,11 +114,14 @@
 }
 
 .door-fee-form {
-  padding: 1.5rem;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .door-fee-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .door-fee-label {
@@ -129,13 +136,15 @@
 
 .door-fee-options {
   display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .door-fee-option-btn {
-  flex: 1;
-  padding: 0.875rem 1.5rem;
+  flex: 1 1 auto;
+  min-width: 80px;
+  padding: 0.75rem 1rem;
   background: var(--admin-surface);
   border: 2px solid var(--admin-border);
   border-radius: 10px;
@@ -267,6 +276,12 @@
   margin-left: auto;
 }
 
+.door-fee-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--admin-border);
+  flex-shrink: 0;
+}
+
 .door-fee-actions {
   display: flex;
   gap: 0.75rem;
@@ -316,19 +331,20 @@
 
 @media (max-width: 640px) {
   .door-fee-modal {
-    width: 95%;
-    margin: 1rem;
+    width: 96%;
+    max-width: none;
+    margin: 0.5rem;
   }
 
   .door-fee-modal-header {
-    padding: 1.25rem;
+    padding: 0.75rem 1rem;
   }
 
   .door-fee-form {
-    padding: 1.25rem;
+    padding: 0.75rem 1rem;
   }
 
-  .door-fee-options {
-    flex-direction: column;
+  .door-fee-section {
+    margin-bottom: 0.75rem;
   }
 }

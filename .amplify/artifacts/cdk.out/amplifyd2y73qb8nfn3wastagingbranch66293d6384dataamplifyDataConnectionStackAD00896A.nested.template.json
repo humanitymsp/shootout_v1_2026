@@ -12,7 +12,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "PlayercheckInsauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1e2206b78fa83f8ab57cc10241e77d050c6e8436d6fca143f98b9e04ed784964.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c467cde832e30c2cc36754d7183c9645bc64763d97f0e243f8ffbf8df4962fe1.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -149,7 +149,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "Playerreceiptsauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1e2206b78fa83f8ab57cc10241e77d050c6e8436d6fca143f98b9e04ed784964.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c467cde832e30c2cc36754d7183c9645bc64763d97f0e243f8ffbf8df4962fe1.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -286,7 +286,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "Playerseatsauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/673cf95037610d321c43a9ac79235def81d59db441dfd816895486ddbcf2a2be.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e25e9c86ec3c2af0f86da0b3bf06aea8b52d52e66a3638c443c6f05a0b276173.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -423,7 +423,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "Playerwaitlistauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/673cf95037610d321c43a9ac79235def81d59db441dfd816895486ddbcf2a2be.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e25e9c86ec3c2af0f86da0b3bf06aea8b52d52e66a3638c443c6f05a0b276173.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -560,7 +560,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "PlayerledgerEntriesauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1e2206b78fa83f8ab57cc10241e77d050c6e8436d6fca143f98b9e04ed784964.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c467cde832e30c2cc36754d7183c9645bc64763d97f0e243f8ffbf8df4962fe1.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -3026,7 +3026,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "CheckInplayerauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1e2206b78fa83f8ab57cc10241e77d050c6e8436d6fca143f98b9e04ed784964.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/673cf95037610d321c43a9ac79235def81d59db441dfd816895486ddbcf2a2be.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -3711,7 +3711,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "Receiptplayerauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1e2206b78fa83f8ab57cc10241e77d050c6e8436d6fca143f98b9e04ed784964.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/673cf95037610d321c43a9ac79235def81d59db441dfd816895486ddbcf2a2be.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -4122,7 +4122,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "TableSeatplayerauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c467cde832e30c2cc36754d7183c9645bc64763d97f0e243f8ffbf8df4962fe1.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e25e9c86ec3c2af0f86da0b3bf06aea8b52d52e66a3638c443c6f05a0b276173.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -4533,7 +4533,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "TableWaitlistplayerauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/c467cde832e30c2cc36754d7183c9645bc64763d97f0e243f8ffbf8df4962fe1.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/e25e9c86ec3c2af0f86da0b3bf06aea8b52d52e66a3638c443c6f05a0b276173.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },
@@ -5218,7 +5218,7 @@
     "FunctionVersion": "2018-05-29",
     "Name": "LedgerEntryplayerauth0Function",
     "RequestMappingTemplateS3Location": {
-     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/1e2206b78fa83f8ab57cc10241e77d050c6e8436d6fca143f98b9e04ed784964.vtl"
+     "Fn::Sub": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}/673cf95037610d321c43a9ac79235def81d59db441dfd816895486ddbcf2a2be.vtl"
     },
     "ResponseMappingTemplate": "$util.toJson({})"
    },

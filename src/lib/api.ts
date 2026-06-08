@@ -84,7 +84,7 @@ function toClubDay(amplifyClubDay: any): ClubDay {
   };
 }
 
-function toPokerTable(amplifyTable: any): PokerTable {
+export function toPokerTable(amplifyTable: any): PokerTable {
   return {
     id: amplifyTable.id,
     club_day_id: amplifyTable.clubDayId,
@@ -1203,6 +1203,16 @@ export async function createClubDay(preservedBuyInLimits?: Map<number, string>):
 
 // Table functions
 export async function getTablesForClubDay(clubDayId: string, authMode?: string): Promise<PokerTable[]> {
+  // Use GSI query (gsi-ClubDay.tables) instead of Scan
+  try {
+    const { queryTablesByClubDay } = await import('./gsiQueries');
+    const gsiResults = await queryTablesByClubDay(clubDayId, authMode);
+    if (gsiResults.length > 0) {
+      return gsiResults.map(toPokerTable);
+    }
+  } catch { /* fall through to Scan */ }
+
+  // Fallback to Scan (original behavior)
   const opts: any = {
     filter: {
       clubDayId: { eq: clubDayId },
@@ -1265,17 +1275,66 @@ export async function updateTable(tableId: string, updates: Partial<PokerTable>)
   });
 }
 
-export async function deleteTable(tableId: string): Promise<void> {
+export async function deleteTable(tableId: string, clubDayId?: string): Promise<void> {
   // Remove all active seats using the resilient seat removal flow
   const seats = await getSeatedPlayersForTable(tableId);
   for (const seat of seats) {
     await removePlayerFromSeat(seat.id, tableId, 'system');
   }
 
-  // Remove all active waitlist entries using direct mutation
+  // Migrate waitlist entries to a sibling table of the same game type + stakes.
+  // Waitlist entries are game-type lobby entries, not table-specific — they should
+  // move to another table so players don't lose their waitlist spot.
   const waitlist = await getWaitlistForTable(tableId);
-  for (const wl of waitlist) {
-    await removePlayerFromWaitlist(wl.id, 'system');
+  if (waitlist.length > 0 && clubDayId) {
+    // Find sibling tables with the same game type + stakes
+    const { data: tableData } = await getClient().models.PokerTable.get({ id: tableId });
+    if (tableData) {
+      const allTables = await getTablesForClubDay(clubDayId);
+      const siblingTable = allTables.find(t =>
+        t.id !== tableId &&
+        t.game_type === (tableData as any).gameType &&
+        t.stakes_text === (tableData as any).stakesText &&
+        t.status !== 'CLOSED'
+      );
+
+      if (siblingTable) {
+        log(`🔄 Migrating ${waitlist.length} waitlist entries from table ${tableId.slice(0,8)} to sibling table ${siblingTable.id.slice(0,8)}`);
+        for (const wl of waitlist) {
+          try {
+            // Check if player is already on the sibling table's waitlist
+            const siblingWaitlist = await getWaitlistForTable(siblingTable.id, clubDayId);
+            const alreadyOnSibling = siblingWaitlist.some(sw => sw.player_id === wl.player_id);
+            if (!alreadyOnSibling) {
+              await getClient().models.TableWaitlist.update({ id: wl.id, tableId: siblingTable.id });
+              log(`  ✅ Migrated waitlist entry for player ${wl.player_id.slice(0,8)} to table ${siblingTable.id.slice(0,8)}`);
+            } else {
+              // Already on sibling — just remove the duplicate
+              await removePlayerFromWaitlist(wl.id, 'system');
+            }
+          } catch (err: any) {
+            logWarn(`  ⚠️ Failed to migrate waitlist entry ${wl.id.slice(0,8)}, removing instead:`, err?.message);
+            try { await removePlayerFromWaitlist(wl.id, 'system'); } catch { /* best effort */ }
+          }
+        }
+      } else {
+        // No sibling table — remove waitlist entries
+        log(`🗑️ No sibling table for game type, removing ${waitlist.length} waitlist entries`);
+        for (const wl of waitlist) {
+          await removePlayerFromWaitlist(wl.id, 'system');
+        }
+      }
+    } else {
+      // Table data not found — just remove entries
+      for (const wl of waitlist) {
+        await removePlayerFromWaitlist(wl.id, 'system');
+      }
+    }
+  } else if (waitlist.length > 0) {
+    // No clubDayId provided — fallback to removing entries
+    for (const wl of waitlist) {
+      await removePlayerFromWaitlist(wl.id, 'system');
+    }
   }
 
   // Delete the table
@@ -1315,24 +1374,11 @@ export async function getSeatedPlayersForPlayer(playerId: string, clubDayId: str
   // Convert to TableSeat format
   const seats = data?.map(toTableSeat) || [];
   
-  // Enrich with player data from localStorage
+  // Enrich with player data from localStorage (pure cache, no AppSync calls)
   try {
     const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
     return enrichArrayWithPlayerData(seats);
   } catch (error) {
-    // Fallback to backend lookup
-    for (const seat of seats) {
-      if (!seat.player && seat.player_id) {
-        try {
-          const { data: playerData } = await getClient().models.Player.get({ id: seat.player_id });
-          if (playerData) {
-            seat.player = toPlayer(playerData);
-          }
-        } catch (err) {
-          // Player not found
-        }
-      }
-    }
     return seats;
   }
 }
@@ -1381,24 +1427,11 @@ export async function getSeatedPlayersForTable(tableId: string, clubDayId?: stri
   // Convert to TableSeat format
   const seats = (data || []).map(toTableSeat);
   
-  // Enrich with player data from localStorage (faster than backend lookup)
+  // Enrich any remaining missing player data from localStorage, then DynamoDB fallback
   try {
     const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
-    return enrichArrayWithPlayerData(seats);
+    return enrichArrayWithPlayerData(seats, authMode);
   } catch (error) {
-    // Fallback to backend lookup if localStorage enrichment fails
-    for (const seat of seats) {
-      if (!seat.player && seat.player_id) {
-        try {
-          const { data: playerData } = await getClient().models.Player.get({ id: seat.player_id });
-          if (playerData) {
-            seat.player = toPlayer(playerData);
-          }
-        } catch (err) {
-          // Player not found in backend, that's okay - will show as "Unknown"
-        }
-      }
-    }
     return seats;
   }
 }
@@ -1408,17 +1441,31 @@ export async function getSeatedPlayersForTable(tableId: string, clubDayId?: stri
  * Returns seats sorted by most recently busted first.
  */
 export async function getBustedPlayersForClubDay(clubDayId: string): Promise<TableSeat[]> {
-  const { data } = await getClient().models.TableSeat.list({
-    filter: {
-      and: [
-        { clubDayId: { eq: clubDayId } },
-        { leftAt: { attributeExists: true } },
-      ],
-    },
-    limit: 1000,
-  });
+  let seats: TableSeat[];
 
-  const seats = (data || []).map(toTableSeat);
+  // Use GSI query (gsi-ClubDay.seats) instead of Scan
+  let gsiResults: any[] = [];
+  try {
+    const { querySeatsByClubDay } = await import('./gsiQueries');
+    gsiResults = await querySeatsByClubDay(clubDayId);
+  } catch { /* GSI unavailable */ }
+
+  if (gsiResults.length > 0) {
+    // GSI returned data — filter client-side for busted seats only
+    seats = gsiResults.filter((s: any) => s.leftAt).map(toTableSeat);
+  } else {
+    // Fallback to Scan — either GSI returned nothing or failed
+    const { data } = await getClient().models.TableSeat.list({
+      filter: {
+        and: [
+          { clubDayId: { eq: clubDayId } },
+          { leftAt: { attributeExists: true } },
+        ],
+      },
+      limit: 1000,
+    });
+    seats = (data || []).map(toTableSeat);
+  }
 
   // Enrich with player data from localStorage
   try {
@@ -1451,8 +1498,8 @@ export async function seatPlayer(tableId: string, playerId: string, clubDayId: s
   const existingWaitlistEntry = waitlist.find(w => w.player_id === playerId);
 
   if (existingWaitlistEntry) {
-    log(`Player ${playerId} is waitlisted at table ${tableId}, removing from waitlist before seating`);
-    await removePlayerFromWaitlist(existingWaitlistEntry.id, 'system');
+    log(`Player ${playerId} is waitlisted at table ${tableId}, removing from waitlist before seating (entry: ${existingWaitlistEntry.id}, table: ${existingWaitlistEntry.table_id})`);
+    await removePlayerFromWaitlist(existingWaitlistEntry.id, 'system-seatPlayer');
   }
 
   // Use direct GraphQL mutation to avoid relationship resolution issues
@@ -1566,41 +1613,72 @@ export async function autoFixTableIntegrity(clubDayId: string): Promise<{ fixed:
   let fixedCount = 0;
   
   try {
-    // Get all tables for this club day
-    const tables = await getTablesForClubDay(clubDayId);
-    
-    // Track players we've seen seated
+    // BATCH: Fetch ALL active seats for the entire club day via GSI (not Scan).
+    // We need RAW (non-deduplicated) seats to detect same-table duplicates, so we query directly
+    // rather than using getAllTableCountsForClubDay which deduplicates internally.
+    let allSeatsRaw: any[];
+    let gsiResults: any[] = [];
+    try {
+      const { querySeatsByClubDay } = await import('./gsiQueries');
+      gsiResults = await querySeatsByClubDay(clubDayId);
+    } catch { /* GSI unavailable */ }
+
+    if (gsiResults.length > 0) {
+      allSeatsRaw = gsiResults.filter((s: any) => !s.leftAt);
+    } else {
+      // Fallback to Scan — either GSI returned nothing or failed
+      const result = await getClient().models.TableSeat.list({
+        filter: {
+          and: [
+            { clubDayId: { eq: clubDayId } },
+            { leftAt: { attributeExists: false } },
+          ],
+        },
+        limit: 1000,
+      });
+      allSeatsRaw = result.data || [];
+    }
+
+    // Group raw seats by table_id
+    const seatsByTable = new Map<string, TableSeat[]>();
+    for (const r of (allSeatsRaw || [])) {
+      if (r.id?.startsWith('temp-')) continue;
+      const seat: TableSeat = {
+        id: r.id, club_day_id: (r as any).clubDayId, table_id: (r as any).tableId,
+        player_id: (r as any).playerId, seated_at: (r as any).seatedAt,
+        left_at: (r as any).leftAt || undefined, created_at: (r as any).createdAt || new Date().toISOString(),
+      };
+      const arr = seatsByTable.get(seat.table_id) || [];
+      arr.push(seat);
+      seatsByTable.set(seat.table_id, arr);
+    }
+
+    // Track players we've seen seated (cross-table)
     const playerSeatMap = new Map<string, { seatId: string; tableId: string; seatedAt: string }>();
     const seatsToRemove: string[] = [];
     
-    // Step 1: Find and fix duplicate seated players
-    // CRITICAL: Pass clubDayId to ensure we only check seats from the current club day
-    for (const table of tables) {
-      const seated = await getSeatedPlayersForTable(table.id, clubDayId);
-      
-      // Track unique players per table
+    // Step 1: Find and fix duplicate seated players using batch-fetched RAW data
+    for (const [tableId, seats] of seatsByTable.entries()) {
+      // Track unique players per table (detect same-table duplicates)
       const tablePlayerMap = new Map<string, TableSeat>();
       
-      for (const seat of seated) {
+      for (const seat of seats) {
         const playerId = seat.player_id;
         
         // Check for duplicate at same table
         if (tablePlayerMap.has(playerId)) {
-          // Keep the earliest seat, remove duplicates
           const existingSeat = tablePlayerMap.get(playerId)!;
           const existingTime = new Date(existingSeat.seated_at).getTime();
           const currentTime = new Date(seat.seated_at).getTime();
           
           if (currentTime < existingTime) {
-            // Current seat is earlier, remove the existing one
             seatsToRemove.push(existingSeat.id);
             tablePlayerMap.set(playerId, seat);
           } else {
-            // Existing seat is earlier, remove current
             seatsToRemove.push(seat.id);
           }
           fixedCount++;
-          log(`🔧 Auto-fix: Removing duplicate seat for player ${playerId} at table ${table.id}`);
+          log(`🔧 Auto-fix: Removing duplicate seat for player ${playerId} at table ${tableId}`);
         } else {
           tablePlayerMap.set(playerId, seat);
         }
@@ -1614,14 +1692,14 @@ export async function autoFixTableIntegrity(clubDayId: string): Promise<{ fixed:
           // Keep the earliest seat, mark later one for removal
           if (currentTime < existingTime) {
             seatsToRemove.push(existingSeat.seatId);
-            playerSeatMap.set(playerId, { seatId: seat.id, tableId: table.id, seatedAt: seat.seated_at });
+            playerSeatMap.set(playerId, { seatId: seat.id, tableId, seatedAt: seat.seated_at });
           } else {
             seatsToRemove.push(seat.id);
           }
           fixedCount++;
           log(`🔧 Auto-fix: Removing duplicate seat for player ${playerId} (already seated at another table)`);
         } else {
-          playerSeatMap.set(playerId, { seatId: seat.id, tableId: table.id, seatedAt: seat.seated_at });
+          playerSeatMap.set(playerId, { seatId: seat.id, tableId, seatedAt: seat.seated_at });
         }
       }
     }
@@ -1854,24 +1932,11 @@ export async function getWaitlistForTable(tableId: string, clubDayId?: string, a
   const waitlist: TableWaitlist[] = (data || []).map(toTableWaitlist);
   waitlist.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
   
-  // Enrich with player data from localStorage (faster than backend lookup)
+  // Enrich any remaining missing player data from localStorage, then DynamoDB fallback
   try {
     const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
-    return enrichArrayWithPlayerData(waitlist);
+    return enrichArrayWithPlayerData(waitlist, authMode);
   } catch (error) {
-    // Fallback to backend lookup if localStorage enrichment fails
-    for (const entry of waitlist) {
-      if (!entry.player && entry.player_id) {
-        try {
-          const { data: playerData } = await getClient().models.Player.get({ id: entry.player_id });
-          if (playerData) {
-            entry.player = toPlayer(playerData);
-          }
-        } catch (err) {
-          // Player not found in backend, that's okay - will show as "Unknown"
-        }
-      }
-    }
     return waitlist;
   }
 }
@@ -2230,6 +2295,8 @@ export async function bulkMovePlayers(params: {
  * Used when a player is busted out — they should not remain on any waitlists.
  */
 export async function removePlayerFromAllWaitlists(playerId: string, clubDayId: string): Promise<number> {
+  const callerStack = new Error().stack?.split('\n').slice(1, 4).map(s => s.trim()).join(' <- ') || 'unknown';
+  log(`🗑️🗑️ removePlayerFromAllWaitlists called: playerId=${playerId}, clubDayId=${clubDayId}, caller=${callerStack}`);
   const { data } = await getClient().models.TableWaitlist.list({
     filter: {
       and: [
@@ -2254,6 +2321,10 @@ export async function removePlayerFromAllWaitlists(playerId: string, clubDayId: 
 }
 
 export async function removePlayerFromWaitlist(waitlistId: string, _adminUser: string): Promise<void> {
+  // DIAGNOSTIC: Log every waitlist removal with caller info
+  const callerStack = new Error().stack?.split('\n').slice(1, 4).map(s => s.trim()).join(' <- ') || 'unknown';
+  log(`🗑️ removePlayerFromWaitlist called: waitlistId=${waitlistId}, admin=${_adminUser}, caller=${callerStack}`);
+
   // Use direct GraphQL mutation to avoid relationship resolution issues
   const mutation = `
     mutation UpdateTableWaitlist($input: UpdateTableWaitlistInput!) {
@@ -2273,6 +2344,21 @@ export async function removePlayerFromWaitlist(waitlistId: string, _adminUser: s
       }
     }
   });
+  log(`✅ removePlayerFromWaitlist SUCCESS: waitlistId=${waitlistId}`);
+}
+
+/**
+ * Get all active waitlist entries for a player across all tables for the current club day.
+ */
+export async function getWaitlistEntriesForPlayer(playerId: string, clubDayId: string): Promise<TableWaitlist[]> {
+  const { data } = await getClient().models.TableWaitlist.list({
+    filter: {
+      playerId: { eq: playerId },
+      clubDayId: { eq: clubDayId },
+    },
+    limit: 200,
+  });
+  return (data || []).map(toTableWaitlist).filter(w => !w.removed_at);
 }
 
 export async function seatNextFromWaitlist(tableId: string, clubDayId: string, adminUser: string, doorFeeAmount?: number): Promise<void> {
@@ -2334,17 +2420,25 @@ export async function seatNextFromWaitlist(tableId: string, clubDayId: string, a
  * @returns The check-in record if found, null otherwise
  */
 export async function getCheckInForPlayer(playerId: string, clubDayId: string): Promise<CheckIn | null> {
-  const { data } = await getClient().models.CheckIn.list({
-    filter: {
-      and: [
-        { playerId: { eq: playerId } },
-        { clubDayId: { eq: clubDayId } },
-        { refundedAt: { attributeExists: false } },
-      ],
-    },
-  });
-  if (!data || data.length === 0) return null;
-  return toCheckIn(data[0]);
+  // Only filter by playerId in DynamoDB — validate clubDayId and refundedAt client-side
+  // to avoid unreliable DynamoDB filter behavior with `and` + `attributeExists`
+  let nextToken: string | undefined = undefined;
+  do {
+    const result: any = await getClient().models.CheckIn.list({
+      filter: { playerId: { eq: playerId } },
+      limit: 1000,
+      ...(nextToken ? { nextToken } : {}),
+    });
+    const data = result.data || [];
+    for (const item of data) {
+      // Strict client-side validation: must match exact clubDayId and not be refunded
+      if (item.clubDayId === clubDayId && !item.refundedAt) {
+        return toCheckIn(item);
+      }
+    }
+    nextToken = result.nextToken;
+  } while (nextToken);
+  return null;
 }
 
 /**
@@ -2358,13 +2452,26 @@ export async function getCheckInForPlayer(playerId: string, clubDayId: string): 
  * graphql-client's recursive pagination logic.
  */
 export async function getCheckInsForClubDay(clubDayId: string, includeRefunded = true): Promise<CheckIn[]> {
+  // Use GSI query (gsi-ClubDay.checkIns) instead of Scan
+  try {
+    const { queryCheckInsByClubDay } = await import('./gsiQueries');
+    const gsiResults = await queryCheckInsByClubDay(clubDayId);
+    if (gsiResults.length > 0) {
+      let filtered = gsiResults;
+      if (!includeRefunded) {
+        filtered = gsiResults.filter((ci: any) => !ci.refundedAt);
+      }
+      return filtered.map(toCheckIn);
+    }
+  } catch { /* fall through to Scan */ }
+
+  // Fallback to Scan (original behavior)
   const filter: any = includeRefunded
     ? { clubDayId: { eq: clubDayId } }
     : { and: [{ clubDayId: { eq: clubDayId } }, { refundedAt: { attributeExists: false } }] };
 
   let allData: any[] = [];
   let nextToken: string | undefined = undefined;
-  // Paginate to handle days with more than 1000 check-ins
   do {
     const result: any = await getClient().models.CheckIn.list({
       filter,
@@ -2753,189 +2860,99 @@ export async function createCheckIn(
       adminUser
     });
 
-    // CRITICAL: Verify clubDayId matches the active club day to ensure door fees are tracked correctly
-    const activeClubDay = await getActiveClubDay();
-    if (!activeClubDay) {
-      throw new Error('No active club day found. Cannot create check-in.');
-    }
-    if (activeClubDay.id !== clubDayId) {
-      logWarn(`⚠️ Door Fee Safety Check: clubDayId mismatch!`, {
-        provided: clubDayId,
-        active: activeClubDay.id,
-        activeStatus: activeClubDay.status
-      });
-      // Use the active club day ID instead of the provided one
-      // This ensures door fees are always tracked for the correct day
-      clubDayId = activeClubDay.id;
-      log(`✅ Corrected clubDayId to active day: ${clubDayId}`);
-    }
+    // Use timestamp-based receipt number to avoid the slow Receipt.list query.
+    // Reports use receipt order (not number) for display, so exact sequential numbering isn't critical.
+    // This eliminates the slowest AppSync round-trip from the buy-in flow.
+    const nextReceiptNumber = Date.now() % 1000000; // 6-digit unique-enough number
 
-    // Retry logic for receipt number race condition
-    const MAX_RETRIES = 3;
-    let lastError: any = null;
-    let receiptData: any = null;
-    let checkInData: any = null;
-
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      // Get fresh receipt count on each attempt to minimize race conditions
-      const receipts = await getClient().models.Receipt.list({
-        filter: { clubDayId: { eq: clubDayId } },
-      });
-      const nextReceiptNumber = (receipts.data?.length || 0) + 1;
-      log(`Attempt ${attempt + 1}: Next receipt number:`, nextReceiptNumber);
-
-      // Create receipt using direct GraphQL to avoid relationship resolution issues
-      const receiptMutation = `
-        mutation CreateReceipt($input: CreateReceiptInput!) {
-          createReceipt(input: $input) {
-            id
-            clubDayId
-            receiptNumber
-            playerId
-            amount
-            paymentMethod
-            kind
-            createdBy
-          }
-        }
-      `;
-
-      const receiptResult = await getClient().graphql({
-        query: receiptMutation,
-        variables: {
-          input: {
-            clubDayId,
-            receiptNumber: nextReceiptNumber,
-            playerId,
-            amount: doorFeeAmount,
-            paymentMethod,
-            kind: 'checkin',
-            createdBy: adminUser,
-          }
-        }
-      });
-
-      if (!receiptResult.data?.createReceipt) throw new Error('Failed to create receipt');
-      receiptData = receiptResult.data.createReceipt;
-      
-      // Verify receipt number is unique (check for duplicates)
-      const verifyReceipts = await getClient().models.Receipt.list({
-        filter: {
-          and: [
-            { clubDayId: { eq: clubDayId } },
-            { receiptNumber: { eq: nextReceiptNumber } },
-          ],
-        },
-      });
-      
-      // If multiple receipts with same number, check if ours is first
-      if (verifyReceipts.data && verifyReceipts.data.length > 1) {
-        const ourReceipt = verifyReceipts.data.find((r: any) => r.id === receiptData.id);
-        if (!ourReceipt) {
-          // Collision detected, retry with new receipt number
-          if (attempt < MAX_RETRIES - 1) {
-            const backoffMs = Math.min(50 * Math.pow(2, attempt), 200);
-            log(`Receipt number collision detected, retrying in ${backoffMs}ms`);
-            await sleep(backoffMs);
-            continue;
-          }
+    // Step 1: Create receipt
+    const receiptMutation = `
+      mutation CreateReceipt($input: CreateReceiptInput!) {
+        createReceipt(input: $input) {
+          id
+          clubDayId
+          receiptNumber
+          playerId
+          amount
+          paymentMethod
+          kind
+          createdBy
         }
       }
+    `;
 
-      log('Receipt created:', receiptData.id);
-
-      // Create check-in using direct GraphQL to avoid relationship resolution issues
-      const checkInMutation = `
-        mutation CreateCheckIn($input: CreateCheckInInput!) {
-          createCheckIn(input: $input) {
-            id
-            clubDayId
-            playerId
-            checkinTime
-            doorFeeAmount
-            paymentMethod
-            receiptId
-            overrideReason
-            refundedAt
-          }
-        }
-      `;
-
-      const checkInResult = await getClient().graphql({
-        query: checkInMutation,
-        variables: {
-          input: {
-            clubDayId,
-            playerId,
-            checkinTime: new Date().toISOString(),
-            doorFeeAmount,
-            paymentMethod,
-            receiptId: receiptData.id,
-            overrideReason: overrideReason || undefined,
-          }
-        }
-      });
-
-      if (!checkInResult.data?.createCheckIn) throw new Error('Failed to create check-in');
-      checkInData = checkInResult.data.createCheckIn;
-      log('Check-in created:', checkInData.id);
-
-      // Create ledger entry for this transaction (required for accounting integrity)
-      try {
-        await createLedgerEntry({
+    const receiptResult = await getClient().graphql({
+      query: receiptMutation,
+      variables: {
+        input: {
           clubDayId,
-          transactionType: 'checkin',
-          amount: doorFeeAmount,
-          checkinId: checkInData.id,
-          receiptId: receiptData.id,
+          receiptNumber: nextReceiptNumber,
           playerId,
-          adminUser: adminUser || undefined,
-          notes: overrideReason || undefined,
-        });
-        log('Ledger entry created for check-in');
-      } catch (ledgerError: any) {
-        // Ledger failure is non-fatal for check-in UX but must be logged prominently
-        // The check-in and receipt are already created — reconciliation can recover this
-        const errorMessage = extractErrorMessage(ledgerError);
-        logError(`⚠️ LEDGER MISSING: Check-in ${checkInData.id} created but ledger entry failed: ${errorMessage}`);
-        logWarn('Run reconcileLedger() to detect and repair missing ledger entries.');
+          amount: doorFeeAmount,
+          paymentMethod,
+          kind: 'checkin',
+          createdBy: adminUser,
+        }
       }
+    });
 
-      // Success - break out of retry loop
-      break;
-    } catch (error: any) {
-      lastError = error;
-      const errorMessage = extractErrorMessage(error);
-      
-      // Don't retry on validation errors or duplicate errors
-      if (errorMessage.includes('already exists') || 
-          errorMessage.includes('duplicate') ||
-          errorMessage.includes('already checked in')) {
-        throw error;
-      }
-      
-      // Retry on other errors
-      if (attempt < MAX_RETRIES - 1) {
-        const backoffMs = Math.min(50 * Math.pow(2, attempt), 200);
-        log(`Check-in creation attempt ${attempt + 1} failed, retrying in ${backoffMs}ms:`, errorMessage);
-        await sleep(backoffMs);
-        continue;
-      }
-    }
-  }
+    if (!receiptResult.data?.createReceipt) throw new Error('Failed to create receipt');
+    const receiptData = receiptResult.data.createReceipt;
+    log('Receipt created:', receiptData.id);
 
-    // If we get here without success, all retries failed
-    if (!receiptData || !checkInData) {
-      const errorMessage = extractErrorMessage(lastError);
-      logError('Failed to create check-in after retries:', {
-        error: lastError,
-        clubDayId,
-        playerId,
-        doorFeeAmount,
-      });
-      throw lastError || new Error(`Failed to create check-in after ${MAX_RETRIES} attempts: ${errorMessage}`);
-    }
+    // Step 2: Create check-in
+    const checkInMutation = `
+      mutation CreateCheckIn($input: CreateCheckInInput!) {
+        createCheckIn(input: $input) {
+          id
+          clubDayId
+          playerId
+          checkinTime
+          doorFeeAmount
+          paymentMethod
+          receiptId
+          overrideReason
+          refundedAt
+        }
+      }
+    `;
+
+    const checkInResult = await getClient().graphql({
+      query: checkInMutation,
+      variables: {
+        input: {
+          clubDayId,
+          playerId,
+          checkinTime: new Date().toISOString(),
+          doorFeeAmount,
+          paymentMethod,
+          receiptId: receiptData.id,
+          overrideReason: overrideReason || undefined,
+        }
+      }
+    });
+
+    if (!checkInResult.data?.createCheckIn) throw new Error('Failed to create check-in');
+    const checkInData = checkInResult.data.createCheckIn;
+    log('Check-in created:', checkInData.id);
+
+    // Step 3: Create ledger entry — fire-and-forget (non-fatal)
+    createLedgerEntry({
+      clubDayId,
+      transactionType: 'checkin',
+      amount: doorFeeAmount,
+      checkinId: checkInData.id,
+      receiptId: receiptData.id,
+      playerId,
+      adminUser: adminUser || undefined,
+      notes: overrideReason || undefined,
+    }).then(() => {
+      log('Ledger entry created for check-in');
+    }).catch((ledgerError: any) => {
+      const errorMessage = extractErrorMessage(ledgerError);
+      logError(`⚠️ LEDGER MISSING: Check-in ${checkInData.id} created but ledger entry failed: ${errorMessage}`);
+      logWarn('Run reconcileLedger() to detect and repair missing ledger entries.');
+    });
 
     return {
       checkIn: {
@@ -3081,29 +3098,129 @@ export async function getShiftReport(startTime: string, endTime: string): Promis
         { checkinTime: { le: endTime } },
       ],
     },
-  });
-
-  const refunds = await getClient().models.Refund.list({
-    filter: {
-      createdAt: {
-        and: [
-          { ge: startTime },
-          { le: endTime },
-        ],
-      },
-    },
+    limit: 1000,
   });
 
   const checkInsData: CheckIn[] = (checkIns.data || []).map(toCheckIn);
-  const refundsData: Refund[] = (refunds.data || []).map(toRefund);
-  
+
+  // Fetch refunds using chunked checkinId queries (same pattern as getClubDayReport)
+  let refundsData: Refund[] = [];
+  if (checkInsData.length > 0) {
+    const checkInIds = checkInsData.map(ci => ci.id);
+    const CHUNK_SIZE = 50;
+    const chunks: string[][] = [];
+    for (let i = 0; i < checkInIds.length; i += CHUNK_SIZE) {
+      chunks.push(checkInIds.slice(i, i + CHUNK_SIZE));
+    }
+    const results = await Promise.allSettled(
+      chunks.map(chunk =>
+        getClient().models.Refund.list({
+          filter: { checkinId: { in: chunk } },
+          limit: 1000,
+        })
+      )
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        refundsData = refundsData.concat((r.value.data || []).map(toRefund));
+      } else {
+        logError('Shift report: failed to fetch refunds chunk:', r.reason);
+      }
+    }
+  }
+
   // Separate active and refunded check-ins for reporting
   const activeCheckIns = checkInsData.filter(ci => !ci.refunded_at);
   const refundedCheckIns = checkInsData.filter(ci => !!ci.refunded_at);
 
+  // ── Player name resolution (same multi-step approach as getClubDayReport) ──
+  const uniquePlayerIds = [...new Set(checkInsData.map(ci => ci.player_id))];
+  const playerNameMap = new Map<string, string>();
+
+  // Step 1: localStorage cache (instant)
+  try {
+    const { getTodayPlayers } = await import('./localStoragePlayers');
+    const localPlayers = getTodayPlayers();
+    for (const p of localPlayers) {
+      const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+      if (displayName) playerNameMap.set(p.id, displayName);
+    }
+  } catch { /* ignore */ }
+
+  // Step 2: Scan all localStorage player keys (covers cross-day data)
+  const unresolvedIds0 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds0.length > 0) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !(key.startsWith('players-sync-') || key.startsWith('daily-players-'))) continue;
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const list: any[] = Array.isArray(parsed) ? parsed : (parsed?.players || []);
+        for (const p of list) {
+          if (!playerNameMap.has(p.id)) {
+            const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+            if (displayName) playerNameMap.set(p.id, displayName);
+          }
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Step 3: DB Player.list — ONLY if there are still unresolved IDs
+  const unresolvedIds1 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds1.length > 0) {
+    try {
+      const result = await getClient().models.Player.list({ limit: 1000 });
+      for (const p of result.data || []) {
+        const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
+        playerNameMap.set(p.id, displayName);
+      }
+    } catch (err) {
+      logError('Shift report: failed to fetch players from DB:', err);
+    }
+  }
+
+  log(`Shift report: resolved ${playerNameMap.size}/${uniquePlayerIds.length} player names`);
+
+  // Build named lists
+  const checkedInNames = activeCheckIns
+    .sort((a, b) => a.checkin_time.localeCompare(b.checkin_time))
+    .map(ci => ({
+      name: playerNameMap.get(ci.player_id) || 'Unknown',
+      amount: ci.door_fee_amount,
+      time: ci.checkin_time,
+      paymentMethod: ci.payment_method || 'Unknown',
+    }));
+
+  const refundedNames = refundedCheckIns
+    .sort((a, b) => (a.refunded_at || '').localeCompare(b.refunded_at || ''))
+    .map(ci => {
+      const refund = refundsData.find(r => r.checkin_id === ci.id);
+      return {
+        name: playerNameMap.get(ci.player_id) || 'Unknown',
+        amount: refund?.amount || ci.door_fee_amount,
+        reason: refund?.reason || '',
+        time: ci.refunded_at || refund?.refunded_at || ci.checkin_time,
+      };
+    });
+
+  // Totals
   const totalDoorFees = checkInsData.reduce((sum: number, ci: CheckIn) => sum + ci.door_fee_amount, 0);
-  const totalRefunds = refundsData.reduce((sum: number, refund: Refund) => sum + refund.amount, 0);
+  const refundTableTotal = refundsData.reduce((sum: number, refund: Refund) => sum + refund.amount, 0);
+  const refundFromCheckIns = refundedCheckIns.reduce((sum: number, ci: CheckIn) => sum + ci.door_fee_amount, 0);
+  const totalRefunds = Math.max(refundTableTotal, refundFromCheckIns);
   const netTotal = totalDoorFees - totalRefunds;
+
+  // Door fee breakdown by amount — active check-ins only (excludes refunded)
+  const feeBreakdown = new Map<number, number>();
+  for (const ci of activeCheckIns) {
+    feeBreakdown.set(ci.door_fee_amount, (feeBreakdown.get(ci.door_fee_amount) || 0) + 1);
+  }
+  const doorFeeBreakdown = Array.from(feeBreakdown.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([amount, count]) => ({ amount, count, total: amount * count }));
 
   return {
     startTime,
@@ -3112,6 +3229,9 @@ export async function getShiftReport(startTime: string, endTime: string): Promis
     activeCheckIns,
     refundedCheckIns,
     refunds: refundsData,
+    checkedInNames,
+    refundedNames,
+    doorFeeBreakdown,
     total_door_fees: totalDoorFees,
     total_refunds: totalRefunds,
     net_total: netTotal,
@@ -3132,75 +3252,105 @@ export async function getClubDayReport(clubDayId: string): Promise<any> {
 
   // Guard: if no check-ins, there can be no refunds — skip the query entirely
   // (empty `in: []` filter returns ALL records in DynamoDB/AppSync)
+  // NOTE: AppSync `in` filter is limited to ~50 values. Chunk and run in parallel.
   let refundsData: Refund[] = [];
   if (allCheckIns.length > 0) {
-    const refunds = await getClient().models.Refund.list({
-      filter: {
-        checkinId: {
-          in: allCheckIns.map(ci => ci.id),
-        },
-      },
-    });
-    refundsData = (refunds.data || []).map(toRefund);
+    const checkInIds = allCheckIns.map(ci => ci.id);
+    const CHUNK_SIZE = 50;
+    const chunks: string[][] = [];
+    for (let i = 0; i < checkInIds.length; i += CHUNK_SIZE) {
+      chunks.push(checkInIds.slice(i, i + CHUNK_SIZE));
+    }
+    const results = await Promise.allSettled(
+      chunks.map(chunk =>
+        getClient().models.Refund.list({
+          filter: { checkinId: { in: chunk } },
+          limit: 1000,
+        })
+      )
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        refundsData = refundsData.concat((r.value.data || []).map(toRefund));
+      } else {
+        logError('Failed to fetch refunds chunk:', r.reason);
+      }
+    }
   }
 
-  // Fetch player names for all check-ins in this day
+  // Fetch player names for all check-ins in this day.
+  // PERFORMANCE: Use localStorage cache FIRST (instant, 0 API calls).
+  // Only hit Player.list DB call if there are still unresolved IDs.
   const uniquePlayerIds = [...new Set(allCheckIns.map(ci => ci.player_id))];
   const playerNameMap = new Map<string, string>();
 
-  // Step 1: Look up real DB Player records
+  // Step 1: localStorage cache (instant — populated by loadAllPlayersToCache on page load)
   try {
-    const result = await getClient().models.Player.list({ limit: 1000 });
-    for (const p of result.data || []) {
-      const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
-      playerNameMap.set(p.id, displayName);
+    const { getTodayPlayers } = await import('./localStoragePlayers');
+    const localPlayers = getTodayPlayers();
+    for (const p of localPlayers) {
+      const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+      if (displayName) playerNameMap.set(p.id, displayName);
     }
-  } catch (err) {
-    logError('Failed to fetch players from DB for report:', err);
+  } catch { /* ignore */ }
+
+  // Step 2: Scan all localStorage player keys (covers cross-day data)
+  const unresolvedIds0 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds0.length > 0) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !(key.startsWith('players-sync-') || key.startsWith('daily-players-'))) continue;
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const list: any[] = Array.isArray(parsed) ? parsed : (parsed?.players || []);
+        for (const p of list) {
+          if (!playerNameMap.has(p.id)) {
+            const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+            if (displayName) playerNameMap.set(p.id, displayName);
+          }
+        }
+      }
+    } catch { /* ignore */ }
   }
 
-  // Step 2: For any IDs not found in DB, fall back to PlayerSync (localStorage-based players)
-  // These have IDs like "player-{timestamp}-{random}" and are stored in PlayerSync per club day
-  const unresolvedIds = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
-  if (unresolvedIds.length > 0) {
-    log(`Report: ${unresolvedIds.length} player IDs not in DB, checking PlayerSync...`);
+  // Step 3: DB Player.list — ONLY if there are still unresolved IDs (avoids slow call when cache is warm)
+  const unresolvedIds1 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds1.length > 0) {
+    try {
+      const result = await getClient().models.Player.list({ limit: 1000 });
+      for (const p of result.data || []) {
+        const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
+        playerNameMap.set(p.id, displayName);
+      }
+    } catch (err) {
+      logError('Failed to fetch players from DB for report:', err);
+    }
+  }
+
+  // Step 4: PlayerSync (cross-device sync) — only if still unresolved
+  const unresolvedIds2 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds2.length > 0) {
     try {
       const { data: syncEntries } = await getClient().models.PlayerSync.list({
         filter: { clubDayId: { eq: clubDayId } },
       });
       if (syncEntries && syncEntries.length > 0) {
-        const syncData = (syncEntries[0] as any).playersJson;
-        const syncedPlayers: any[] = syncData?.players || [];
+        let rawData = (syncEntries[0] as any).playersJson;
+        if (typeof rawData === 'string') {
+          try { rawData = JSON.parse(rawData); } catch { rawData = null; }
+        }
+        const syncedPlayers: any[] = Array.isArray(rawData) ? rawData : (rawData?.players || []);
         for (const p of syncedPlayers) {
-          if (unresolvedIds.includes(p.id)) {
-            const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
-            playerNameMap.set(p.id, displayName);
+          if (!playerNameMap.has(p.id)) {
+            const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+            if (displayName) playerNameMap.set(p.id, displayName);
           }
         }
       }
     } catch (err) {
       logError('Failed to fetch PlayerSync for report:', err);
-    }
-
-    // Step 3: Last resort — check localStorage directly for same-device sessions
-    const stillUnresolved = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
-    if (stillUnresolved.length > 0) {
-      try {
-        const syncKey = `players-sync-${clubDayId}`;
-        const cached = localStorage.getItem(syncKey);
-        if (cached) {
-          const syncData = JSON.parse(cached);
-          const cachedPlayers: any[] = syncData?.players || [];
-          for (const p of cachedPlayers) {
-            if (stillUnresolved.includes(p.id)) {
-              const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
-              playerNameMap.set(p.id, displayName);
-            }
-          }
-        }
-      } catch (err) {
-        logError('Failed to read localStorage player cache for report:', err);
-      }
     }
   }
 
@@ -3213,6 +3363,7 @@ export async function getClubDayReport(clubDayId: string): Promise<any> {
       name: playerNameMap.get(ci.player_id) || 'Unknown',
       amount: ci.door_fee_amount,
       time: ci.checkin_time,
+      paymentMethod: ci.payment_method || 'Unknown',
     }));
 
   const refundedNames = refundedCheckIns
@@ -3223,13 +3374,28 @@ export async function getClubDayReport(clubDayId: string): Promise<any> {
         name: playerNameMap.get(ci.player_id) || 'Unknown',
         amount: refund?.amount || ci.door_fee_amount,
         reason: refund?.reason || '',
+        time: ci.refunded_at || refund?.refunded_at || ci.checkin_time,
       };
     });
 
   // Door fees = sum of ALL check-ins (gross collected before refunds)
   const totalDoorFees = allCheckIns.reduce((sum: number, ci: CheckIn) => sum + ci.door_fee_amount, 0);
-  const totalRefunds = refundsData.reduce((sum: number, refund: Refund) => sum + refund.amount, 0);
+  // Refund total from Refund table
+  const refundTableTotal = refundsData.reduce((sum: number, refund: Refund) => sum + refund.amount, 0);
+  // Fallback: refund total from check-ins marked as refunded (in case Refund query missed records)
+  const refundFromCheckIns = refundedCheckIns.reduce((sum: number, ci: CheckIn) => sum + ci.door_fee_amount, 0);
+  // Use the higher of the two — catches cases where Refund query was truncated
+  const totalRefunds = Math.max(refundTableTotal, refundFromCheckIns);
   const netTotal = totalDoorFees - totalRefunds;
+
+  // Door fee breakdown by amount — active check-ins only (excludes refunded)
+  const feeBreakdown = new Map<number, number>();
+  for (const ci of activeCheckIns) {
+    feeBreakdown.set(ci.door_fee_amount, (feeBreakdown.get(ci.door_fee_amount) || 0) + 1);
+  }
+  const doorFeeBreakdown = Array.from(feeBreakdown.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([amount, count]) => ({ amount, count, total: amount * count }));
 
   return {
     clubDay: toClubDay(clubDay.data),
@@ -3238,6 +3404,7 @@ export async function getClubDayReport(clubDayId: string): Promise<any> {
     refunds: refundsData,
     checkedInNames,
     refundedNames,
+    doorFeeBreakdown,
     total_door_fees: totalDoorFees,
     total_refunds: totalRefunds,
     net_total: netTotal,
@@ -3256,10 +3423,18 @@ export async function getClubDayReport(clubDayId: string): Promise<any> {
  * @param shiftStart - ISO timestamp for shift start
  * @param shiftEnd   - ISO timestamp for shift end
  */
-export async function getEndOfShiftReport(shiftStart: string, shiftEnd: string): Promise<any> {
-  // Resolve active club day so we can scope to it
-  const activeDay = await getActiveClubDay();
-  const clubDayId = activeDay?.id;
+export async function getEndOfShiftReport(shiftStart: string, shiftEnd: string, existingClubDayId?: string | null): Promise<any> {
+  // null = explicitly no club day scoping (for custom date range queries across days)
+  // undefined = resolve active club day automatically
+  // string = use that specific club day ID
+  let clubDayId: string | undefined;
+  if (existingClubDayId === null) {
+    clubDayId = undefined; // No scoping — query ALL check-ins in the time window
+  } else if (existingClubDayId) {
+    clubDayId = existingClubDayId;
+  } else {
+    clubDayId = (await getActiveClubDay())?.id;
+  }
 
   // Fetch all check-ins in the time window (include refunded ones for full picture)
   const checkInsResult = await getClient().models.CheckIn.list({
@@ -3276,70 +3451,111 @@ export async function getEndOfShiftReport(shiftStart: string, shiftEnd: string):
   const activeCheckIns = allCheckIns.filter(ci => !ci.refunded_at);
   const refundedCheckIns = allCheckIns.filter(ci => !!ci.refunded_at);
 
-  // Fetch refunds issued in the time window
+  // Fetch refunds issued in the time window (chunked + parallel — AppSync `in` limit is ~50)
   let refundsData: Refund[] = [];
   if (allCheckIns.length > 0) {
-    const refundsResult = await getClient().models.Refund.list({
-      filter: {
-        and: [
-          { createdAt: { ge: shiftStart } },
-          { createdAt: { le: shiftEnd } },
-          { checkinId: { in: allCheckIns.map(ci => ci.id) } },
-        ],
-      },
-      limit: 1000,
-    });
-    refundsData = (refundsResult.data || []).map(toRefund);
+    const checkInIds = allCheckIns.map(ci => ci.id);
+    const CHUNK_SIZE = 50;
+    const chunks: string[][] = [];
+    for (let i = 0; i < checkInIds.length; i += CHUNK_SIZE) {
+      chunks.push(checkInIds.slice(i, i + CHUNK_SIZE));
+    }
+    const results = await Promise.allSettled(
+      chunks.map(chunk =>
+        getClient().models.Refund.list({
+          filter: {
+            and: [
+              { createdAt: { ge: shiftStart } },
+              { createdAt: { le: shiftEnd } },
+              { checkinId: { in: chunk } },
+            ],
+          },
+          limit: 1000,
+        })
+      )
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled') {
+        refundsData = refundsData.concat((r.value.data || []).map(toRefund));
+      } else {
+        logError('Shift report: failed to fetch refunds chunk:', r.reason);
+      }
+    }
   }
 
-  // Resolve player names — same three-step approach as getClubDayReport
+  // Resolve player names — same cache-first approach as getClubDayReport.
+  // PERFORMANCE: localStorage first (instant), DB only if needed.
   const uniquePlayerIds = [...new Set(allCheckIns.map(ci => ci.player_id))];
   const playerNameMap = new Map<string, string>();
 
+  // Step 1: localStorage cache (instant)
   try {
-    const result = await getClient().models.Player.list({ limit: 1000 });
-    for (const p of result.data || []) {
-      const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
-      playerNameMap.set(p.id, displayName);
+    const { getTodayPlayers } = await import('./localStoragePlayers');
+    const localPlayers = getTodayPlayers();
+    for (const p of localPlayers) {
+      const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+      if (displayName) playerNameMap.set(p.id, displayName);
     }
-  } catch (err) {
-    logError('Shift report: failed to fetch players from DB:', err);
+  } catch { /* ignore */ }
+
+  // Step 2: Scan all localStorage player keys
+  const unresolvedIds0 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds0.length > 0) {
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !(key.startsWith('players-sync-') || key.startsWith('daily-players-'))) continue;
+        const raw = localStorage.getItem(key);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        const list: any[] = Array.isArray(parsed) ? parsed : (parsed?.players || []);
+        for (const p of list) {
+          if (!playerNameMap.has(p.id)) {
+            const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+            if (displayName) playerNameMap.set(p.id, displayName);
+          }
+        }
+      }
+    } catch { /* ignore */ }
   }
 
+  // Step 3: DB Player.list — ONLY if still unresolved
+  const unresolvedIds1 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+  if (unresolvedIds1.length > 0) {
+    try {
+      const result = await getClient().models.Player.list({ limit: 1000 });
+      for (const p of result.data || []) {
+        const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown';
+        playerNameMap.set(p.id, displayName);
+      }
+    } catch (err) {
+      logError('Shift report: failed to fetch players from DB:', err);
+    }
+  }
+
+  // Step 4: PlayerSync (cross-device) — only if still unresolved
   if (clubDayId) {
-    const unresolvedIds = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
-    if (unresolvedIds.length > 0) {
+    const unresolvedIds2 = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
+    if (unresolvedIds2.length > 0) {
       try {
         const { data: syncEntries } = await getClient().models.PlayerSync.list({
           filter: { clubDayId: { eq: clubDayId } },
         });
         if (syncEntries && syncEntries.length > 0) {
-          const syncedPlayers: any[] = (syncEntries[0] as any).playersJson?.players || [];
+          let rawData = (syncEntries[0] as any).playersJson;
+          if (typeof rawData === 'string') {
+            try { rawData = JSON.parse(rawData); } catch { rawData = null; }
+          }
+          const syncedPlayers: any[] = Array.isArray(rawData) ? rawData : (rawData?.players || []);
           for (const p of syncedPlayers) {
-            if (unresolvedIds.includes(p.id)) {
-              playerNameMap.set(p.id, (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown');
+            if (!playerNameMap.has(p.id)) {
+              const displayName = (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || '';
+              if (displayName) playerNameMap.set(p.id, displayName);
             }
           }
         }
       } catch (err) {
         logError('Shift report: failed to fetch PlayerSync:', err);
-      }
-
-      const stillUnresolved = uniquePlayerIds.filter(pid => !playerNameMap.has(pid));
-      if (stillUnresolved.length > 0) {
-        try {
-          const cached = localStorage.getItem(`players-sync-${clubDayId}`);
-          if (cached) {
-            const cachedPlayers: any[] = JSON.parse(cached)?.players || [];
-            for (const p of cachedPlayers) {
-              if (stillUnresolved.includes(p.id)) {
-                playerNameMap.set(p.id, (p.nick && p.nick.trim()) || (p.name && p.name.trim()) || 'Unknown');
-              }
-            }
-          }
-        } catch (err) {
-          logError('Shift report: failed to read localStorage player cache:', err);
-        }
       }
     }
   }
@@ -3350,6 +3566,7 @@ export async function getEndOfShiftReport(shiftStart: string, shiftEnd: string):
       name: playerNameMap.get(ci.player_id) || 'Unknown',
       amount: ci.door_fee_amount,
       time: ci.checkin_time,
+      paymentMethod: ci.payment_method || 'Unknown',
     }));
 
   const refundedNames = refundedCheckIns
@@ -3360,22 +3577,36 @@ export async function getEndOfShiftReport(shiftStart: string, shiftEnd: string):
         name: playerNameMap.get(ci.player_id) || 'Unknown',
         amount: refund?.amount || ci.door_fee_amount,
         reason: refund?.reason || '',
+        time: ci.refunded_at || refund?.refunded_at || ci.checkin_time,
       };
     });
 
   const totalDoorFees = allCheckIns.reduce((sum: number, ci: CheckIn) => sum + ci.door_fee_amount, 0);
-  const totalRefunds = refundsData.reduce((sum: number, r: Refund) => sum + r.amount, 0);
+  const refundTableTotal = refundsData.reduce((sum: number, r: Refund) => sum + r.amount, 0);
+  const refundFromCheckIns = refundedCheckIns.reduce((sum: number, ci: CheckIn) => sum + ci.door_fee_amount, 0);
+  const totalRefunds = Math.max(refundTableTotal, refundFromCheckIns);
   const netTotal = totalDoorFees - totalRefunds;
+
+  // Door fee breakdown — active check-ins only (excludes refunded)
+  const feeBreakdown = new Map<number, number>();
+  for (const ci of activeCheckIns) {
+    feeBreakdown.set(ci.door_fee_amount, (feeBreakdown.get(ci.door_fee_amount) || 0) + 1);
+  }
+  const doorFeeBreakdown = Array.from(feeBreakdown.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([amount, count]) => ({ amount, count, total: amount * count }));
 
   return {
     shiftStart,
     shiftEnd,
     clubDayId,
+    checkIns: allCheckIns,
     allCheckIns,
     activeCheckIns,
     refunds: refundsData,
     checkedInNames,
     refundedNames,
+    doorFeeBreakdown,
     total_door_fees: totalDoorFees,
     total_refunds: totalRefunds,
     net_total: netTotal,

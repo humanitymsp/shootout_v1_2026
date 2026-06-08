@@ -191,6 +191,13 @@
                       "update",
                       "delete"
                     ]
+                  },
+                  {
+                    "allow": "public",
+                    "provider": "apiKey",
+                    "operations": [
+                      "read"
+                    ]
                   }
                 ]
               }

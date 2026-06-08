@@ -28,6 +28,7 @@ interface AdminHeaderProps {
   onHighHand?: () => void;
   highHandVisible?: boolean;
   onToggleHighHandVisible?: () => void;
+  onFinancialDashboard?: () => void;
 }
 
 export default function AdminHeader(props: AdminHeaderProps) {
@@ -52,6 +53,7 @@ export default function AdminHeader(props: AdminHeaderProps) {
     onHighHand,
     highHandVisible,
     onToggleHighHandVisible,
+    onFinancialDashboard,
   } = props;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showManagementMenu, setShowManagementMenu] = useState(false);
@@ -199,6 +201,11 @@ export default function AdminHeader(props: AdminHeaderProps) {
                   <button className="management-menu-item" onClick={() => { onReports(); setShowManagementMenu(false); }}>
                     📊 Reports
                   </button>
+                  {onFinancialDashboard && (
+                    <button className="management-menu-item" onClick={() => { onFinancialDashboard(); setShowManagementMenu(false); }}>
+                      💹 Financial Dashboard
+                    </button>
+                  )}
                   {onShowQRCode && (
                     <button className="management-menu-item" onClick={() => { onShowQRCode!(); setShowManagementMenu(false); }}>
                       📷 QR Code

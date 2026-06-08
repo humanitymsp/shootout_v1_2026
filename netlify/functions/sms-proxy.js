@@ -1,27 +1,25 @@
-// Netlify serverless function for SMS proxy
+// Netlify serverless function for SMS proxy (Telnyx P2P)
+
+function normalizePhone(phone) {
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  return `+${digits}`;
+}
+
 exports.handler = async function(event, context) {
-  // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 
-  // Handle preflight request
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
+    return { statusCode: 200, headers, body: '' };
   }
 
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
@@ -31,48 +29,47 @@ exports.handler = async function(event, context) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          success: false, 
-          error: 'Missing required fields: phone, message, key' 
-        }),
+        body: JSON.stringify({ success: false, error: 'Missing required fields' }),
       };
     }
 
-    // Call TextBelt API with form-urlencoded payload (required for delivery)
-    const digits = String(phone).replace(/\D/g, '');
-    const normalizedPhone = digits.length === 10
-      ? `+1${digits}`
-      : (digits.length === 11 && digits.startsWith('1') ? `+${digits}` : `+${digits}`);
+    // key is encoded as "telnyxApiKey::fromNumber"
+    const separatorIndex = String(key).indexOf('::');
+    if (separatorIndex === -1) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ success: false, error: 'Invalid key format. Expected apiKey::fromNumber' }),
+      };
+    }
 
-    const body = new URLSearchParams();
-    body.set('phone', normalizedPhone);
-    body.set('message', String(message));
-    body.set('key', String(key).trim());
+    const telnyxApiKey = String(key).substring(0, separatorIndex).trim();
+    const fromNumber = normalizePhone(String(key).substring(separatorIndex + 2).trim());
+    const toNumber = normalizePhone(phone);
 
-    const response = await fetch('https://textbelt.com/text', {
+    const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${telnyxApiKey}`,
       },
-      body: body.toString(),
+      body: JSON.stringify({ from: fromNumber, to: toNumber, text: String(message) }),
     });
 
     const result = await response.json();
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(result),
-    };
+
+    if (response.ok && result.data) {
+      return { statusCode: 200, headers, body: JSON.stringify({ success: true, textId: result.data.id }) };
+    }
+
+    const errorMsg = result.errors?.[0]?.detail || result.errors?.[0]?.title || `Telnyx API error (${response.status})`;
+    return { statusCode: response.status, headers, body: JSON.stringify({ success: false, error: errorMsg }) };
   } catch (error) {
     console.error('SMS proxy error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ 
-        success: false, 
-        error: error.message || 'SMS service unavailable' 
-      }),
+      body: JSON.stringify({ success: false, error: error.message || 'SMS service unavailable' }),
     };
   }
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getSMSSettings, saveSMSSettings, syncSMSKeyToDB, sendMarketingSMS, getAllPlayersWithPhones, getScheduledCampaigns, createScheduledCampaign, deleteScheduledCampaign, sendScheduledCampaign, saveCampaignTemplate, getCampaignTemplates, deleteCampaignTemplate, createCampaignFromTemplate } from '../lib/sms';
+import { getSMSSettings, saveSMSSettings, syncSMSKeyToDB, sendMarketingSMS, getAllPlayersWithPhones, getScheduledCampaigns, createScheduledCampaign, deleteScheduledCampaign, sendScheduledCampaign, saveCampaignTemplate, getCampaignTemplates, deleteCampaignTemplate, createCampaignFromTemplate, buildSMSKey } from '../lib/sms';
 import { showToast } from './Toast';
 import { log } from '../lib/logger';
 import type { SMSSettings, ScheduledCampaign } from '../lib/sms';
@@ -13,6 +13,7 @@ export default function SMSSettingsModal({ onClose }: SMSSettingsModalProps) {
   const [settings, setSettings] = useState<SMSSettings>({
     enabled: false,
     apiKey: '',
+    fromNumber: '',
     checkInNotifications: false,
     marketingMessages: false,
     marketingMessage: '',
@@ -167,8 +168,8 @@ export default function SMSSettingsModal({ onClose }: SMSSettingsModalProps) {
   };
 
   const handleTestSMS = async () => {
-    if (!testPhoneNumber || !settings.apiKey) {
-      showToast('Please enter a test phone number and API key', 'error');
+    if (!testPhoneNumber || !settings.apiKey || !settings.fromNumber) {
+      showToast('Please enter a test phone number, API key, and from number', 'error');
       return;
     }
 
@@ -183,7 +184,7 @@ export default function SMSSettingsModal({ onClose }: SMSSettingsModalProps) {
           to: testPhoneNumber,
           message: testMessage,
         },
-        settings.apiKey
+        buildSMSKey(settings)
       );
 
       if (result.success) {
@@ -263,19 +264,33 @@ export default function SMSSettingsModal({ onClose }: SMSSettingsModalProps) {
           {settings.enabled && (
             <>
               <div className="form-group">
-                <label>TextBelt API Key</label>
+                <label>Telnyx API Key</label>
                 <input
                   type="password"
                   value={settings.apiKey}
                   onChange={(e) => setSettings({ ...settings, apiKey: e.target.value })}
-                  placeholder="Enter your TextBelt API key"
+                  placeholder="Enter your Telnyx API key"
                   className="api-key-input"
                 />
                 <p className="form-help">
                   Get your API key from{' '}
-                  <a href="https://textbelt.com/" target="_blank" rel="noopener noreferrer">
-                    textbelt.com
+                  <a href="https://portal.telnyx.com/" target="_blank" rel="noopener noreferrer">
+                    portal.telnyx.com
                   </a>
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label>From Phone Number</label>
+                <input
+                  type="tel"
+                  value={settings.fromNumber}
+                  onChange={(e) => setSettings({ ...settings, fromNumber: e.target.value })}
+                  placeholder="+1XXXXXXXXXX (your Telnyx number)"
+                  className="api-key-input"
+                />
+                <p className="form-help">
+                  The Telnyx phone number to send messages from (P2P)
                 </p>
               </div>
 
@@ -332,7 +347,7 @@ export default function SMSSettingsModal({ onClose }: SMSSettingsModalProps) {
                   />
                   <button
                     onClick={handleTestSMS}
-                    disabled={isTesting || !testPhoneNumber || !settings.apiKey}
+                    disabled={isTesting || !testPhoneNumber || !settings.apiKey || !settings.fromNumber}
                     className="test-button"
                   >
                     {isTesting ? 'Sending...' : 'Send Test'}

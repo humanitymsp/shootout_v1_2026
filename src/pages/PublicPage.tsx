@@ -41,7 +41,7 @@ import { useEffect, useState, useRef } from 'react';
 import { getActiveClubDay, getTablesForClubDay, getAllPlayers, getCheckInForPlayer } from '../lib/api';
 import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { generateClient } from '../lib/graphql-client';
-import { initializeLocalPlayers, startPlayerSyncPolling, getPlayerByIdLocal } from '../lib/localStoragePlayers';
+import { initializeLocalPlayers, startPlayerSyncPolling, getPlayerByIdLocal, setActiveClubDayIdForCache } from '../lib/localStoragePlayers';
 import { getPersistentTables, getTableWaitlist as getPersistentWaitlistForTable, getPersistentTablesFromDB } from '../lib/persistentTables';
 import { createPendingSignup } from '../lib/pendingSignups';
 import { validatePhoneNumber } from '../lib/sms';
@@ -98,13 +98,13 @@ export default function PublicPage() {
     // Player synchronization from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {
       log(`📡 Public: Synced ${players.length} players from admin`);
-    }, 10000, 'apiKey'); // Poll every 10 seconds with apiKey auth for public access
+    }, 30000, 'apiKey'); // Poll every 30 seconds with apiKey auth for public access
 
     // Data refresh polling for table updates
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
       loadData();
-    }, 10000); // 10s polling — event-driven updates handle instant changes
+    }, 30000); // 30s polling — event-driven updates handle instant changes
 
     return () => {
       clearInterval(pollInterval);
@@ -299,35 +299,54 @@ export default function PublicPage() {
       const activeDay = await getActiveClubDay(AUTH);
       if (!activeDay) {
         setLoading(false);
+        isLoadingRef.current = false;
         return;
       }
+      setActiveClubDayIdForCache(activeDay.id);
       setClubDay(activeDay);
 
-      // Build a player lookup map from PlayerSync (apiKey-accessible).
-      // Player model doesn't allow apiKey reads, so GraphQL nested player { ... }
-      // fields are skipped. We fetch player data separately from PlayerSync.
+      // Build a player lookup map for patching seat/waitlist entries with names.
+      // startPlayerSyncPolling already fetches PlayerSync every 10s and caches to localStorage.
+      // Reuse that cache here to avoid a redundant AppSync query each poll cycle.
+      // Only fall back to a direct query on initial load when cache may be empty.
       const playerMap = new Map<string, { name: string; nick: string }>();
-      try {
-        const { data: syncEntries } = await client.models.PlayerSync.list({
-          filter: { clubDayId: { eq: activeDay.id } },
-          authMode: AUTH,
-        });
-        if (syncEntries && syncEntries.length > 0) {
-          let raw = syncEntries[0].playersJson as any;
-          if (typeof raw === 'string') {
-            try { raw = JSON.parse(raw); } catch { raw = null; }
-          }
-          const arr: any[] = Array.isArray(raw) ? raw : (raw?.players || []);
-          for (const p of arr) {
-            if (p && p.id) {
-              playerMap.set(p.id, { name: p.name || '', nick: p.nick || '' });
-            }
+      const populateMapFromArray = (arr: any[]) => {
+        for (const p of arr) {
+          if (p && p.id) {
+            playerMap.set(p.id, { name: p.name || '', nick: p.nick || '' });
           }
         }
-        log(`Public: Loaded ${playerMap.size} players from PlayerSync`);
-      } catch {
-        log('Public: PlayerSync fetch failed — player names may show as Unknown');
+      };
+      // 1st: try localStorage cache (populated by startPlayerSyncPolling)
+      try {
+        const syncKey = `players-sync-${activeDay.id}`;
+        const cached = localStorage.getItem(syncKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          const arr: any[] = Array.isArray(parsed) ? parsed : (parsed?.players || []);
+          populateMapFromArray(arr);
+        }
+      } catch { /* ignore parse errors */ }
+      // 2nd: if cache was empty (first load before sync fires), do a direct fetch
+      if (playerMap.size === 0) {
+        try {
+          const { data: syncEntries } = await client.models.PlayerSync.list({
+            filter: { clubDayId: { eq: activeDay.id } },
+            authMode: AUTH,
+          });
+          if (syncEntries && syncEntries.length > 0) {
+            let raw = syncEntries[0].playersJson as any;
+            if (typeof raw === 'string') {
+              try { raw = JSON.parse(raw); } catch { raw = null; }
+            }
+            const arr: any[] = Array.isArray(raw) ? raw : (raw?.players || []);
+            populateMapFromArray(arr);
+          }
+        } catch {
+          log('Public: PlayerSync fetch failed — player names may show as Unknown');
+        }
       }
+      log(`Public: Loaded ${playerMap.size} players for name lookup`);
 
       // Helper: patch player data onto seat/waitlist entries using the playerMap
       // Always prefer PlayerSync data — enrichArrayWithPlayerData may return empty player objects
@@ -364,30 +383,72 @@ export default function PublicPage() {
         new Map(allTables.map((table) => [table.table_number, table])).values()
       );
 
-      // Fetch persistent tables: try DB first (cross-device), fall back to localStorage
+      // Fetch persistent tables: merge DB + localStorage, prefer most recent per table
       const localPts = getPersistentTables();
       log(`Public: localStorage persistent tables: ${localPts.length}`);
-      let pts = localPts;
+      let pts: typeof localPts = [];
       let dbWaitlistEntries: any[] = [];
       try {
         const dbData = await getPersistentTablesFromDB();
-        log(`Public: DB persistent tables result: tables=${dbData?.tables?.length ?? 'null'}, waitlist=${dbData?.waitlist?.length ?? 'null'}`);
-        if (dbData && dbData.tables.length > 0) {
-          pts = dbData.tables;
-          dbWaitlistEntries = dbData.waitlist;
-          log(`Public: Using ${pts.length} persistent tables from DB`);
-        } else if (localPts.length > 0) {
-          log(`Public: DB empty but localStorage has ${localPts.length} tables — using localStorage`);
-        } else {
-          log(`Public: No persistent tables from DB or localStorage`);
+        const dbPts = dbData?.tables || [];
+        dbWaitlistEntries = dbData?.waitlist || [];
+        log(`Public: DB persistent tables: ${dbPts.length}, localStorage: ${localPts.length}`);
+
+        // Merge: keep the most recent version of each persistent table (by updated_at)
+        // Step 1: merge by ID
+        const mergedById = new Map<string, (typeof localPts)[0]>();
+        for (const pt of dbPts) mergedById.set(pt.id, pt);
+        for (const pt of localPts) {
+          const existing = mergedById.get(pt.id);
+          if (!existing || (pt.updated_at || '') >= (existing.updated_at || '')) {
+            mergedById.set(pt.id, pt);
+          }
         }
+        // Step 2: deduplicate by table_number (DB may have old ID, localStorage new ID for same table)
+        const dedupByNumber = new Map<number, (typeof localPts)[0]>();
+        for (const pt of mergedById.values()) {
+          const existing = dedupByNumber.get(pt.table_number);
+          if (!existing || (pt.updated_at || '') >= (existing.updated_at || '')) {
+            dedupByNumber.set(pt.table_number, pt);
+          }
+        }
+        pts = Array.from(dedupByNumber.values());
+        log(`Public: Merged persistent tables: ${pts.length} (DB=${dbPts.length}, local=${localPts.length}, afterDedup=${pts.length})`);
       } catch (dbErr: any) {
-        log(`Public: DB persistent tables fetch FAILED: ${dbErr?.message || dbErr} — using localStorage (${localPts.length} tables)`);
+        pts = localPts;
+        log(`Public: DB fetch FAILED: ${dbErr?.message || dbErr} — using localStorage (${localPts.length} tables)`);
       }
 
-      // Patch is_persistent flag from persistent metadata
-      const ptIds = new Set(pts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
-      const ptNumsNoId = new Set(pts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
+      // ⚠️ GHOST TABLE FIX: Validate persistent tables against current club day's API tables.
+      // If api_table_id is stale (from a previous day), try to rebind by table_number
+      // before pruning. This handles the day-reset scenario where DB hasn't synced yet.
+      const validApiTableIds = new Set(allTables.map(t => t.id));
+      const apiTableByNumber = new Map(allTables.map(t => [t.table_number, t]));
+      const validPts = pts.map(pt => {
+        if (pt.status === 'CLOSED') return null;
+        // Valid api_table_id — keep as-is
+        if (pt.api_table_id && validApiTableIds.has(pt.api_table_id)) return pt;
+        // Stale or missing api_table_id — try to rebind by table_number
+        if (pt.api_table_id && !validApiTableIds.has(pt.api_table_id)) {
+          const match = apiTableByNumber.get(pt.table_number);
+          if (match && match.status !== 'CLOSED') {
+            log(`Public: PT T${pt.table_number} REBOUND — stale api_table_id=${pt.api_table_id?.slice(0,8)} → ${match.id.slice(0,8)}`);
+            return { ...pt, api_table_id: match.id };
+          }
+          log(`Public: PT T${pt.table_number} PRUNED — stale api_table_id, no matching table_number in current day`);
+          return null;
+        }
+        // No api_table_id (pure pre-signup) — keep
+        return pt;
+      }).filter(Boolean) as typeof pts;
+      log(`Public: Validated persistent tables: ${pts.length} → ${validPts.length} (pruned ${pts.length - validPts.length})`);
+
+      // Also try to rebind waitlist entries if api_table_id was rebound
+      // (waitlist persistent_table_id references the persistent table id, not the API table, so no change needed)
+
+      // Patch is_persistent flag from validated persistent metadata
+      const ptIds = new Set(validPts.filter(pt => pt.api_table_id).map(pt => pt.api_table_id));
+      const ptNumsNoId = new Set(validPts.filter(pt => !pt.api_table_id).map(pt => pt.table_number));
       dedupedTables.forEach(t => {
         if (ptIds.has(t.id) || ptNumsNoId.has(t.table_number)) t.is_persistent = true;
       });
@@ -399,8 +460,9 @@ export default function PublicPage() {
       } catch {}
       const tables = dedupedTables.filter(t => !hiddenFromPublic.includes(t.id));
       
-      // Also filter out persistent tables with public_signups (they go to pre-sign up section)
-      const persistentTablesWithSignups = pts.filter(pt => pt.public_signups && pt.api_table_id);
+      // Remove API tables from regular section if they belong to a persistent table with public_signups
+      // (those will be shown in the pre-sign up section instead)
+      const persistentTablesWithSignups = validPts.filter(pt => pt.public_signups && pt.api_table_id);
       const tablesWithoutPublicSignups = tables.filter(t => !persistentTablesWithSignups.some(pt => pt.api_table_id === t.id));
       log('Public: Visible tables:', tablesWithoutPublicSignups.map(t => `Table ${t.table_number} (${t.status})`));
 
@@ -452,30 +514,26 @@ export default function PublicPage() {
         });
       }
 
-      // Add pre-sign up persistent tables (from DB or localStorage)
-      // Show persistent tables that have public_signups enabled and are not CLOSED.
-      // Filter out stale entries: if a persistent table has an api_table_id that no longer
-      // exists in the API AND doesn't have public_signups, it's a ghost game.
-      const validApiTableIds = new Set(allTables.map(t => t.id));
-      log(`Public: Filtering ${pts.length} persistent tables. Valid API table IDs: ${allTables.length}`);
-      const persistentOnly = pts.filter(pt => {
-        if (pt.status === 'CLOSED') {
-          log(`Public: PT T${pt.table_number} EXCLUDED — status CLOSED`);
-          return false;
-        }
+      // Add pre-sign up persistent tables to the display.
+      // Only show in this section if:
+      //   - public_signups enabled (these were removed from regular section above), OR
+      //   - no api_table_id (pure pre-signup table not yet launched as a real API table)
+      // Tables with api_table_id but WITHOUT public_signups are already shown as regular
+      // API tables — adding them here would create ghost duplicates.
+      const persistentOnly = validPts.filter(pt => {
         if (pt.public_signups) {
-          log(`Public: PT T${pt.table_number} INCLUDED — public_signups enabled`);
+          log(`Public: PT T${pt.table_number} → pre-sign section (public_signups)`);
           return true;
         }
         if (!pt.api_table_id) {
-          log(`Public: PT T${pt.table_number} INCLUDED — no api_table_id (pure pre-signup)`);
+          log(`Public: PT T${pt.table_number} → pre-sign section (pure pre-signup)`);
           return true;
         }
-        const exists = validApiTableIds.has(pt.api_table_id);
-        log(`Public: PT T${pt.table_number} ${exists ? 'INCLUDED' : 'EXCLUDED'} — api_table_id=${pt.api_table_id?.slice(0,8)}, exists in API=${exists}`);
-        return exists;
+        // Has api_table_id but no public_signups → already in regular section, skip
+        log(`Public: PT T${pt.table_number} SKIPPED from pre-sign — already shown as regular table`);
+        return false;
       });
-      log(`Public: All persistent tables: ${pts.map(pt => `T${pt.table_number} (id=${pt.id.slice(0,8)}, api=${pt.api_table_id?.slice(0,8) || 'none'}, signups=${pt.public_signups}, status=${pt.status})`).join(', ') || '(none)'}`);
+      log(`Public: Pre-sign persistent tables: ${persistentOnly.length} of ${validPts.length} validated`);
       for (const pt of persistentOnly) {
         // Use DB waitlist if available, otherwise fall back to localStorage
         const wl = dbWaitlistEntries.length > 0
@@ -599,112 +657,81 @@ export default function PublicPage() {
                   return a.stakes.localeCompare(b.stakes);
                 });
 
-                // Build global sets for TC detection
-                const allSeatedPlayerIds = new Set<string>();
-                const allWaitlistedPlayerIds = new Set<string>();
-                for (const group of sortedGroups) {
-                  for (const d of group.displays) {
+                return sortedGroups.map(({ gameType, stakes, displays }) => {
+                  const cleanStakes = stakes.replace(/No Limit\s*/gi, '').trim();
+                  const headerLabel = cleanStakes ? `${gameType} — ${cleanStakes}` : gameType;
+
+                  // Build seated player IDs ONLY for this game type + stakes group
+                  // A player is only TC if seated at a table of the SAME game type, not a different game
+                  const groupSeatedPlayerIds = new Set<string>();
+                  for (const d of displays) {
                     for (const seat of d.seatedPlayers) {
-                      allSeatedPlayerIds.add(seat.player_id);
-                    }
-                    for (const wl of d.waitlistPlayers) {
-                      allWaitlistedPlayerIds.add(wl.player_id);
+                      groupSeatedPlayerIds.add(seat.player_id);
                     }
                   }
-                }
 
-                return sortedGroups.map(({ gameType, stakes, displays }) => {
-                  const headerLabel = stakes ? `${gameType} — ${stakes}` : gameType;
-
-                  // Collect all waitlist players, sort by added_at for consistent ordering across all merged views
-                  const allWaitlistEntries: typeof displays[0]['waitlistPlayers'] = [];
-                  displays.forEach(d => {
-                    d.waitlistPlayers.forEach(wl => allWaitlistEntries.push(wl));
-                  });
-                  // Sort: regular players first (by added_at), TC players at the bottom (by added_at)
-                  allWaitlistEntries.sort((a, b) => {
-                    const aIsTC = allSeatedPlayerIds.has(a.player_id);
-                    const bIsTC = allSeatedPlayerIds.has(b.player_id);
-                    
-                    // TC players go to the bottom
-                    if (aIsTC && !bIsTC) return 1;
-                    if (!aIsTC && bIsTC) return -1;
-                    
-                    // Within same group, sort by added_at (oldest first)
-                    return new Date(a.added_at).getTime() - new Date(b.added_at).getTime();
-                  });
-                  const groupWaitlist: { id: string; name: string; playerId: string }[] = [];
-                  const seenPlayerIds = new Set<string>();
-                  allWaitlistEntries.forEach(wl => {
-                    if (!seenPlayerIds.has(wl.player_id)) {
-                      seenPlayerIds.add(wl.player_id);
-                      groupWaitlist.push({
-                        id: wl.id,
-                        name: wl.player?.nick || wl.player?.name || 'Player',
-                        playerId: wl.player_id,
-                      });
+                  // Build waitlisted player IDs ONLY for this group (for TC count on table rows)
+                  const groupWaitlistedPlayerIds = new Set<string>();
+                  for (const d of displays) {
+                    for (const wl of d.waitlistPlayers) {
+                      groupWaitlistedPlayerIds.add(wl.player_id);
                     }
-                  });
+                  }
 
+                  const totalSeated = displays.reduce((sum, d) => sum + d.seatsFilled, 0);
                   const buyInLimits = displays.find(d => d.table.buy_in_limits)?.table.buy_in_limits || '';
 
-                  return (
-                    <div key={`${gameType}||${stakes}`} className="public-game-group">
-                      <div className="public-game-group-header">
-                        {headerLabel}
-                        {buyInLimits && (
-                          <span className="public-game-group-buyin">Buy-in: {buyInLimits}</span>
-                        )}
-                      </div>
-                      {/* Table info summary */}
-                      <div className="public-group-table-summary">
-                        {displays.map((d) => {
-                          // Count seated players at this table who are also on a waitlist (TC players)
-                          const tcCount = d.seatedPlayers.filter(s => allWaitlistedPlayerIds.has(s.player_id)).length;
-                          return (
-                            <div key={d.table.id} className="public-summary-table-row">
-                              <span className="public-summary-table-num">Table {d.table.table_number}</span>
-                              <span className="public-summary-table-seats">
-                                {d.seatsFilled} Seats
-                                {tcCount > 0 && <span className="public-tc-badge public-tc-seated-badge">TC {tcCount}</span>}
-                              </span>
-                              {(d.table.bomb_pot_count || 0) > 0 && (
-                                <span className="public-summary-bomb">💣 {d.table.bomb_pot_count} BP</span>
-                              )}
-                              {(d.table.lockout_count || 0) > 0 && (
-                                <span className="public-summary-lockout">🔒 {d.table.lockout_count} LO</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {groupWaitlist.length > 0 && (
-                        <div className="public-group-waitlist-summary">
-                          <div className="public-group-waitlist-label">
-                            Waitlist <span className="public-group-waitlist-count">{groupWaitlist.length}</span>
-                          </div>
-                          <div className="public-group-waitlist-names">
-                            {(() => {
-                              const cols: { id: string; name: string; playerId: string }[][] = [];
-                              for (let i = 0; i < groupWaitlist.length; i += 10) {
-                                cols.push(groupWaitlist.slice(i, i + 10));
-                              }
-                              return cols.map((col, ci) => (
-                                <div key={ci} className="public-waitlist-col">
-                                  {col.map((p) => (
-                                    <span key={p.id} className="public-group-waitlist-name">
-                                      {p.name}
-                                    </span>
-                                  ))}
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        </div>
+                return (
+                  <div key={`${gameType}||${stakes}`} className="public-game-group">
+                    <div className="public-game-group-header">
+                      <span>{totalSeated === 0 && cleanStakes ? `${cleanStakes} - Interest` : headerLabel}</span>
+                      {buyInLimits && (
+                        <span className="public-game-group-buyin">Buy-in: {buyInLimits}</span>
                       )}
                     </div>
-                  );
+                    {/* Per-table cards */}
+                    <div className="public-table-cards">
+                      {displays.map((d) => {
+                        const tcCount = d.seatedPlayers.filter(s => groupWaitlistedPlayerIds.has(s.player_id)).length;
+                        const tableWaitlist = d.waitlistPlayers.filter(wl => !wl.called_in);
+                        return (
+                          <div key={d.table.id} className="public-table-card">
+                            <div className="public-table-card-header">
+                              <span className="public-table-card-num">Table {d.table.table_number}</span>
+                              <span className="public-table-card-seats">
+                                {d.seatsFilled} Player{d.seatsFilled !== 1 ? 's' : ''}
+                                {tcCount > 0 && <span className="public-tc-badge public-tc-seated-badge">TC {tcCount}</span>}
+                              </span>
+                              {((d.table.bomb_pot_count || 0) > 0 || (d.table.lockout_count || 0) > 0) && (
+                                <span className="public-table-card-features">
+                                  {(d.table.bomb_pot_count || 0) > 0 && <span className="public-summary-bomb">💣 {d.table.bomb_pot_count}</span>}
+                                  {(d.table.lockout_count || 0) > 0 && <span className="public-summary-lockout">🔒 {d.table.lockout_count}</span>}
+                                </span>
+                              )}
+                            </div>
+                            <div className="public-table-card-waitlist">
+                              <div className="public-table-card-wl-header">
+                                Waitlist <span className="public-table-card-wl-count">{tableWaitlist.length}</span>
+                              </div>
+                              {tableWaitlist.length > 0 ? (
+                                <ul className="public-table-card-wl-names">
+                                  {tableWaitlist.map((wl) => (
+                                    <li key={wl.id} className={`public-table-card-wl-name${groupSeatedPlayerIds.has(wl.player_id) ? ' public-tc-player' : ''}`}>
+                                      {groupSeatedPlayerIds.has(wl.player_id) && <span className="public-tc-badge">TC</span>}
+                                      {wl.player?.nick || wl.player?.name || 'Player'}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div className="public-table-card-wl-empty">No one waiting</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
                 });
               })() : null}
 

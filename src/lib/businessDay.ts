@@ -33,22 +33,31 @@ export function getBusinessTimezoneTime(): Date {
 export function getCurrentBusinessDayId(): string {
   const localTime = getBusinessTimezoneTime();
   const hour = localTime.getHours();
-  const dateStr = localTime.toISOString().split('T')[0]; // YYYY-MM-DD
+  // CRITICAL: Use local date components, NOT .toISOString() which returns UTC date.
+  // .toISOString() caused a false business-day reset at 5pm PDT (midnight UTC) every day.
+  const year = localTime.getFullYear();
+  const month = String(localTime.getMonth() + 1).padStart(2, '0');
+  const day = String(localTime.getDate()).padStart(2, '0');
+  const dateStr = `${year}-${month}-${day}`; // YYYY-MM-DD in business timezone
 
   // If current time is between 00:00-02:59, we're still in previous business day
   if (hour >= 0 && hour < 3) {
     const prevDate = new Date(localTime);
     prevDate.setDate(prevDate.getDate() - 1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
-    return `${prevDateStr}-09`;
+    const prevYear = prevDate.getFullYear();
+    const prevMonth = String(prevDate.getMonth() + 1).padStart(2, '0');
+    const prevDay = String(prevDate.getDate()).padStart(2, '0');
+    return `${prevYear}-${prevMonth}-${prevDay}-09`;
   }
 
   // If current time is 03:00-08:59, transition period (still previous day until 09:00)
   if (hour >= 3 && hour < 9) {
     const prevDate = new Date(localTime);
     prevDate.setDate(prevDate.getDate() - 1);
-    const prevDateStr = prevDate.toISOString().split('T')[0];
-    return `${prevDateStr}-09`;
+    const prevYear = prevDate.getFullYear();
+    const prevMonth = String(prevDate.getMonth() + 1).padStart(2, '0');
+    const prevDay = String(prevDate.getDate()).padStart(2, '0');
+    return `${prevYear}-${prevMonth}-${prevDay}-09`;
   }
 
   // 09:00-23:59: current business day

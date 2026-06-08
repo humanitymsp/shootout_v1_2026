@@ -15,7 +15,7 @@
  */
 
 import { useState, useEffect, useRef, useMemo, memo } from 'react';
-import { getSeatedPlayersForTable, getWaitlistForTable, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, seatNextFromWaitlist, updateTable, deleteTable, seatPlayer, getSeatedPlayersForPlayer, seatCalledInPlayer, getCheckInForPlayer, removePlayerFromAllWaitlists } from '../lib/api';
+import { getSeatedPlayersForTable, getWaitlistForTable, removePlayerFromSeat, addPlayerToWaitlist, removePlayerFromWaitlist, seatNextFromWaitlist, updateTable, deleteTable, seatPlayer, getSeatedPlayersForPlayer, seatCalledInPlayer, getCheckInForPlayer, removePlayerFromAllWaitlists, getWaitlistEntriesForPlayer } from '../lib/api';
 import { generateClient } from '../lib/graphql-client';
 import type { PokerTable, TableSeat, TableWaitlist } from '../types';
 import type { SelectedPlayerEntry } from '../pages/AdminPage';
@@ -44,6 +44,10 @@ interface TableCardProps {
   onDuplicateTable?: (table: PokerTable) => void;
   searchQuery?: string;
   isPersistent?: boolean;
+  initialSeated?: TableSeat[];
+  initialWaitlist?: TableWaitlist[];
+  checkInStatusMap?: Map<string, { hasPaid: boolean; amount: number; isPrevious: boolean }>;
+  onPlayersChanged?: (tableId: string, seated: TableSeat[], waitlist: TableWaitlist[]) => void;
 }
 
 function TableCard({
@@ -60,9 +64,13 @@ function TableCard({
   onDuplicateTable,
   searchQuery = '',
   isPersistent = false,
+  initialSeated,
+  initialWaitlist,
+  checkInStatusMap: externalCheckInMap,
+  onPlayersChanged,
 }: TableCardProps) {
-  const [seatedPlayers, setSeatedPlayers] = useState<TableSeat[]>([]);
-  const [waitlistPlayers, setWaitlistPlayers] = useState<TableWaitlist[]>([]);
+  const [seatedPlayers, setSeatedPlayers] = useState<TableSeat[]>(initialSeated || []);
+  const [waitlistPlayers, setWaitlistPlayers] = useState<TableWaitlist[]>(initialWaitlist || []);
   const [playerAssignments, setPlayerAssignments] = useState<Map<string, { seated?: number; waitlisted?: number }>>(new Map());
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -88,6 +96,7 @@ function TableCard({
   const [tableChangeMenu, setTableChangeMenu] = useState<{ player: TableSeat | TableWaitlist; isFromWaitlist: boolean } | null>(null);
   const [tcAddAll, setTcAddAll] = useState(false);
   const [tcSameGameOnly, setTcSameGameOnly] = useState(true);
+  const [tcRemoveWaitlists, setTcRemoveWaitlists] = useState(false);
   const [doorFeeModal, setDoorFeeModal] = useState<{ player: TableWaitlist; playerName: string; defaultAmount: number } | null>(null);
   const [wlGameTypeMenu, setWlGameTypeMenu] = useState<{ player: TableSeat | TableWaitlist } | null>(null);
   const [checkinCache, setCheckinCache] = useState<Map<string, { amount: number; isPrevious: boolean }>>(new Map());
@@ -160,7 +169,21 @@ function TableCard({
     .sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
 
   // Load check-in data for waitlist players to show buy-in amounts
+  // Uses externalCheckInMap from AdminPage when available (zero AppSync calls).
+  // Falls back to per-player fetch only if no external map provided.
   useEffect(() => {
+    if (externalCheckInMap && externalCheckInMap.size > 0) {
+      // Use pre-loaded check-in data from AdminPage — zero AppSync calls
+      const newCache = new Map<string, { amount: number; isPrevious: boolean }>();
+      for (const wl of activeWaitlistPlayers) {
+        const status = externalCheckInMap.get(wl.player_id);
+        if (status) {
+          newCache.set(wl.player_id, { amount: status.amount, isPrevious: status.isPrevious });
+        }
+      }
+      if (newCache.size > 0) setCheckinCache(newCache);
+      return;
+    }
     const loadCheckins = async () => {
       const newCache = new Map<string, { amount: number; isPrevious: boolean }>();
       for (const wl of activeWaitlistPlayers) {
@@ -181,7 +204,7 @@ function TableCard({
       if (newCache.size > 0) setCheckinCache(newCache);
     };
     if (activeWaitlistPlayers.length > 0) loadCheckins();
-  }, [waitlistPlayers.length, clubDayId]);
+  }, [waitlistPlayers.length, clubDayId, externalCheckInMap]);
   
   useEffect(() => {
     // Restore optimistic players from localStorage on mount (survives page refresh)
@@ -197,17 +220,40 @@ function TableCard({
       setWaitlistPlayers(restored.waitlist);
     }
     
-    loadTableData();
+    // Skip independent fetch if AdminPage already passed pre-loaded data via props.
+    // This eliminates 2 AppSync calls per table on initial mount.
+    if (!initialSeated) {
+      loadTableData();
+    }
   }, [table.id]); // Only reload when table.id changes, not on every render
 
-  // React to parent refreshKey changes — forces immediate reload after admin mutations
+  // Sync state when AdminPage passes updated prop data (from batch refresh)
   useEffect(() => {
-    if (refreshKey > 0) {
+    if (initialSeated) setSeatedPlayers(initialSeated);
+  }, [initialSeated]);
+  useEffect(() => {
+    if (initialWaitlist) setWaitlistPlayers(initialWaitlist);
+  }, [initialWaitlist]);
+
+  // Notify parent (AdminPage) when seated/waitlist data changes inside this card.
+  // This keeps seatedPlayersMap/waitlistPlayersMap in sync for dashboard stats,
+  // group headers, and waitlist panels — zero API cost, pure state propagation.
+  useEffect(() => {
+    if (onPlayersChanged) {
+      onPlayersChanged(table.id, seatedPlayers, waitlistPlayers);
+    }
+  }, [seatedPlayers, waitlistPlayers]);
+
+  // React to parent refreshKey changes — forces immediate reload after admin mutations
+  // If AdminPage provides prop data, it will arrive via initialSeated/initialWaitlist above.
+  // Only do independent fetch if no prop data is provided.
+  useEffect(() => {
+    if (refreshKey > 0 && !initialSeated) {
       loadTableData(true);
     }
   }, [refreshKey]);
 
-  // Auto-refresh persistent tables every 15 seconds
+  // Auto-refresh persistent tables every 30 seconds
   useEffect(() => {
     if (!isPersistent && !table.is_persistent) return;
     const interval = setInterval(async () => {
@@ -215,7 +261,7 @@ function TableCard({
       setRefreshing(true);
       await loadTableData(true);
       setRefreshing(false);
-    }, 15000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [table.id, isPersistent, table.is_persistent]);
 
@@ -524,7 +570,7 @@ function TableCard({
           setTimeout(() => loadTableData(), 200);
         }
       }
-    }, 10000);
+    }, 20000);
 
     return () => {
       if (broadcastChannel) {
@@ -1376,7 +1422,7 @@ function TableCard({
     }
   };
 
-  const handleTableChange = async (player: TableSeat | TableWaitlist, newTableId: string, isFromWaitlist: boolean) => {
+  const handleTableChange = async (player: TableSeat | TableWaitlist, newTableId: string, isFromWaitlist: boolean, removeFromWaitlists?: boolean) => {
     const playerId = player.player_id;
     
     // Prevent duplicate moves
@@ -1416,6 +1462,20 @@ function TableCard({
         // TC (same game type) = add to top of waitlist; different game type = add to bottom
         const isSameGameType = targetTable.game_type === table.game_type;
         await addPlayerToWaitlist(newTableId, player.player_id, clubDayId, adminUser, { skipSeatCheck: true, atTop: isSameGameType });
+
+        // If user chose to remove from all other waitlists, do so now
+        if (removeFromWaitlists) {
+          try {
+            const allWaitlistEntries = await getWaitlistEntriesForPlayer(player.player_id, clubDayId);
+            for (const entry of allWaitlistEntries) {
+              // Don't remove the one we just added at the target table
+              if (entry.table_id === newTableId) continue;
+              try { await removePlayerFromWaitlist(entry.id, adminUser); } catch {}
+            }
+          } catch (err) {
+            logError('Failed to remove player from other waitlists:', err);
+          }
+        }
 
         // Write TC entry to localStorage so PublicPage/TVPage can show TC indicator
         try {
@@ -2214,14 +2274,25 @@ function TableCard({
   // ============================================================================
 
   const handleRemoveTable = async () => {
-    const playerCount = seatedPlayers.length + activeWaitlistPlayers.length;
+    // CRITICAL: Fetch fresh SEATED count from server — component state may contain
+    // stale optimistic entries from drag-and-drop that inflate the count.
+    // Only seated players block removal. Waitlist players are game-type lobby entries
+    // and will be migrated to a sibling table by deleteTable().
+    let seatedCount = 0;
+    try {
+      const freshSeats = await getSeatedPlayersForTable(table.id, clubDayId);
+      seatedCount = freshSeats.length;
+    } catch {
+      // Fallback to component state if server fetch fails
+      seatedCount = seatedPlayers.length;
+    }
     
-    if (playerCount > 0) {
-      // If there are players, offer options: break table or delete with all players
+    if (seatedCount > 0) {
+      // If there are seated players, offer options: break table or delete with all players
       const breakTable = confirm(
-        `This table has ${playerCount} player(s).\n\n` +
+        `This table has ${seatedCount} seated player(s).\n\n` +
         `Click OK to open Break Table dialog (move players to another table).\n` +
-        `Click Cancel to delete the table and remove all players.`
+        `Click Cancel to delete the table and remove all seated players.`
       );
       
       if (breakTable) {
@@ -2235,21 +2306,22 @@ function TableCard({
       } else {
         // User wants to delete table and remove all players
         const confirmDelete = confirm(
-          `⚠️ WARNING: Delete Table and Remove All Players\n\n` +
-          `This will permanently delete Table ${table.table_number} and remove all ${playerCount} player(s) from the table.\n\n` +
+          `⚠️ WARNING: Delete Table and Remove All Seated Players\n\n` +
+          `This will permanently delete Table ${table.table_number} and remove all ${seatedCount} seated player(s).\n` +
+          `Waitlisted players will be moved to another table of the same game type.\n\n` +
           `This action cannot be undone. Continue?`
         );
         
         if (!confirmDelete) return;
       }
     } else {
-      // No players - just confirm deletion
-      if (!confirm(`Remove Table ${table.table_number}?`)) return;
+      // No seated players - just confirm deletion (waitlist will be migrated)
+      if (!confirm(`Remove Table ${table.table_number}?\nWaitlisted players will be moved to another table of the same game type.`)) return;
     }
     
     setLoading(true);
     try {
-      await deleteTable(table.id);
+      await deleteTable(table.id, clubDayId);
       onRefresh();
     } catch (err: any) {
       alert(err.message || 'Failed to remove table');
@@ -2708,6 +2780,7 @@ function TableCard({
                           e.stopPropagation();
                           setTcAddAll(false);
                           setTcSameGameOnly(true);
+                          setTcRemoveWaitlists(false);
                           setTableChangeMenu({ player: seat, isFromWaitlist: false });
                         }}
                         title="Table Change"
@@ -2905,6 +2978,14 @@ function TableCard({
                   />
                   Add to all
                 </label>
+                <label className="tc-option-label tc-option-danger">
+                  <input
+                    type="checkbox"
+                    checked={tcRemoveWaitlists}
+                    onChange={(e) => setTcRemoveWaitlists(e.target.checked)}
+                  />
+                  Remove from other WLs
+                </label>
               </div>
 
               {tcAddAll ? (
@@ -2923,7 +3004,7 @@ function TableCard({
                     disabled={allVisibleTables.length === 0}
                     onClick={() => {
                       allVisibleTables.forEach(t => {
-                        handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist);
+                        handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist, tcRemoveWaitlists);
                       });
                       setTableChangeMenu(null);
                     }}
@@ -2946,7 +3027,7 @@ function TableCard({
                               className="tc-group-add-all-btn"
                               onClick={() => {
                                 tables.forEach(t => {
-                                  handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist);
+                                  handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist, tcRemoveWaitlists);
                                 });
                                 setTableChangeMenu(null);
                               }}
@@ -2960,7 +3041,7 @@ function TableCard({
                             key={t.id}
                             className={`table-change-item${isSameStakes ? ' tc-same-game' : ''}`}
                             onClick={() => {
-                              handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist);
+                              handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist, tcRemoveWaitlists);
                               setTableChangeMenu(null);
                             }}
                           >

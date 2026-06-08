@@ -1,9 +1,3 @@
-interface SMSArgs {
-  phone: string;
-  message: string;
-  key: string;
-}
-
 interface SMSResult {
   success: boolean;
   error?: string;
@@ -12,12 +6,9 @@ interface SMSResult {
 }
 
 function normalizePhone(phone: string): string {
-  // Strip all non-digits
   const digits = phone.replace(/\D/g, '');
-  // US number: 10 digits → add +1, 11 digits starting with 1 → add +
   if (digits.length === 10) return `+1${digits}`;
   if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-  // Already has country code or international
   return `+${digits}`;
 }
 
@@ -32,22 +23,18 @@ export const handler = async (event: any): Promise<any> => {
   console.log('Event type:', event.requestContext ? 'HTTP' : 'AppSync');
   const isHttp = !!event.requestContext?.http;
 
-  // Handle CORS preflight
   if (isHttp && event.requestContext.http.method === 'OPTIONS') {
     return { statusCode: 204, headers: CORS_HEADERS, body: '' };
   }
 
-  // Parse args from either HTTP Function URL or AppSync event
   let phone: string, message: string, key: string;
 
   if (isHttp) {
-    // Function URL HTTP event
     const body = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
     phone = body?.phone;
     message = body?.message;
     key = body?.key;
   } else {
-    // AppSync event
     const args = event.arguments || event;
     phone = args.phone;
     message = args.message;
@@ -62,33 +49,68 @@ export const handler = async (event: any): Promise<any> => {
     return errorResult;
   }
 
-  const normalizedPhone = normalizePhone(phone);
-  console.log('Sending to:', normalizedPhone, 'Message length:', message.length);
+  // key is encoded as "telnyxApiKey::fromNumber"
+  const separatorIndex = key.indexOf('::');
+  if (separatorIndex === -1) {
+    const errorResult = { success: false, error: 'Invalid key format. Expected apiKey::fromNumber' };
+    if (isHttp) {
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify(errorResult) };
+    }
+    return errorResult;
+  }
+
+  const telnyxApiKey = key.substring(0, separatorIndex).trim();
+  const fromNumber = normalizePhone(key.substring(separatorIndex + 2).trim());
+  const toNumber = normalizePhone(phone);
+
+  if (!telnyxApiKey || !fromNumber) {
+    const errorResult = { success: false, error: 'Missing Telnyx API key or from number' };
+    if (isHttp) {
+      return { statusCode: 400, headers: CORS_HEADERS, body: JSON.stringify(errorResult) };
+    }
+    return errorResult;
+  }
+
+  console.log('Sending via Telnyx from:', fromNumber, 'to:', toNumber, 'Message length:', message.length);
 
   try {
-    // Use form-urlencoded (NOT JSON) - this is the format that delivers SMS
-    // Proven by command line test: application/x-www-form-urlencoded delivers, application/json gets FAILED
-    const body = new URLSearchParams();
-    body.set('phone', normalizedPhone);
-    body.set('message', message);
-    body.set('key', key);
-
-    const response = await fetch('https://textbelt.com/text', {
+    const response = await fetch('https://api.telnyx.com/v2/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: body.toString(),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${telnyxApiKey}`,
+      },
+      body: JSON.stringify({
+        from: fromNumber,
+        to: toNumber,
+        text: message,
+      }),
     });
 
     const result = await response.json() as any;
-    console.log('TextBelt response:', JSON.stringify(result));
+    console.log('Telnyx response status:', response.status, JSON.stringify(result));
 
-    if (isHttp) {
-      return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(result) };
+    if (response.ok && result.data) {
+      const smsResult: SMSResult = {
+        success: true,
+        textId: result.data.id,
+      };
+      if (isHttp) {
+        return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(smsResult) };
+      }
+      return smsResult;
     }
-    return { success: result.success, error: result.error, quotaRemaining: result.quotaRemaining, textId: result.textId };
+
+    // Telnyx error response
+    const errorMsg = result.errors?.[0]?.detail || result.errors?.[0]?.title || `Telnyx API error (${response.status})`;
+    const errorResult: SMSResult = { success: false, error: errorMsg };
+    if (isHttp) {
+      return { statusCode: response.status, headers: CORS_HEADERS, body: JSON.stringify(errorResult) };
+    }
+    return errorResult;
   } catch (error: any) {
     console.error('SMS error:', error);
-    const errorResult = { success: false, error: error.message || 'SMS service unavailable' };
+    const errorResult: SMSResult = { success: false, error: error.message || 'SMS service unavailable' };
     if (isHttp) {
       return { statusCode: 500, headers: CORS_HEADERS, body: JSON.stringify(errorResult) };
     }

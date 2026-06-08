@@ -811,6 +811,13 @@
   overflow: hidden;
 }
 
+.public-interest-label {
+  font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+  font-weight: 800;
+  color: #fbbf24;
+  letter-spacing: 0.1em;
+}
+
 .public-game-group-buyin {
   font-size: clamp(0.65rem, 2.5vw, 0.75rem);
   font-weight: 600;
@@ -916,6 +923,106 @@
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Per-table cards within game type group */
+.public-table-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.public-table-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.public-table-card-header {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.3rem, 1.5vw, 0.5rem);
+  padding: 0.45rem clamp(0.5rem, 2vw, 0.75rem);
+  background: rgba(30, 41, 59, 0.8);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  flex-wrap: wrap;
+  font-size: clamp(0.72rem, 3vw, 0.85rem);
+}
+
+.public-table-card-num {
+  font-weight: 800;
+  color: #e2e8f0;
+  min-width: 2.2em;
+}
+
+.public-table-card-seats {
+  color: rgba(148, 163, 184, 0.9);
+  font-weight: 600;
+}
+
+.public-table-card-features {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.public-table-card-waitlist {
+  padding: 0.4rem clamp(0.5rem, 2vw, 0.75rem) 0.5rem;
+}
+
+.public-table-card-wl-header {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(165, 180, 252, 0.8);
+  margin-bottom: 0.3rem;
+}
+
+.public-table-card-wl-count {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.2);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  margin-left: 0.25rem;
+}
+
+.public-table-card-wl-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.public-table-card-wl-name {
+  font-size: clamp(0.75rem, 3vw, 0.9rem);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.public-table-card-wl-name.public-tc-player {
+  color: #fbbf24;
+}
+
+.public-table-card-wl-empty {
+  font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+  color: rgba(148, 163, 184, 0.4);
+  font-style: italic;
+  padding: 0.1rem 0;
 }
 
 .public-tc-badge {

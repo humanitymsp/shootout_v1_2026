@@ -1,0 +1,1442 @@
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+type AuditLog @aws_cognito_user_pools @aws_iam {
+  action: String!
+  adminUser: String!
+  createdAt: AWSDateTime!
+  detailsJson: AWSJSON
+  entityId: String
+  entityType: String
+  id: ID!
+  reason: String
+  updatedAt: AWSDateTime!
+}
+
+type CashCount @aws_cognito_user_pools @aws_iam {
+  adminUser: String!
+  clubDayId: ID
+  countedAmount: Float!
+  countedAt: AWSDateTime!
+  createdAt: AWSDateTime!
+  id: ID!
+  scope: CashCountScope
+  shiftEnd: AWSDateTime
+  shiftStart: AWSDateTime
+  updatedAt: AWSDateTime!
+}
+
+type CheckIn @aws_cognito_user_pools @aws_iam {
+  checkinTime: AWSDateTime!
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  doorFeeAmount: Float!
+  id: ID!
+  ledgerEntries(filter: ModelLedgerEntryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelLedgerEntryConnection
+  overrideReason: String
+  paymentMethod: String!
+  player: Player
+  playerId: ID!
+  receipt: Receipt
+  receiptId: ID
+  refundedAt: AWSDateTime
+  refunds(filter: ModelRefundFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelRefundConnection
+  updatedAt: AWSDateTime!
+}
+
+type ClubDay @aws_api_key @aws_cognito_user_pools @aws_iam {
+  archivedAt: AWSDateTime
+  checkIns(filter: ModelCheckInFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCheckInConnection
+  createdAt: AWSDateTime!
+  endedAt: AWSDateTime
+  id: ID!
+  ledgerEntries(filter: ModelLedgerEntryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelLedgerEntryConnection
+  playerSyncs(filter: ModelPlayerSyncFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPlayerSyncConnection
+  receipts(filter: ModelReceiptFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelReceiptConnection
+  retentionExpiresAt: AWSDateTime
+  seats(filter: ModelTableSeatFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTableSeatConnection
+  startedAt: AWSDateTime!
+  status: ClubDayStatus
+  tables(filter: ModelPokerTableFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelPokerTableConnection
+  updatedAt: AWSDateTime!
+  waitlist(filter: ModelTableWaitlistFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTableWaitlistConnection
+}
+
+type LedgerEntry @aws_cognito_user_pools @aws_iam {
+  adminUser: String
+  amount: Float!
+  balance: Float!
+  checkin: CheckIn
+  checkinId: ID
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  id: ID!
+  notes: String
+  player: Player
+  playerId: ID!
+  receipt: Receipt
+  receiptId: ID
+  refund: Refund
+  refundId: ID
+  sequenceNumber: Int!
+  transactionTime: AWSDateTime!
+  transactionType: LedgerEntryTransactionType
+  updatedAt: AWSDateTime!
+}
+
+type ModelAuditLogConnection @aws_cognito_user_pools @aws_iam {
+  items: [AuditLog]!
+  nextToken: String
+}
+
+type ModelCashCountConnection @aws_cognito_user_pools @aws_iam {
+  items: [CashCount]!
+  nextToken: String
+}
+
+type ModelCheckInConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [CheckIn]!
+  nextToken: String
+}
+
+type ModelClubDayConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [ClubDay]!
+  nextToken: String
+}
+
+type ModelLedgerEntryConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [LedgerEntry]!
+  nextToken: String
+}
+
+type ModelPlayerConnection @aws_cognito_user_pools @aws_iam {
+  items: [Player]!
+  nextToken: String
+}
+
+type ModelPlayerSyncConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [PlayerSync]!
+  nextToken: String
+}
+
+type ModelPokerTableConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [PokerTable]!
+  nextToken: String
+}
+
+type ModelReceiptConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [Receipt]!
+  nextToken: String
+}
+
+type ModelRefundConnection @aws_cognito_user_pools @aws_iam {
+  items: [Refund]!
+  nextToken: String
+}
+
+type ModelTableSeatConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [TableSeat]!
+  nextToken: String
+}
+
+type ModelTableWaitlistConnection @aws_api_key @aws_cognito_user_pools @aws_iam {
+  items: [TableWaitlist]!
+  nextToken: String
+}
+
+type Mutation @aws_iam {
+  createAuditLog(condition: ModelAuditLogConditionInput, input: CreateAuditLogInput!): AuditLog @aws_cognito_user_pools @aws_iam
+  createCashCount(condition: ModelCashCountConditionInput, input: CreateCashCountInput!): CashCount @aws_cognito_user_pools @aws_iam
+  createCheckIn(condition: ModelCheckInConditionInput, input: CreateCheckInInput!): CheckIn @aws_cognito_user_pools @aws_iam
+  createClubDay(condition: ModelClubDayConditionInput, input: CreateClubDayInput!): ClubDay @aws_cognito_user_pools @aws_iam
+  createLedgerEntry(condition: ModelLedgerEntryConditionInput, input: CreateLedgerEntryInput!): LedgerEntry @aws_cognito_user_pools @aws_iam
+  createPlayer(condition: ModelPlayerConditionInput, input: CreatePlayerInput!): Player @aws_cognito_user_pools @aws_iam
+  createPlayerSync(condition: ModelPlayerSyncConditionInput, input: CreatePlayerSyncInput!): PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam
+  createPokerTable(condition: ModelPokerTableConditionInput, input: CreatePokerTableInput!): PokerTable @aws_cognito_user_pools @aws_iam
+  createReceipt(condition: ModelReceiptConditionInput, input: CreateReceiptInput!): Receipt @aws_cognito_user_pools @aws_iam
+  createRefund(condition: ModelRefundConditionInput, input: CreateRefundInput!): Refund @aws_cognito_user_pools @aws_iam
+  createTableSeat(condition: ModelTableSeatConditionInput, input: CreateTableSeatInput!): TableSeat @aws_cognito_user_pools @aws_iam
+  createTableWaitlist(condition: ModelTableWaitlistConditionInput, input: CreateTableWaitlistInput!): TableWaitlist @aws_cognito_user_pools @aws_iam
+  deleteAuditLog(condition: ModelAuditLogConditionInput, input: DeleteAuditLogInput!): AuditLog @aws_cognito_user_pools @aws_iam
+  deleteCashCount(condition: ModelCashCountConditionInput, input: DeleteCashCountInput!): CashCount @aws_cognito_user_pools @aws_iam
+  deleteCheckIn(condition: ModelCheckInConditionInput, input: DeleteCheckInInput!): CheckIn @aws_cognito_user_pools @aws_iam
+  deleteClubDay(condition: ModelClubDayConditionInput, input: DeleteClubDayInput!): ClubDay @aws_cognito_user_pools @aws_iam
+  deleteLedgerEntry(condition: ModelLedgerEntryConditionInput, input: DeleteLedgerEntryInput!): LedgerEntry @aws_cognito_user_pools @aws_iam
+  deletePlayer(condition: ModelPlayerConditionInput, input: DeletePlayerInput!): Player @aws_cognito_user_pools @aws_iam
+  deletePlayerSync(condition: ModelPlayerSyncConditionInput, input: DeletePlayerSyncInput!): PlayerSync @aws_cognito_user_pools @aws_iam
+  deletePokerTable(condition: ModelPokerTableConditionInput, input: DeletePokerTableInput!): PokerTable @aws_cognito_user_pools @aws_iam
+  deleteReceipt(condition: ModelReceiptConditionInput, input: DeleteReceiptInput!): Receipt @aws_cognito_user_pools @aws_iam
+  deleteRefund(condition: ModelRefundConditionInput, input: DeleteRefundInput!): Refund @aws_cognito_user_pools @aws_iam
+  deleteTableSeat(condition: ModelTableSeatConditionInput, input: DeleteTableSeatInput!): TableSeat @aws_cognito_user_pools @aws_iam
+  deleteTableWaitlist(condition: ModelTableWaitlistConditionInput, input: DeleteTableWaitlistInput!): TableWaitlist @aws_cognito_user_pools @aws_iam
+  sendSMS(key: String!, message: String!, phone: String!): SMSResult @aws_api_key @aws_cognito_user_pools @aws_iam
+  updateAuditLog(condition: ModelAuditLogConditionInput, input: UpdateAuditLogInput!): AuditLog @aws_cognito_user_pools @aws_iam
+  updateCashCount(condition: ModelCashCountConditionInput, input: UpdateCashCountInput!): CashCount @aws_cognito_user_pools @aws_iam
+  updateCheckIn(condition: ModelCheckInConditionInput, input: UpdateCheckInInput!): CheckIn @aws_cognito_user_pools @aws_iam
+  updateClubDay(condition: ModelClubDayConditionInput, input: UpdateClubDayInput!): ClubDay @aws_cognito_user_pools @aws_iam
+  updateLedgerEntry(condition: ModelLedgerEntryConditionInput, input: UpdateLedgerEntryInput!): LedgerEntry @aws_cognito_user_pools @aws_iam
+  updatePlayer(condition: ModelPlayerConditionInput, input: UpdatePlayerInput!): Player @aws_cognito_user_pools @aws_iam
+  updatePlayerSync(condition: ModelPlayerSyncConditionInput, input: UpdatePlayerSyncInput!): PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam
+  updatePokerTable(condition: ModelPokerTableConditionInput, input: UpdatePokerTableInput!): PokerTable @aws_cognito_user_pools @aws_iam
+  updateReceipt(condition: ModelReceiptConditionInput, input: UpdateReceiptInput!): Receipt @aws_cognito_user_pools @aws_iam
+  updateRefund(condition: ModelRefundConditionInput, input: UpdateRefundInput!): Refund @aws_cognito_user_pools @aws_iam
+  updateTableSeat(condition: ModelTableSeatConditionInput, input: UpdateTableSeatInput!): TableSeat @aws_cognito_user_pools @aws_iam
+  updateTableWaitlist(condition: ModelTableWaitlistConditionInput, input: UpdateTableWaitlistInput!): TableWaitlist @aws_cognito_user_pools @aws_iam
+}
+
+type Player @aws_cognito_user_pools @aws_iam {
+  checkIns(filter: ModelCheckInFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCheckInConnection
+  createdAt: AWSDateTime!
+  email: String
+  id: ID!
+  ledgerEntries(filter: ModelLedgerEntryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelLedgerEntryConnection
+  name: String!
+  nick: String!
+  phone: String
+  receipts(filter: ModelReceiptFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelReceiptConnection
+  seats(filter: ModelTableSeatFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTableSeatConnection
+  updatedAt: AWSDateTime!
+  waitlist(filter: ModelTableWaitlistFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTableWaitlistConnection
+}
+
+type PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam {
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  id: ID!
+  playersJson: AWSJSON!
+  syncedAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type PokerTable @aws_api_key @aws_cognito_user_pools @aws_iam {
+  bombPotCount: Int!
+  buyInLimits: String
+  closedAt: AWSDateTime
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  gameType: PokerTableGameType
+  id: ID!
+  lockoutCount: Int
+  seats(filter: ModelTableSeatFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTableSeatConnection
+  seatsTotal: Int!
+  showOnTv: Boolean
+  stakesText: String!
+  status: PokerTableStatus
+  tableNumber: Int!
+  updatedAt: AWSDateTime!
+  waitlist(filter: ModelTableWaitlistFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelTableWaitlistConnection
+}
+
+type Query {
+  getAuditLog(id: ID!): AuditLog @aws_cognito_user_pools @aws_iam
+  getCashCount(id: ID!): CashCount @aws_cognito_user_pools @aws_iam
+  getCheckIn(id: ID!): CheckIn @aws_cognito_user_pools @aws_iam
+  getClubDay(id: ID!): ClubDay @aws_api_key @aws_cognito_user_pools @aws_iam
+  getLedgerEntry(id: ID!): LedgerEntry @aws_cognito_user_pools @aws_iam
+  getPlayer(id: ID!): Player @aws_cognito_user_pools @aws_iam
+  getPlayerSync(id: ID!): PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam
+  getPokerTable(id: ID!): PokerTable @aws_api_key @aws_cognito_user_pools @aws_iam
+  getReceipt(id: ID!): Receipt @aws_cognito_user_pools @aws_iam
+  getRefund(id: ID!): Refund @aws_cognito_user_pools @aws_iam
+  getTableSeat(id: ID!): TableSeat @aws_api_key @aws_cognito_user_pools @aws_iam
+  getTableWaitlist(id: ID!): TableWaitlist @aws_api_key @aws_cognito_user_pools @aws_iam
+  listAuditLogs(filter: ModelAuditLogFilterInput, limit: Int, nextToken: String): ModelAuditLogConnection @aws_cognito_user_pools @aws_iam
+  listCashCounts(filter: ModelCashCountFilterInput, limit: Int, nextToken: String): ModelCashCountConnection @aws_cognito_user_pools @aws_iam
+  listCheckIns(filter: ModelCheckInFilterInput, limit: Int, nextToken: String): ModelCheckInConnection @aws_cognito_user_pools @aws_iam
+  listClubDays(filter: ModelClubDayFilterInput, limit: Int, nextToken: String): ModelClubDayConnection @aws_api_key @aws_cognito_user_pools @aws_iam
+  listLedgerEntries(filter: ModelLedgerEntryFilterInput, limit: Int, nextToken: String): ModelLedgerEntryConnection @aws_cognito_user_pools @aws_iam
+  listPlayerSyncs(filter: ModelPlayerSyncFilterInput, limit: Int, nextToken: String): ModelPlayerSyncConnection @aws_api_key @aws_cognito_user_pools @aws_iam
+  listPlayers(filter: ModelPlayerFilterInput, limit: Int, nextToken: String): ModelPlayerConnection @aws_cognito_user_pools @aws_iam
+  listPokerTables(filter: ModelPokerTableFilterInput, limit: Int, nextToken: String): ModelPokerTableConnection @aws_api_key @aws_cognito_user_pools @aws_iam
+  listReceipts(filter: ModelReceiptFilterInput, limit: Int, nextToken: String): ModelReceiptConnection @aws_cognito_user_pools @aws_iam
+  listRefunds(filter: ModelRefundFilterInput, limit: Int, nextToken: String): ModelRefundConnection @aws_cognito_user_pools @aws_iam
+  listTableSeats(filter: ModelTableSeatFilterInput, limit: Int, nextToken: String): ModelTableSeatConnection @aws_api_key @aws_cognito_user_pools @aws_iam
+  listTableWaitlists(filter: ModelTableWaitlistFilterInput, limit: Int, nextToken: String): ModelTableWaitlistConnection @aws_api_key @aws_cognito_user_pools @aws_iam
+}
+
+type Receipt @aws_cognito_user_pools @aws_iam {
+  amount: Float!
+  checkIns(filter: ModelCheckInFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelCheckInConnection
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  createdBy: String
+  id: ID!
+  kind: ReceiptKind
+  ledgerEntries(filter: ModelLedgerEntryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelLedgerEntryConnection
+  paymentMethod: String!
+  player: Player
+  playerId: ID!
+  receiptNumber: Int!
+  refunds(filter: ModelRefundFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelRefundConnection
+  updatedAt: AWSDateTime!
+}
+
+type Refund @aws_cognito_user_pools @aws_iam {
+  adminUser: String
+  amount: Float!
+  checkin: CheckIn
+  checkinId: ID!
+  createdAt: AWSDateTime!
+  id: ID!
+  ledgerEntries(filter: ModelLedgerEntryFilterInput, limit: Int, nextToken: String, sortDirection: ModelSortDirection): ModelLedgerEntryConnection
+  reason: String!
+  refundReceipt: Receipt
+  refundReceiptId: ID
+  refundedAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type SMSResult @aws_api_key @aws_cognito_user_pools @aws_iam {
+  error: String
+  quotaRemaining: Int
+  success: Boolean!
+  textId: String
+}
+
+type Subscription {
+  onCreateAuditLog(filter: ModelSubscriptionAuditLogFilterInput): AuditLog @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createAuditLog"])
+  onCreateCashCount(filter: ModelSubscriptionCashCountFilterInput): CashCount @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createCashCount"])
+  onCreateCheckIn(filter: ModelSubscriptionCheckInFilterInput): CheckIn @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createCheckIn"])
+  onCreateClubDay(filter: ModelSubscriptionClubDayFilterInput): ClubDay @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createClubDay"])
+  onCreateLedgerEntry(filter: ModelSubscriptionLedgerEntryFilterInput): LedgerEntry @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createLedgerEntry"])
+  onCreatePlayer(filter: ModelSubscriptionPlayerFilterInput): Player @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createPlayer"])
+  onCreatePlayerSync(filter: ModelSubscriptionPlayerSyncFilterInput): PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createPlayerSync"])
+  onCreatePokerTable(filter: ModelSubscriptionPokerTableFilterInput): PokerTable @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createPokerTable"])
+  onCreateReceipt(filter: ModelSubscriptionReceiptFilterInput): Receipt @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createReceipt"])
+  onCreateRefund(filter: ModelSubscriptionRefundFilterInput): Refund @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createRefund"])
+  onCreateTableSeat(filter: ModelSubscriptionTableSeatFilterInput): TableSeat @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createTableSeat"])
+  onCreateTableWaitlist(filter: ModelSubscriptionTableWaitlistFilterInput): TableWaitlist @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["createTableWaitlist"])
+  onDeleteAuditLog(filter: ModelSubscriptionAuditLogFilterInput): AuditLog @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteAuditLog"])
+  onDeleteCashCount(filter: ModelSubscriptionCashCountFilterInput): CashCount @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteCashCount"])
+  onDeleteCheckIn(filter: ModelSubscriptionCheckInFilterInput): CheckIn @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteCheckIn"])
+  onDeleteClubDay(filter: ModelSubscriptionClubDayFilterInput): ClubDay @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteClubDay"])
+  onDeleteLedgerEntry(filter: ModelSubscriptionLedgerEntryFilterInput): LedgerEntry @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteLedgerEntry"])
+  onDeletePlayer(filter: ModelSubscriptionPlayerFilterInput): Player @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deletePlayer"])
+  onDeletePlayerSync(filter: ModelSubscriptionPlayerSyncFilterInput): PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deletePlayerSync"])
+  onDeletePokerTable(filter: ModelSubscriptionPokerTableFilterInput): PokerTable @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deletePokerTable"])
+  onDeleteReceipt(filter: ModelSubscriptionReceiptFilterInput): Receipt @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteReceipt"])
+  onDeleteRefund(filter: ModelSubscriptionRefundFilterInput): Refund @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteRefund"])
+  onDeleteTableSeat(filter: ModelSubscriptionTableSeatFilterInput): TableSeat @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteTableSeat"])
+  onDeleteTableWaitlist(filter: ModelSubscriptionTableWaitlistFilterInput): TableWaitlist @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["deleteTableWaitlist"])
+  onUpdateAuditLog(filter: ModelSubscriptionAuditLogFilterInput): AuditLog @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateAuditLog"])
+  onUpdateCashCount(filter: ModelSubscriptionCashCountFilterInput): CashCount @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateCashCount"])
+  onUpdateCheckIn(filter: ModelSubscriptionCheckInFilterInput): CheckIn @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateCheckIn"])
+  onUpdateClubDay(filter: ModelSubscriptionClubDayFilterInput): ClubDay @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateClubDay"])
+  onUpdateLedgerEntry(filter: ModelSubscriptionLedgerEntryFilterInput): LedgerEntry @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateLedgerEntry"])
+  onUpdatePlayer(filter: ModelSubscriptionPlayerFilterInput): Player @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updatePlayer"])
+  onUpdatePlayerSync(filter: ModelSubscriptionPlayerSyncFilterInput): PlayerSync @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updatePlayerSync"])
+  onUpdatePokerTable(filter: ModelSubscriptionPokerTableFilterInput): PokerTable @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updatePokerTable"])
+  onUpdateReceipt(filter: ModelSubscriptionReceiptFilterInput): Receipt @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateReceipt"])
+  onUpdateRefund(filter: ModelSubscriptionRefundFilterInput): Refund @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateRefund"])
+  onUpdateTableSeat(filter: ModelSubscriptionTableSeatFilterInput): TableSeat @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateTableSeat"])
+  onUpdateTableWaitlist(filter: ModelSubscriptionTableWaitlistFilterInput): TableWaitlist @aws_api_key @aws_cognito_user_pools @aws_iam @aws_subscribe(mutations : ["updateTableWaitlist"])
+}
+
+type TableSeat @aws_api_key @aws_cognito_user_pools @aws_iam {
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  id: ID!
+  leftAt: AWSDateTime
+  player: Player
+  playerId: ID!
+  seatedAt: AWSDateTime!
+  table: PokerTable
+  tableId: ID!
+  updatedAt: AWSDateTime!
+}
+
+type TableWaitlist @aws_api_key @aws_cognito_user_pools @aws_iam {
+  addedAt: AWSDateTime!
+  calledIn: Boolean
+  clubDay: ClubDay
+  clubDayId: ID!
+  createdAt: AWSDateTime!
+  id: ID!
+  player: Player
+  playerId: ID!
+  position: Int!
+  removedAt: AWSDateTime
+  table: PokerTable
+  tableId: ID!
+  updatedAt: AWSDateTime!
+}
+
+enum CashCountScope {
+  clubday
+  shift
+}
+
+enum ClubDayStatus {
+  active
+  archived
+  closed
+}
+
+enum LedgerEntryTransactionType {
+  checkin
+  refund
+}
+
+enum ModelAttributeTypes {
+  _null
+  binary
+  binarySet
+  bool
+  list
+  map
+  number
+  numberSet
+  string
+  stringSet
+}
+
+enum ModelSortDirection {
+  ASC
+  DESC
+}
+
+enum PokerTableGameType {
+  BigO
+  Custom
+  Limit
+  Mixed
+  NLH
+  PLO
+}
+
+enum PokerTableStatus {
+  CLOSED
+  FULL
+  OPEN
+  STARTING
+}
+
+enum ReceiptKind {
+  checkin
+  refund
+}
+
+input AmplifyAIConversationTurnErrorInput {
+  errorType: String!
+  message: String!
+}
+
+input CreateAuditLogInput {
+  action: String!
+  adminUser: String!
+  detailsJson: AWSJSON
+  entityId: String
+  entityType: String
+  id: ID
+  reason: String
+}
+
+input CreateCashCountInput {
+  adminUser: String!
+  clubDayId: ID
+  countedAmount: Float!
+  countedAt: AWSDateTime!
+  id: ID
+  scope: CashCountScope
+  shiftEnd: AWSDateTime
+  shiftStart: AWSDateTime
+}
+
+input CreateCheckInInput {
+  checkinTime: AWSDateTime!
+  clubDayId: ID!
+  doorFeeAmount: Float!
+  id: ID
+  overrideReason: String
+  paymentMethod: String!
+  playerId: ID!
+  receiptId: ID
+  refundedAt: AWSDateTime
+}
+
+input CreateClubDayInput {
+  archivedAt: AWSDateTime
+  endedAt: AWSDateTime
+  id: ID
+  retentionExpiresAt: AWSDateTime
+  startedAt: AWSDateTime!
+  status: ClubDayStatus
+}
+
+input CreateLedgerEntryInput {
+  adminUser: String
+  amount: Float!
+  balance: Float!
+  checkinId: ID
+  clubDayId: ID!
+  id: ID
+  notes: String
+  playerId: ID!
+  receiptId: ID
+  refundId: ID
+  sequenceNumber: Int!
+  transactionTime: AWSDateTime!
+  transactionType: LedgerEntryTransactionType
+}
+
+input CreatePlayerInput {
+  email: String
+  id: ID
+  name: String!
+  nick: String!
+  phone: String
+}
+
+input CreatePlayerSyncInput {
+  clubDayId: ID!
+  id: ID
+  playersJson: AWSJSON!
+  syncedAt: AWSDateTime!
+}
+
+input CreatePokerTableInput {
+  bombPotCount: Int!
+  buyInLimits: String
+  closedAt: AWSDateTime
+  clubDayId: ID!
+  gameType: PokerTableGameType
+  id: ID
+  lockoutCount: Int
+  seatsTotal: Int!
+  showOnTv: Boolean
+  stakesText: String!
+  status: PokerTableStatus
+  tableNumber: Int!
+}
+
+input CreateReceiptInput {
+  amount: Float!
+  clubDayId: ID!
+  createdBy: String
+  id: ID
+  kind: ReceiptKind
+  paymentMethod: String!
+  playerId: ID!
+  receiptNumber: Int!
+}
+
+input CreateRefundInput {
+  adminUser: String
+  amount: Float!
+  checkinId: ID!
+  id: ID
+  reason: String!
+  refundReceiptId: ID
+  refundedAt: AWSDateTime!
+}
+
+input CreateTableSeatInput {
+  clubDayId: ID!
+  id: ID
+  leftAt: AWSDateTime
+  playerId: ID!
+  seatedAt: AWSDateTime!
+  tableId: ID!
+}
+
+input CreateTableWaitlistInput {
+  addedAt: AWSDateTime!
+  calledIn: Boolean
+  clubDayId: ID!
+  id: ID
+  playerId: ID!
+  position: Int!
+  removedAt: AWSDateTime
+  tableId: ID!
+}
+
+input DeleteAuditLogInput {
+  id: ID!
+}
+
+input DeleteCashCountInput {
+  id: ID!
+}
+
+input DeleteCheckInInput {
+  id: ID!
+}
+
+input DeleteClubDayInput {
+  id: ID!
+}
+
+input DeleteLedgerEntryInput {
+  id: ID!
+}
+
+input DeletePlayerInput {
+  id: ID!
+}
+
+input DeletePlayerSyncInput {
+  id: ID!
+}
+
+input DeletePokerTableInput {
+  id: ID!
+}
+
+input DeleteReceiptInput {
+  id: ID!
+}
+
+input DeleteRefundInput {
+  id: ID!
+}
+
+input DeleteTableSeatInput {
+  id: ID!
+}
+
+input DeleteTableWaitlistInput {
+  id: ID!
+}
+
+input ModelAuditLogConditionInput {
+  action: ModelStringInput
+  adminUser: ModelStringInput
+  and: [ModelAuditLogConditionInput]
+  createdAt: ModelStringInput
+  detailsJson: ModelStringInput
+  entityId: ModelStringInput
+  entityType: ModelStringInput
+  not: ModelAuditLogConditionInput
+  or: [ModelAuditLogConditionInput]
+  reason: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelAuditLogFilterInput {
+  action: ModelStringInput
+  adminUser: ModelStringInput
+  and: [ModelAuditLogFilterInput]
+  createdAt: ModelStringInput
+  detailsJson: ModelStringInput
+  entityId: ModelStringInput
+  entityType: ModelStringInput
+  id: ModelIDInput
+  not: ModelAuditLogFilterInput
+  or: [ModelAuditLogFilterInput]
+  reason: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelBooleanInput {
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  eq: Boolean
+  ne: Boolean
+}
+
+input ModelCashCountConditionInput {
+  adminUser: ModelStringInput
+  and: [ModelCashCountConditionInput]
+  clubDayId: ModelIDInput
+  countedAmount: ModelFloatInput
+  countedAt: ModelStringInput
+  createdAt: ModelStringInput
+  not: ModelCashCountConditionInput
+  or: [ModelCashCountConditionInput]
+  scope: ModelCashCountScopeInput
+  shiftEnd: ModelStringInput
+  shiftStart: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelCashCountFilterInput {
+  adminUser: ModelStringInput
+  and: [ModelCashCountFilterInput]
+  clubDayId: ModelIDInput
+  countedAmount: ModelFloatInput
+  countedAt: ModelStringInput
+  createdAt: ModelStringInput
+  id: ModelIDInput
+  not: ModelCashCountFilterInput
+  or: [ModelCashCountFilterInput]
+  scope: ModelCashCountScopeInput
+  shiftEnd: ModelStringInput
+  shiftStart: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelCashCountScopeInput {
+  eq: CashCountScope
+  ne: CashCountScope
+}
+
+input ModelCheckInConditionInput {
+  and: [ModelCheckInConditionInput]
+  checkinTime: ModelStringInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  doorFeeAmount: ModelFloatInput
+  not: ModelCheckInConditionInput
+  or: [ModelCheckInConditionInput]
+  overrideReason: ModelStringInput
+  paymentMethod: ModelStringInput
+  playerId: ModelIDInput
+  receiptId: ModelIDInput
+  refundedAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelCheckInFilterInput {
+  and: [ModelCheckInFilterInput]
+  checkinTime: ModelStringInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  doorFeeAmount: ModelFloatInput
+  id: ModelIDInput
+  not: ModelCheckInFilterInput
+  or: [ModelCheckInFilterInput]
+  overrideReason: ModelStringInput
+  paymentMethod: ModelStringInput
+  playerId: ModelIDInput
+  receiptId: ModelIDInput
+  refundedAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelClubDayConditionInput {
+  and: [ModelClubDayConditionInput]
+  archivedAt: ModelStringInput
+  createdAt: ModelStringInput
+  endedAt: ModelStringInput
+  not: ModelClubDayConditionInput
+  or: [ModelClubDayConditionInput]
+  retentionExpiresAt: ModelStringInput
+  startedAt: ModelStringInput
+  status: ModelClubDayStatusInput
+  updatedAt: ModelStringInput
+}
+
+input ModelClubDayFilterInput {
+  and: [ModelClubDayFilterInput]
+  archivedAt: ModelStringInput
+  createdAt: ModelStringInput
+  endedAt: ModelStringInput
+  id: ModelIDInput
+  not: ModelClubDayFilterInput
+  or: [ModelClubDayFilterInput]
+  retentionExpiresAt: ModelStringInput
+  startedAt: ModelStringInput
+  status: ModelClubDayStatusInput
+  updatedAt: ModelStringInput
+}
+
+input ModelClubDayStatusInput {
+  eq: ClubDayStatus
+  ne: ClubDayStatus
+}
+
+input ModelFloatInput {
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  between: [Float]
+  eq: Float
+  ge: Float
+  gt: Float
+  le: Float
+  lt: Float
+  ne: Float
+}
+
+input ModelIDInput {
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  beginsWith: ID
+  between: [ID]
+  contains: ID
+  eq: ID
+  ge: ID
+  gt: ID
+  le: ID
+  lt: ID
+  ne: ID
+  notContains: ID
+  size: ModelSizeInput
+}
+
+input ModelIntInput {
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  between: [Int]
+  eq: Int
+  ge: Int
+  gt: Int
+  le: Int
+  lt: Int
+  ne: Int
+}
+
+input ModelLedgerEntryConditionInput {
+  adminUser: ModelStringInput
+  amount: ModelFloatInput
+  and: [ModelLedgerEntryConditionInput]
+  balance: ModelFloatInput
+  checkinId: ModelIDInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  not: ModelLedgerEntryConditionInput
+  notes: ModelStringInput
+  or: [ModelLedgerEntryConditionInput]
+  playerId: ModelIDInput
+  receiptId: ModelIDInput
+  refundId: ModelIDInput
+  sequenceNumber: ModelIntInput
+  transactionTime: ModelStringInput
+  transactionType: ModelLedgerEntryTransactionTypeInput
+  updatedAt: ModelStringInput
+}
+
+input ModelLedgerEntryFilterInput {
+  adminUser: ModelStringInput
+  amount: ModelFloatInput
+  and: [ModelLedgerEntryFilterInput]
+  balance: ModelFloatInput
+  checkinId: ModelIDInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  id: ModelIDInput
+  not: ModelLedgerEntryFilterInput
+  notes: ModelStringInput
+  or: [ModelLedgerEntryFilterInput]
+  playerId: ModelIDInput
+  receiptId: ModelIDInput
+  refundId: ModelIDInput
+  sequenceNumber: ModelIntInput
+  transactionTime: ModelStringInput
+  transactionType: ModelLedgerEntryTransactionTypeInput
+  updatedAt: ModelStringInput
+}
+
+input ModelLedgerEntryTransactionTypeInput {
+  eq: LedgerEntryTransactionType
+  ne: LedgerEntryTransactionType
+}
+
+input ModelPlayerConditionInput {
+  and: [ModelPlayerConditionInput]
+  createdAt: ModelStringInput
+  email: ModelStringInput
+  name: ModelStringInput
+  nick: ModelStringInput
+  not: ModelPlayerConditionInput
+  or: [ModelPlayerConditionInput]
+  phone: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelPlayerFilterInput {
+  and: [ModelPlayerFilterInput]
+  createdAt: ModelStringInput
+  email: ModelStringInput
+  id: ModelIDInput
+  name: ModelStringInput
+  nick: ModelStringInput
+  not: ModelPlayerFilterInput
+  or: [ModelPlayerFilterInput]
+  phone: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelPlayerSyncConditionInput {
+  and: [ModelPlayerSyncConditionInput]
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  not: ModelPlayerSyncConditionInput
+  or: [ModelPlayerSyncConditionInput]
+  playersJson: ModelStringInput
+  syncedAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelPlayerSyncFilterInput {
+  and: [ModelPlayerSyncFilterInput]
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  id: ModelIDInput
+  not: ModelPlayerSyncFilterInput
+  or: [ModelPlayerSyncFilterInput]
+  playersJson: ModelStringInput
+  syncedAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelPokerTableConditionInput {
+  and: [ModelPokerTableConditionInput]
+  bombPotCount: ModelIntInput
+  buyInLimits: ModelStringInput
+  closedAt: ModelStringInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  gameType: ModelPokerTableGameTypeInput
+  lockoutCount: ModelIntInput
+  not: ModelPokerTableConditionInput
+  or: [ModelPokerTableConditionInput]
+  seatsTotal: ModelIntInput
+  showOnTv: ModelBooleanInput
+  stakesText: ModelStringInput
+  status: ModelPokerTableStatusInput
+  tableNumber: ModelIntInput
+  updatedAt: ModelStringInput
+}
+
+input ModelPokerTableFilterInput {
+  and: [ModelPokerTableFilterInput]
+  bombPotCount: ModelIntInput
+  buyInLimits: ModelStringInput
+  closedAt: ModelStringInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  gameType: ModelPokerTableGameTypeInput
+  id: ModelIDInput
+  lockoutCount: ModelIntInput
+  not: ModelPokerTableFilterInput
+  or: [ModelPokerTableFilterInput]
+  seatsTotal: ModelIntInput
+  showOnTv: ModelBooleanInput
+  stakesText: ModelStringInput
+  status: ModelPokerTableStatusInput
+  tableNumber: ModelIntInput
+  updatedAt: ModelStringInput
+}
+
+input ModelPokerTableGameTypeInput {
+  eq: PokerTableGameType
+  ne: PokerTableGameType
+}
+
+input ModelPokerTableStatusInput {
+  eq: PokerTableStatus
+  ne: PokerTableStatus
+}
+
+input ModelReceiptConditionInput {
+  amount: ModelFloatInput
+  and: [ModelReceiptConditionInput]
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  createdBy: ModelStringInput
+  kind: ModelReceiptKindInput
+  not: ModelReceiptConditionInput
+  or: [ModelReceiptConditionInput]
+  paymentMethod: ModelStringInput
+  playerId: ModelIDInput
+  receiptNumber: ModelIntInput
+  updatedAt: ModelStringInput
+}
+
+input ModelReceiptFilterInput {
+  amount: ModelFloatInput
+  and: [ModelReceiptFilterInput]
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  createdBy: ModelStringInput
+  id: ModelIDInput
+  kind: ModelReceiptKindInput
+  not: ModelReceiptFilterInput
+  or: [ModelReceiptFilterInput]
+  paymentMethod: ModelStringInput
+  playerId: ModelIDInput
+  receiptNumber: ModelIntInput
+  updatedAt: ModelStringInput
+}
+
+input ModelReceiptKindInput {
+  eq: ReceiptKind
+  ne: ReceiptKind
+}
+
+input ModelRefundConditionInput {
+  adminUser: ModelStringInput
+  amount: ModelFloatInput
+  and: [ModelRefundConditionInput]
+  checkinId: ModelIDInput
+  createdAt: ModelStringInput
+  not: ModelRefundConditionInput
+  or: [ModelRefundConditionInput]
+  reason: ModelStringInput
+  refundReceiptId: ModelIDInput
+  refundedAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelRefundFilterInput {
+  adminUser: ModelStringInput
+  amount: ModelFloatInput
+  and: [ModelRefundFilterInput]
+  checkinId: ModelIDInput
+  createdAt: ModelStringInput
+  id: ModelIDInput
+  not: ModelRefundFilterInput
+  or: [ModelRefundFilterInput]
+  reason: ModelStringInput
+  refundReceiptId: ModelIDInput
+  refundedAt: ModelStringInput
+  updatedAt: ModelStringInput
+}
+
+input ModelSizeInput {
+  between: [Int]
+  eq: Int
+  ge: Int
+  gt: Int
+  le: Int
+  lt: Int
+  ne: Int
+}
+
+input ModelStringInput {
+  attributeExists: Boolean
+  attributeType: ModelAttributeTypes
+  beginsWith: String
+  between: [String]
+  contains: String
+  eq: String
+  ge: String
+  gt: String
+  le: String
+  lt: String
+  ne: String
+  notContains: String
+  size: ModelSizeInput
+}
+
+input ModelSubscriptionAuditLogFilterInput {
+  action: ModelSubscriptionStringInput
+  adminUser: ModelSubscriptionStringInput
+  and: [ModelSubscriptionAuditLogFilterInput]
+  createdAt: ModelSubscriptionStringInput
+  detailsJson: ModelSubscriptionStringInput
+  entityId: ModelSubscriptionStringInput
+  entityType: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionAuditLogFilterInput]
+  reason: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionBooleanInput {
+  eq: Boolean
+  ne: Boolean
+}
+
+input ModelSubscriptionCashCountFilterInput {
+  adminUser: ModelSubscriptionStringInput
+  and: [ModelSubscriptionCashCountFilterInput]
+  clubDayId: ModelSubscriptionIDInput
+  countedAmount: ModelSubscriptionFloatInput
+  countedAt: ModelSubscriptionStringInput
+  createdAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionCashCountFilterInput]
+  scope: ModelSubscriptionStringInput
+  shiftEnd: ModelSubscriptionStringInput
+  shiftStart: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionCheckInFilterInput {
+  and: [ModelSubscriptionCheckInFilterInput]
+  checkinTime: ModelSubscriptionStringInput
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  doorFeeAmount: ModelSubscriptionFloatInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionCheckInFilterInput]
+  overrideReason: ModelSubscriptionStringInput
+  paymentMethod: ModelSubscriptionStringInput
+  playerId: ModelSubscriptionIDInput
+  receiptId: ModelSubscriptionIDInput
+  refundedAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionClubDayFilterInput {
+  and: [ModelSubscriptionClubDayFilterInput]
+  archivedAt: ModelSubscriptionStringInput
+  createdAt: ModelSubscriptionStringInput
+  endedAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionClubDayFilterInput]
+  retentionExpiresAt: ModelSubscriptionStringInput
+  startedAt: ModelSubscriptionStringInput
+  status: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionFloatInput {
+  between: [Float]
+  eq: Float
+  ge: Float
+  gt: Float
+  in: [Float]
+  le: Float
+  lt: Float
+  ne: Float
+  notIn: [Float]
+}
+
+input ModelSubscriptionIDInput {
+  beginsWith: ID
+  between: [ID]
+  contains: ID
+  eq: ID
+  ge: ID
+  gt: ID
+  in: [ID]
+  le: ID
+  lt: ID
+  ne: ID
+  notContains: ID
+  notIn: [ID]
+}
+
+input ModelSubscriptionIntInput {
+  between: [Int]
+  eq: Int
+  ge: Int
+  gt: Int
+  in: [Int]
+  le: Int
+  lt: Int
+  ne: Int
+  notIn: [Int]
+}
+
+input ModelSubscriptionLedgerEntryFilterInput {
+  adminUser: ModelSubscriptionStringInput
+  amount: ModelSubscriptionFloatInput
+  and: [ModelSubscriptionLedgerEntryFilterInput]
+  balance: ModelSubscriptionFloatInput
+  checkinId: ModelSubscriptionIDInput
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  notes: ModelSubscriptionStringInput
+  or: [ModelSubscriptionLedgerEntryFilterInput]
+  playerId: ModelSubscriptionIDInput
+  receiptId: ModelSubscriptionIDInput
+  refundId: ModelSubscriptionIDInput
+  sequenceNumber: ModelSubscriptionIntInput
+  transactionTime: ModelSubscriptionStringInput
+  transactionType: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionPlayerFilterInput {
+  and: [ModelSubscriptionPlayerFilterInput]
+  createdAt: ModelSubscriptionStringInput
+  email: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  name: ModelSubscriptionStringInput
+  nick: ModelSubscriptionStringInput
+  or: [ModelSubscriptionPlayerFilterInput]
+  phone: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionPlayerSyncFilterInput {
+  and: [ModelSubscriptionPlayerSyncFilterInput]
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionPlayerSyncFilterInput]
+  playersJson: ModelSubscriptionStringInput
+  syncedAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionPokerTableFilterInput {
+  and: [ModelSubscriptionPokerTableFilterInput]
+  bombPotCount: ModelSubscriptionIntInput
+  buyInLimits: ModelSubscriptionStringInput
+  closedAt: ModelSubscriptionStringInput
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  gameType: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  lockoutCount: ModelSubscriptionIntInput
+  or: [ModelSubscriptionPokerTableFilterInput]
+  seatsTotal: ModelSubscriptionIntInput
+  showOnTv: ModelSubscriptionBooleanInput
+  stakesText: ModelSubscriptionStringInput
+  status: ModelSubscriptionStringInput
+  tableNumber: ModelSubscriptionIntInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionReceiptFilterInput {
+  amount: ModelSubscriptionFloatInput
+  and: [ModelSubscriptionReceiptFilterInput]
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  createdBy: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  kind: ModelSubscriptionStringInput
+  or: [ModelSubscriptionReceiptFilterInput]
+  paymentMethod: ModelSubscriptionStringInput
+  playerId: ModelSubscriptionIDInput
+  receiptNumber: ModelSubscriptionIntInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionRefundFilterInput {
+  adminUser: ModelSubscriptionStringInput
+  amount: ModelSubscriptionFloatInput
+  and: [ModelSubscriptionRefundFilterInput]
+  checkinId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionRefundFilterInput]
+  reason: ModelSubscriptionStringInput
+  refundReceiptId: ModelSubscriptionIDInput
+  refundedAt: ModelSubscriptionStringInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionStringInput {
+  beginsWith: String
+  between: [String]
+  contains: String
+  eq: String
+  ge: String
+  gt: String
+  in: [String]
+  le: String
+  lt: String
+  ne: String
+  notContains: String
+  notIn: [String]
+}
+
+input ModelSubscriptionTableSeatFilterInput {
+  and: [ModelSubscriptionTableSeatFilterInput]
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  leftAt: ModelSubscriptionStringInput
+  or: [ModelSubscriptionTableSeatFilterInput]
+  playerId: ModelSubscriptionIDInput
+  seatedAt: ModelSubscriptionStringInput
+  tableId: ModelSubscriptionIDInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelSubscriptionTableWaitlistFilterInput {
+  addedAt: ModelSubscriptionStringInput
+  and: [ModelSubscriptionTableWaitlistFilterInput]
+  calledIn: ModelSubscriptionBooleanInput
+  clubDayId: ModelSubscriptionIDInput
+  createdAt: ModelSubscriptionStringInput
+  id: ModelSubscriptionIDInput
+  or: [ModelSubscriptionTableWaitlistFilterInput]
+  playerId: ModelSubscriptionIDInput
+  position: ModelSubscriptionIntInput
+  removedAt: ModelSubscriptionStringInput
+  tableId: ModelSubscriptionIDInput
+  updatedAt: ModelSubscriptionStringInput
+}
+
+input ModelTableSeatConditionInput {
+  and: [ModelTableSeatConditionInput]
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  leftAt: ModelStringInput
+  not: ModelTableSeatConditionInput
+  or: [ModelTableSeatConditionInput]
+  playerId: ModelIDInput
+  seatedAt: ModelStringInput
+  tableId: ModelIDInput
+  updatedAt: ModelStringInput
+}
+
+input ModelTableSeatFilterInput {
+  and: [ModelTableSeatFilterInput]
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  id: ModelIDInput
+  leftAt: ModelStringInput
+  not: ModelTableSeatFilterInput
+  or: [ModelTableSeatFilterInput]
+  playerId: ModelIDInput
+  seatedAt: ModelStringInput
+  tableId: ModelIDInput
+  updatedAt: ModelStringInput
+}
+
+input ModelTableWaitlistConditionInput {
+  addedAt: ModelStringInput
+  and: [ModelTableWaitlistConditionInput]
+  calledIn: ModelBooleanInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  not: ModelTableWaitlistConditionInput
+  or: [ModelTableWaitlistConditionInput]
+  playerId: ModelIDInput
+  position: ModelIntInput
+  removedAt: ModelStringInput
+  tableId: ModelIDInput
+  updatedAt: ModelStringInput
+}
+
+input ModelTableWaitlistFilterInput {
+  addedAt: ModelStringInput
+  and: [ModelTableWaitlistFilterInput]
+  calledIn: ModelBooleanInput
+  clubDayId: ModelIDInput
+  createdAt: ModelStringInput
+  id: ModelIDInput
+  not: ModelTableWaitlistFilterInput
+  or: [ModelTableWaitlistFilterInput]
+  playerId: ModelIDInput
+  position: ModelIntInput
+  removedAt: ModelStringInput
+  tableId: ModelIDInput
+  updatedAt: ModelStringInput
+}
+
+input UpdateAuditLogInput {
+  action: String
+  adminUser: String
+  detailsJson: AWSJSON
+  entityId: String
+  entityType: String
+  id: ID!
+  reason: String
+}
+
+input UpdateCashCountInput {
+  adminUser: String
+  clubDayId: ID
+  countedAmount: Float
+  countedAt: AWSDateTime
+  id: ID!
+  scope: CashCountScope
+  shiftEnd: AWSDateTime
+  shiftStart: AWSDateTime
+}
+
+input UpdateCheckInInput {
+  checkinTime: AWSDateTime
+  clubDayId: ID
+  doorFeeAmount: Float
+  id: ID!
+  overrideReason: String
+  paymentMethod: String
+  playerId: ID
+  receiptId: ID
+  refundedAt: AWSDateTime
+}
+
+input UpdateClubDayInput {
+  archivedAt: AWSDateTime
+  endedAt: AWSDateTime
+  id: ID!
+  retentionExpiresAt: AWSDateTime
+  startedAt: AWSDateTime
+  status: ClubDayStatus
+}
+
+input UpdateLedgerEntryInput {
+  adminUser: String
+  amount: Float
+  balance: Float
+  checkinId: ID
+  clubDayId: ID
+  id: ID!
+  notes: String
+  playerId: ID
+  receiptId: ID
+  refundId: ID
+  sequenceNumber: Int
+  transactionTime: AWSDateTime
+  transactionType: LedgerEntryTransactionType
+}
+
+input UpdatePlayerInput {
+  email: String
+  id: ID!
+  name: String
+  nick: String
+  phone: String
+}
+
+input UpdatePlayerSyncInput {
+  clubDayId: ID
+  id: ID!
+  playersJson: AWSJSON
+  syncedAt: AWSDateTime
+}
+
+input UpdatePokerTableInput {
+  bombPotCount: Int
+  buyInLimits: String
+  closedAt: AWSDateTime
+  clubDayId: ID
+  gameType: PokerTableGameType
+  id: ID!
+  lockoutCount: Int
+  seatsTotal: Int
+  showOnTv: Boolean
+  stakesText: String
+  status: PokerTableStatus
+  tableNumber: Int
+}
+
+input UpdateReceiptInput {
+  amount: Float
+  clubDayId: ID
+  createdBy: String
+  id: ID!
+  kind: ReceiptKind
+  paymentMethod: String
+  playerId: ID
+  receiptNumber: Int
+}
+
+input UpdateRefundInput {
+  adminUser: String
+  amount: Float
+  checkinId: ID
+  id: ID!
+  reason: String
+  refundReceiptId: ID
+  refundedAt: AWSDateTime
+}
+
+input UpdateTableSeatInput {
+  clubDayId: ID
+  id: ID!
+  leftAt: AWSDateTime
+  playerId: ID
+  seatedAt: AWSDateTime
+  tableId: ID
+}
+
+input UpdateTableWaitlistInput {
+  addedAt: AWSDateTime
+  calledIn: Boolean
+  clubDayId: ID
+  id: ID!
+  playerId: ID
+  position: Int
+  removedAt: AWSDateTime
+  tableId: ID
+}

@@ -191,7 +191,7 @@ export default function TableManagementModal({ clubDayId, onClose, onUpdate }: T
 
     try {
       setDeleting(tableId);
-      await apiDeleteTable(tableId);
+      await apiDeleteTable(tableId, clubDayId);
 
       // Remove the table from the local state
       setTables(prev => prev.filter(t => t.id !== tableId));

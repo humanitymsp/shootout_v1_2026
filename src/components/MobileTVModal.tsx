@@ -36,7 +36,7 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDayId, (players) => {
       log(`📡 Mobile TV: Synced ${players.length} players from admin`);
-    }, 10000); // Poll every 10 seconds
+    }, 30000); // Poll every 30 seconds
     
     loadData();
     
@@ -51,7 +51,7 @@ export default function MobileTVModal({ clubDayId, onClose }: MobileTVModalProps
     const pollInterval = setInterval(() => {
       if (document.hidden) return;
       loadData();
-    }, 10000); // 10s polling
+    }, 30000); // 30s polling
 
     return () => clearInterval(pollInterval);
   }, [clubDay]);

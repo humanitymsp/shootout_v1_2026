@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type RefObject } from 'react';
 import { getCheckInForPlayer, createCheckIn, addPlayerToWaitlist, syncPlayerToDB } from '../lib/api';
+import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { searchPlayersLocal, createPlayerLocal, updatePlayerLocal } from '../lib/localStoragePlayers';
 import { sendSMS, getSMSSettings } from '../lib/sms';
 import type { Player } from '../types';
@@ -136,7 +137,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
     const refreshInterval = setInterval(() => {
       if (document.hidden) return;
       enrichTablesWithCounts(tables);
-    }, 20000);
+    }, 45000);
     return () => clearInterval(refreshInterval);
   }, [tables]);
 
@@ -146,47 +147,22 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
       return;
     }
     
-    const enriched = await Promise.all(
-      tableList.map(async (table) => {
-        try {
-          const [seatsRes, waitlistRes] = await Promise.all([
-            client.models.TableSeat.list({
-              filter: {
-                and: [
-                  { tableId: { eq: table.id } },
-                  { leftAt: { attributeExists: false } },
-                ],
-              },
-            }),
-            client.models.TableWaitlist.list({
-              filter: {
-                and: [
-                  { tableId: { eq: table.id } },
-                  { removedAt: { attributeExists: false } },
-                ],
-              },
-            }),
-          ]);
-          
-          const actualSeated = (seatsRes.data || []).filter((s: any) => !s.id?.startsWith('temp-'));
-          const actualWaitlist = (waitlistRes.data || []).filter((w: any) => !w.id?.startsWith('temp-'));
-          
-          return {
-            ...table,
-            seatsFilled: actualSeated.length,
-            waitlistCount: actualWaitlist.length,
-          };
-        } catch (error) {
-          logError('Error getting counts for table:', table.id, error);
-          return {
-            ...table,
-            seatsFilled: 0,
-            waitlistCount: 0,
-          };
-        }
-      })
-    );
-    setEnrichedTables(enriched);
+    try {
+      // BATCH: 2 queries total instead of 2 per table
+      const { countsMap } = await getAllTableCountsForClubDay(clubDayId);
+      const enriched = tableList.map(table => {
+        const counts = countsMap.get(table.id);
+        return {
+          ...table,
+          seatsFilled: counts?.seatedCount || 0,
+          waitlistCount: counts?.waitlistCount || 0,
+        };
+      });
+      setEnrichedTables(enriched);
+    } catch (error) {
+      logError('Error batch-loading table counts:', error);
+      setEnrichedTables(tableList.map(table => ({ ...table, seatsFilled: 0, waitlistCount: 0 })));
+    }
   };
 
   useEffect(() => {
@@ -622,7 +598,7 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
             </div>
 
             {/* Contact Information Section */}
-            {(selectedPlayer || phoneRequired) && (
+            {smsSettings?.enabled && selectedPlayer && (
               <div className="form-section">
                 <label className="form-label">
                   Contact Information {phoneRequired && <span className="required">*</span>}

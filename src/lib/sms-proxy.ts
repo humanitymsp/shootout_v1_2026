@@ -1,12 +1,16 @@
 /**
- * SMS Proxy - A simple proxy to avoid CORS issues
- * This can be deployed as a serverless function or used with a CORS proxy
+ * SMS Proxy - Legacy fallback module.
+ *
+ * The primary SMS path now uses the AppSync sendSMS mutation → Lambda → Telnyx.
+ * These proxy functions are retained as a fallback but are not used in the
+ * normal flow. If you need direct browser-to-API SMS sending (e.g. for local
+ * dev without a deployed backend), these can be adapted.
  */
 
 interface SMSRequest {
   phone: string;
   message: string;
-  key: string;
+  key: string; // encoded as "telnyxApiKey::fromNumber"
 }
 
 interface SMSResponse {
@@ -17,23 +21,13 @@ interface SMSResponse {
 }
 
 /**
- * Send SMS via TextBelt using a proxy approach
- * For now, we'll use a CORS proxy service for development
- * In production, this should be replaced with a proper backend endpoint
+ * Send SMS via Telnyx using a local dev proxy (localhost:3001)
  */
 export async function sendSMSViaProxy(request: SMSRequest): Promise<SMSResponse> {
   try {
-    // Using a CORS proxy for development
-    // In production, replace with your own backend endpoint
-    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-    const targetUrl = 'https://textbelt.com/text';
-    
-    const response = await fetch(proxyUrl + targetUrl, {
+    const response = await fetch('http://localhost:3001/sms-proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(request),
     });
 
@@ -42,11 +36,9 @@ export async function sendSMSViaProxy(request: SMSRequest): Promise<SMSResponse>
     }
 
     const result = await response.json();
-    
     return {
       success: result.success,
       error: result.error,
-      quotaRemaining: result.quotaRemaining,
       textId: result.textId,
     };
   } catch (error) {
@@ -60,63 +52,19 @@ export async function sendSMSViaProxy(request: SMSRequest): Promise<SMSResponse>
 
 /**
  * Send SMS via proxy (works in both development and production)
+ * Falls back to the AppSync mutation path which is the primary delivery mechanism.
  */
 export async function sendSMSViaPublicProxy(request: SMSRequest): Promise<SMSResponse> {
   try {
-    // Try local proxy first in development
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      try {
-        const response = await fetch('http://localhost:3001/sms-proxy', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(request),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          return {
-            success: result.success,
-            error: result.error,
-            quotaRemaining: result.quotaRemaining,
-            textId: result.textId,
-          };
-        }
-      } catch (localError) {
-        console.log('Local proxy not available, falling back to production proxy...');
-      }
-    }
-    
-    // Production: Build URL with query params to avoid POST CORS issues
-    // TextBelt also accepts GET requests with query parameters
-    const params = new URLSearchParams({
-      phone: request.phone,
-      message: request.message,
-      key: request.key,
-    });
-    
-    const textbeltUrl = `https://textbelt.com/text?${params.toString()}`;
-    
-    // Use AllOrigins for GET request
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(textbeltUrl)}`;
-    
-    const response = await fetch(proxyUrl, {
-      method: 'GET',
-    });
-
-    if (!response.ok) {
-      throw new Error(`Proxy error: ${response.status} ${response.statusText}`);
+      return sendSMSViaProxy(request);
     }
 
-    const proxyResult = await response.json();
-    const result = JSON.parse(proxyResult.contents);
-    
+    // In production, the AppSync mutation is used directly (see sms.ts sendSMS).
+    // This function should not be called in production.
     return {
-      success: result.success,
-      error: result.error,
-      quotaRemaining: result.quotaRemaining,
-      textId: result.textId,
+      success: false,
+      error: 'Direct proxy not available in production. Use AppSync sendSMS mutation.',
     };
   } catch (error) {
     console.error('SMS API error:', error);

@@ -254,6 +254,7 @@ export default function ReportsModal({ clubDayId, onClose, onDayReset, adminUser
     const netTotal = parseFloat(reportData.net_total) || (doorFees - totalRefunds);
     const checkedInNames: { name: string; amount: number; time?: string }[] = reportData.checkedInNames || [];
     const refundedNames: { name: string; amount: number; reason: string }[] = reportData.refundedNames || [];
+    const doorFeeBreakdown: { amount: number; count: number; total: number }[] = reportData.doorFeeBreakdown || [];
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -402,15 +403,35 @@ export default function ReportsModal({ clubDayId, onClose, onDayReset, adminUser
 
             <div class="separator-thick"></div>
 
+            ${doorFeeBreakdown.length > 0 ? `
+            <div class="player-list-section">
+              <div class="player-list-title">Door Fee Breakdown (Active Buy-ins)</div>
+              ${doorFeeBreakdown.map(b => {
+                const isNonStandard = b.amount !== 20 && b.amount !== 25 && b.amount !== 0;
+                return `
+              <div class="player-list-item">
+                <span class="player-name">${isNonStandard ? '⚠️ ' : ''}$${b.amount.toFixed(2)} x ${b.count}</span>
+                <span class="player-amount">$${b.total.toFixed(2)}</span>
+              </div>`;
+              }).join('')}
+              ${doorFeeBreakdown.some(b => b.amount !== 20 && b.amount !== 25 && b.amount !== 0) ? `
+              <div style="font-size:8pt;color:#c00;margin-top:4px;font-weight:bold;">⚠️ = Non-standard fee (expected $20 or $25)</div>` : ''}
+            </div>
+            <div class="separator"></div>
+            ` : ''}
+
             ${checkedInNames.length > 0 ? `
             <div class="player-list-section">
               <div class="player-list-title">Buy-ins This Shift (${checkedInNames.length})</div>
-              ${checkedInNames.map((p, i) => `
+              ${checkedInNames.map((p, i) => {
+                const isNonStandard = p.amount !== 20 && p.amount !== 25 && p.amount !== 0;
+                return `
               <div class="player-list-item">
-                <span class="player-name">${i + 1}. ${p.name}</span>
+                <span class="player-name">${i + 1}. ${isNonStandard ? '⚠️ ' : ''}${p.name}</span>
                 ${p.time ? `<span class="player-time">${format(new Date(p.time), 'h:mm a')}</span>` : ''}
                 <span class="player-amount">$${p.amount.toFixed(2)}</span>
-              </div>`).join('')}
+              </div>`;
+              }).join('')}
             </div>
             <div class="separator"></div>
             ` : ''}
@@ -452,7 +473,7 @@ export default function ReportsModal({ clubDayId, onClose, onDayReset, adminUser
       return;
     }
 
-    const reportTitle = 'END OF DAY REPORT';
+    const reportTitle = reportType === 'range' ? 'CUSTOM DATE RANGE REPORT' : 'END OF DAY REPORT';
     const now = new Date();
     const reportDate = format(now, 'MMM d, yyyy');
     const reportTime = format(now, 'h:mm:ss a');
@@ -469,6 +490,7 @@ export default function ReportsModal({ clubDayId, onClose, onDayReset, adminUser
     const netTotal = parseFloat(reportData.net_total) || (doorFees - totalRefunds);
     const checkedInNames: { name: string; amount: number }[] = reportData.checkedInNames || [];
     const refundedNames: { name: string; amount: number; reason: string }[] = reportData.refundedNames || [];
+    const doorFeeBreakdown: { amount: number; count: number; total: number }[] = reportData.doorFeeBreakdown || [];
 
     printWindow.document.write(`
       <!DOCTYPE html>
@@ -711,14 +733,34 @@ export default function ReportsModal({ clubDayId, onClose, onDayReset, adminUser
             
             <div class="separator-thick"></div>
 
+            ${doorFeeBreakdown.length > 0 ? `
+            <div class="player-list-section">
+              <div class="player-list-title">Door Fee Breakdown (Active Buy-ins)</div>
+              ${doorFeeBreakdown.map(b => {
+                const isNonStandard = b.amount !== 20 && b.amount !== 25 && b.amount !== 0;
+                return `
+              <div class="player-list-item">
+                <span class="player-name">${isNonStandard ? '⚠️ ' : ''}$${b.amount.toFixed(2)} x ${b.count}</span>
+                <span class="player-amount">$${b.total.toFixed(2)}</span>
+              </div>`;
+              }).join('')}
+              ${doorFeeBreakdown.some(b => b.amount !== 20 && b.amount !== 25 && b.amount !== 0) ? `
+              <div style="font-size:8pt;color:#c00;margin-top:4px;font-weight:bold;">⚠️ = Non-standard fee (expected $20 or $25)</div>` : ''}
+            </div>
+            <div class="separator"></div>
+            ` : ''}
+
             ${checkedInNames.length > 0 ? `
             <div class="player-list-section">
               <div class="player-list-title">Checked-In Players (${checkedInNames.length})</div>
-              ${checkedInNames.map((p, i) => `
+              ${checkedInNames.map((p, i) => {
+                const isNonStandard = p.amount !== 20 && p.amount !== 25 && p.amount !== 0;
+                return `
               <div class="player-list-item">
-                <span class="player-name">${i + 1}. ${p.name}</span>
+                <span class="player-name">${i + 1}. ${isNonStandard ? '⚠️ ' : ''}${p.name}</span>
                 <span class="player-amount">$${p.amount.toFixed(2)}</span>
-              </div>`).join('')}
+              </div>`;
+              }).join('')}
             </div>
             <div class="separator"></div>
             ` : ''}

@@ -67,7 +67,7 @@
      "S3Bucket": {
       "Fn::Sub": "cdk-hnb659fds-assets-${AWS::AccountId}-${AWS::Region}"
      },
-     "S3Key": "029554dd66fe8c00333e205066303ba0ec0001b68b6094b8f2642e8273561d68.zip"
+     "S3Key": "26e2e1d67cee817111bb5bc5f5ea599c92499507e965d22ba166d290c858156d.zip"
     },
     "Environment": {
      "Variables": {
@@ -115,7 +115,7 @@
    ],
    "Metadata": {
     "aws:cdk:path": "amplify-d2y73qb8nfn3wa-staging-branch-66293d6384/function/handler-lambda/Resource",
-    "aws:asset:path": "asset.029554dd66fe8c00333e205066303ba0ec0001b68b6094b8f2642e8273561d68",
+    "aws:asset:path": "asset.26e2e1d67cee817111bb5bc5f5ea599c92499507e965d22ba166d290c858156d",
     "aws:asset:is-bundled": true,
     "aws:asset:property": "Code"
    }

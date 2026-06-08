@@ -292,7 +292,7 @@ export default function BreakTableModal({
         setResults(removalResults);
 
         // Delete the table
-        await deleteTable(sourceTableId);
+        await deleteTable(sourceTableId, clubDayId);
 
         // Broadcast updates
         try {
