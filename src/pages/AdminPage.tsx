@@ -337,13 +337,13 @@ export default function AdminPage({ user }: AdminPageProps) {
   // Initial load: initialize and load data (no auto-reset — resets are manual via EOD)
   const loadData = async () => {
     try {
-      // Initialize localStorage players system
-      initializeLocalPlayers();
-      
-      // Get active club day FIRST so we can set the clubDayId for PlayerSync lookups.
+      // Get active club day FIRST so we can prune stale players-sync-* keys by club day ID.
+      // This is also needed for PlayerSync lookups in loadAllPlayersToCache.
       // This is critical: without a clubDayId, loadAllPlayersToCache can't fetch
       // player-{timestamp} IDs from PlayerSync and only gets UUID players from Player.list.
       const activeDay = await getActiveClubDay();
+      // Initialize players + prune stale players-sync-* keys from past club days
+      initializeLocalPlayers(activeDay?.id);
       if (activeDay) {
         setActiveClubDayIdForCache(activeDay.id);
       }
@@ -2209,8 +2209,9 @@ export default function AdminPage({ user }: AdminPageProps) {
             <div className="modal-body">
               <p>Seat <strong>{tcSeatModal.waitlist.player?.nick || tcSeatModal.waitlist.player?.name || 'Player'}</strong> at which table?</p>
               <div className="table-selection-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px', marginTop: '20px' }}>
-                {tables
+                {[...tables]
                   .filter(t => t.game_type === tcSeatModal.gameType && t.stakes_text === tcSeatModal.stakes && t.status !== 'CLOSED')
+                  .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                   .map(table => {
                     const seated = seatedPlayersMap.get(table.id)?.length || 0;
                     return (

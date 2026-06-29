@@ -345,3 +345,114 @@ export async function queryCheckInsByClubDay(clubDayId: string, authMode?: strin
     return [];
   }
 }
+
+/**
+ * Query Receipts for a club day via GSI (gsi-ClubDay.receipts).
+ * Returns raw Amplify-shaped records.
+ */
+export async function queryReceiptsByClubDay(clubDayId: string, authMode?: string): Promise<any[]> {
+  try {
+    const client = getClient();
+    if (!client?.graphql) return [];
+
+    const query = `
+      query GetClubDayReceipts($id: ID!, $limit: Int, $nextToken: String) {
+        getClubDay(id: $id) {
+          receipts(limit: $limit, nextToken: $nextToken) {
+            items {
+              id
+              clubDayId
+              receiptNumber
+              playerId
+              amount
+              paymentMethod
+              kind
+              createdBy
+              createdAt
+              updatedAt
+            }
+            nextToken
+          }
+        }
+      }
+    `;
+
+    let allItems: any[] = [];
+    let nextToken: string | null = null;
+
+    do {
+      const options: any = {
+        query,
+        variables: { id: clubDayId, limit: 1000, nextToken },
+      };
+      if (authMode) options.authMode = authMode;
+      const result: any = await client.graphql(options);
+      const page = result?.data?.getClubDay?.receipts;
+      if (page?.items) allItems = allItems.concat(page.items);
+      nextToken = page?.nextToken || null;
+    } while (nextToken);
+
+    return allItems;
+  } catch (error) {
+    console.warn('queryReceiptsByClubDay GSI query failed, caller should fall back to Scan:', error);
+    return [];
+  }
+}
+
+/**
+ * Query LedgerEntries for a club day via GSI (gsi-ClubDay.ledgerEntries).
+ * Returns raw Amplify-shaped records.
+ */
+export async function queryLedgerEntriesByClubDay(clubDayId: string, authMode?: string): Promise<any[]> {
+  try {
+    const client = getClient();
+    if (!client?.graphql) return [];
+
+    const query = `
+      query GetClubDayLedgerEntries($id: ID!, $limit: Int, $nextToken: String) {
+        getClubDay(id: $id) {
+          ledgerEntries(limit: $limit, nextToken: $nextToken) {
+            items {
+              id
+              clubDayId
+              sequenceNumber
+              transactionType
+              amount
+              balance
+              checkinId
+              refundId
+              receiptId
+              playerId
+              transactionTime
+              adminUser
+              notes
+              createdAt
+              updatedAt
+            }
+            nextToken
+          }
+        }
+      }
+    `;
+
+    let allItems: any[] = [];
+    let nextToken: string | null = null;
+
+    do {
+      const options: any = {
+        query,
+        variables: { id: clubDayId, limit: 1000, nextToken },
+      };
+      if (authMode) options.authMode = authMode;
+      const result: any = await client.graphql(options);
+      const page = result?.data?.getClubDay?.ledgerEntries;
+      if (page?.items) allItems = allItems.concat(page.items);
+      nextToken = page?.nextToken || null;
+    } while (nextToken);
+
+    return allItems;
+  } catch (error) {
+    console.warn('queryLedgerEntriesByClubDay GSI query failed, caller should fall back to Scan:', error);
+    return [];
+  }
+}

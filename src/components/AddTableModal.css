@@ -455,6 +455,12 @@
   box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
 }
 
+.table-number-btn.pending-btn {
+  grid-column: span 3;
+  aspect-ratio: auto;
+  padding: 0 0.5rem;
+}
+
 .selected-count {
   font-weight: 400;
   color: var(--admin-muted);

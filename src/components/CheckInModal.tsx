@@ -4,12 +4,9 @@ import { getAllTableCountsForClubDay } from '../lib/tableCounts';
 import { searchPlayersLocal, createPlayerLocal, updatePlayerLocal } from '../lib/localStoragePlayers';
 import { sendSMS, getSMSSettings } from '../lib/sms';
 import type { Player } from '../types';
-import { generateClient } from '../lib/graphql-client';
 import { showToast } from './Toast';
 import { log, logError } from '../lib/logger';
 import './CheckInModal.css';
-
-const client = generateClient();
 
 interface CheckInModalProps {
   clubDayId: string;
@@ -735,7 +732,19 @@ export default function CheckInModal({ clubDayId, adminUser, tables, onClose, on
                   if (groups.size === 0) {
                     return <div className="info-badge">No active tables. Add tables in the admin panel first.</div>;
                   }
-                  return Array.from(groups.entries()).map(([key, group]) => (
+
+                  const gameTypeOrder: Record<string, number> = {
+                    'NLH': 1, 'PLO': 2, 'BigO': 3, 'PLO5': 4, 'Limit': 5, 'Mixed': 6, 'Other': 99
+                  };
+
+                  return Array.from(groups.entries())
+                    .sort(([, groupA], [, groupB]) => {
+                      const orderA = gameTypeOrder[groupA.gameType] || 50;
+                      const orderB = gameTypeOrder[groupB.gameType] || 50;
+                      if (orderA !== orderB) return orderA - orderB;
+                      return groupA.stakes.localeCompare(groupB.stakes);
+                    })
+                    .map(([key, group]) => (
                     <button
                       key={key}
                       type="button"

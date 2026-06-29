@@ -21,7 +21,7 @@ const TABLE_TEMPLATES = [
   { name: 'PLO 5', gameType: 'PLO' as const, stakesText: '$1/$2/$5 PLO', seatsTotal: 20, buyInLimits: '$200-$2000', bombPotCount: 1 },
   { name: 'Big-O', gameType: 'BigO' as const, stakesText: 'Big-O', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
   { name: 'Limit', gameType: 'Limit' as const, stakesText: 'Limit', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
-  { name: 'Mixed', gameType: 'Mixed' as const, stakesText: 'Mixed', seatsTotal: 20, buyInLimits: 'See Floor', bombPotCount: 1 },
+  { name: 'Mixed 1/1', gameType: 'Mixed' as const, stakesText: '$1/$1 Mixed', seatsTotal: 20, buyInLimits: '$60-$300', bombPotCount: 1 },
 ];
 
 const STAKES_OPTIONS = [
@@ -42,12 +42,14 @@ const STAKES_OPTIONS = [
   'Limit $4/$8',
   'Limit $6/$12',
   'Mixed',
+  '$1/$1 Mixed',
   'Custom',
 ];
 
 const BUY_IN_LIMITS_OPTIONS = [
   '$40-$500',
   '$100-$500',
+  '$60-$300',
   '$200-$1000',
   '$200-$2000',
   '$300-$1000',
@@ -67,6 +69,11 @@ export default function AddTableModal({
   onSuccess,
 }: AddTableModalProps) {
   const availableTableNumbers = Array.from({ length: 30 }, (_, i) => i + 1).filter(
+    (n) => !existingTableNumbers.includes(n)
+  );
+
+  // High numbers for pending tables (90-999) to avoid conflicts
+  const availablePendingNumbers = Array.from({ length: 910 }, (_, i) => 90 + i).filter(
     (n) => !existingTableNumbers.includes(n)
   );
   
@@ -181,7 +188,9 @@ export default function AddTableModal({
     }
 
     // Validate that all selected table numbers are available
-    const unavailableNumbers = selectedTableNumbers.filter(n => !availableTableNumbers.includes(n));
+    // CRITICAL: Include both standard and pending numbers in the check
+    const allValidNumbers = [...availableTableNumbers, ...availablePendingNumbers];
+    const unavailableNumbers = selectedTableNumbers.filter(n => !allValidNumbers.includes(n));
     if (unavailableNumbers.length > 0) {
       setError(`Table(s) ${unavailableNumbers.join(', ')} already exist. Please select different table numbers.`);
       return;
@@ -365,10 +374,25 @@ export default function AddTableModal({
                           {n}
                         </button>
                       ))}
+                      {availablePendingNumbers.length > 0 && (
+                        <button
+                          type="button"
+                          className={`table-number-btn pending-btn ${selectedTableNumbers.some(n => n >= 90) ? 'selected' : ''}`}
+                          onClick={() => {
+                            // Pick a random available high number to minimize collision probability
+                            const randomIndex = Math.floor(Math.random() * Math.min(availablePendingNumbers.length, 50));
+                            const randomPending = availablePendingNumbers[randomIndex];
+                            toggleTableNumber(randomPending);
+                          }}
+                          title="Create a table without a number initially (90+)"
+                        >
+                          Pending Table
+                        </button>
+                      )}
                     </div>
                     {selectedTableNumbers.length > 0 && (
                       <div className="selected-tables-preview">
-                        Creating: {selectedTableNumbers.map(n => `Table ${n}`).join(', ')}
+                        Creating: {selectedTableNumbers.map(n => n >= 90 ? 'Pending Table' : `Table ${n}`).join(', ')}
                       </div>
                     )}
                   </div>

@@ -124,6 +124,40 @@
   background: rgba(15, 22, 41, 0.8);
 }
 
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 3rem;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  z-index: 10;
+}
+
+.password-toggle:hover {
+  color: #3b82f6;
+}
+
+.password-toggle:focus {
+  outline: none;
+  color: #3b82f6;
+}
+
 .error-message {
   background: rgba(239, 68, 68, 0.15);
   color: #fca5a5;

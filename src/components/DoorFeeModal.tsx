@@ -152,20 +152,41 @@ export default function DoorFeeModal({
                 required={showTableSelection}
               >
                 <option value="">Select a table...</option>
-                {tables
-                  .filter(table => table.status !== 'CLOSED')
-                  .map((table) => {
-                    const seatsFilled = table.seats_filled ?? 0;
-                    const waitlistCount = table.waitlist_count ?? 0;
-                    const tableNumber = table.table_number;
-                    const stakesText = table.stakes_text;
-                    const seatsTotal = table.seats_total ?? 9;
-                    return (
-                      <option key={table.id} value={table.id}>
-                        Table {tableNumber} — {stakesText} ({seatsFilled}/{seatsTotal} seats, {waitlistCount} waiting)
-                      </option>
-                    );
-                  })}
+                {(() => {
+                  const gameTypeOrder: Record<string, number> = {
+                    'NLH': 1, 'PLO': 2, 'BigO': 3, 'PLO5': 4, 'Limit': 5, 'Mixed': 6, 'Other': 99
+                  };
+
+                  return [...tables]
+                    .filter(table => table.status !== 'CLOSED')
+                    .sort((a, b) => {
+                      // First sort by game type priority
+                      const orderA = gameTypeOrder[a.game_type as string] || 50;
+                      const orderB = gameTypeOrder[b.game_type as string] || 50;
+                      if (orderA !== orderB) return orderA - orderB;
+                      
+                      // Then sort by stakes
+                      if (a.stakes_text !== b.stakes_text) {
+                        return a.stakes_text.localeCompare(b.stakes_text);
+                      }
+
+                      // Finally sort by age (creation time) - newest at bottom
+                      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+                    })
+                    .map((table) => {
+                      const seatsFilled = table.seats_filled ?? 0;
+                      const waitlistCount = table.waitlist_count ?? 0;
+                      const tableNumber = table.table_number;
+                      const stakesText = table.stakes_text;
+                      const seatsTotal = table.seats_total ?? 9;
+                      const gameType = table.game_type || 'Unknown';
+                      return (
+                        <option key={table.id} value={table.id}>
+                          {gameType} — Table {tableNumber} — {stakesText} ({seatsFilled}/{seatsTotal} seats, {waitlistCount} waiting)
+                        </option>
+                      );
+                    });
+                })()}
               </select>
             </div>
           )}

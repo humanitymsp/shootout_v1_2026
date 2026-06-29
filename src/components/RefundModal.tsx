@@ -27,7 +27,6 @@ export default function RefundModal({ clubDayId, adminUser, onClose, onSuccess }
   const [selectedCheckIn, setSelectedCheckIn] = useState<CheckIn | null>(null);
   const [reason, setReason] = useState('');
   const [removeFromTable, setRemoveFromTable] = useState(true);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -182,85 +181,86 @@ export default function RefundModal({ clubDayId, adminUser, onClose, onSuccess }
       return;
     }
 
-    setLoading(true);
+    // Capture state needed for background work
+    const checkInId = selectedCheckIn.id;
+    const amount = selectedCheckIn.door_fee_amount;
+    const playerId = selectedCheckIn.player_id;
+    const playerNick = selectedPlayer?.nick || 'player';
+    const shouldRemove = removeFromTable;
+    
+    // CLOSE MODAL IMMEDIATELY for instant experience
+    showToast(`Processing refund for ${playerNick}...`, 'info');
+    onClose();
+    
+    // BACKGROUND WORK: No 'await' on these slow calls
+    (async () => {
+      try {
+        log('💰 Background: Processing refund for check-in:', checkInId, 'amount:', amount, 'player:', playerNick);
+        
+        // 1. Create the refund (This is the slowest part due to receipt/ledger scans)
+        await createRefund(
+          checkInId,
+          amount,
+          reason,
+          adminUser
+        );
+        
+        log('✅ Background: Refund created successfully');
 
-    try {
-      log('💰 Processing refund for check-in:', selectedCheckIn.id, 'amount:', selectedCheckIn.door_fee_amount, 'player:', selectedPlayer?.nick);
-      // Create the refund
-      await createRefund(
-        selectedCheckIn.id,
-        selectedCheckIn.door_fee_amount,
-        reason,
-        adminUser
-      );
-      log('✅ Refund created successfully');
+        // 2. Remove player from table/waitlist if requested
+        if (shouldRemove && playerId) {
+          try {
+            // Find and remove from table seat
+            const seats = await client.models.TableSeat.list({
+              filter: {
+                and: [
+                  { playerId: { eq: playerId } },
+                  { clubDayId: { eq: clubDayId } },
+                  { leftAt: { attributeExists: false } },
+                ],
+              },
+            });
 
-      // Remove player from table/waitlist if requested
-      if (removeFromTable) {
-        try {
-          // Find and remove from table seat
-          const seats = await client.models.TableSeat.list({
-            filter: {
-              and: [
-                { playerId: { eq: selectedCheckIn.player_id } },
-                { clubDayId: { eq: clubDayId } },
-                { leftAt: { attributeExists: false } },
-              ],
-            },
-          });
-
-          if (seats.data && seats.data.length > 0) {
-            for (const seat of seats.data) {
-              await client.models.TableSeat.update({
-                id: seat.id,
-                leftAt: new Date().toISOString(),
-              });
+            if (seats.data && seats.data.length > 0) {
+              for (const seat of seats.data) {
+                await client.models.TableSeat.update({
+                  id: seat.id,
+                  leftAt: new Date().toISOString(),
+                });
+              }
             }
-          }
 
-          // Find and remove from waitlist
-          const waitlist = await client.models.TableWaitlist.list({
-            filter: {
-              and: [
-                { playerId: { eq: selectedCheckIn.player_id } },
-                { clubDayId: { eq: clubDayId } },
-                { removedAt: { attributeExists: false } },
-              ],
-            },
-          });
+            // Find and remove from waitlist
+            const waitlist = await client.models.TableWaitlist.list({
+              filter: {
+                and: [
+                  { playerId: { eq: playerId } },
+                  { clubDayId: { eq: clubDayId } },
+                  { removedAt: { attributeExists: false } },
+                ],
+              },
+            });
 
-          if (waitlist.data && waitlist.data.length > 0) {
-            for (const wl of waitlist.data) {
-              await client.models.TableWaitlist.update({
-                id: wl.id,
-                removedAt: new Date().toISOString(),
-              });
+            if (waitlist.data && waitlist.data.length > 0) {
+              for (const wl of waitlist.data) {
+                await client.models.TableWaitlist.update({
+                  id: wl.id,
+                  removedAt: new Date().toISOString(),
+                });
+              }
             }
+          } catch (removeError) {
+            logError('❌ Background: Error removing player from table:', removeError);
           }
-        } catch (removeError) {
-          logError('Error removing player from table:', removeError);
-          // Don't fail the refund if table removal fails
         }
-      }
 
-      showToast(`Refund processed for ${selectedPlayer?.nick || 'player'}`, 'success');
-      onSuccess();
-      // Reset form
-      setSelectedPlayer(null);
-      setNick('');
-      setCheckIns([]);
-      setSelectedCheckIn(null);
-      setReason('');
-      setRemoveFromTable(true);
-      setError('');
-      onClose();
-    } catch (err: any) {
-      logError('❌ Refund processing error:', err);
-      const msg = err.message || 'Failed to process refund';
-      setError(msg);
-      showToast(msg, 'error');
-      setLoading(false);
-    }
+        showToast(`Refund successful for ${playerNick}`, 'success');
+        onSuccess(); // Trigger refresh in AdminPage
+      } catch (err: any) {
+        logError('❌ Background: Refund processing error:', err);
+        showToast(`Failed to process refund for ${playerNick}: ${err.message || 'Unknown error'}`, 'error');
+      }
+    })();
   };
 
   return (
@@ -419,15 +419,15 @@ export default function RefundModal({ clubDayId, adminUser, onClose, onSuccess }
           )}
 
           <div className="modal-actions">
-            <button type="button" onClick={onClose} disabled={loading}>
+            <button type="button" onClick={onClose}>
               Cancel
             </button>
             <button
               type="button"
               onClick={handleRefund}
-              disabled={loading || !selectedCheckIn || !!selectedCheckIn.refunded_at}
+              disabled={!selectedCheckIn || !!selectedCheckIn.refunded_at}
             >
-              {loading ? 'Processing...' : 'Confirm Refund'}
+              Confirm Refund
             </button>
           </div>
         </div>

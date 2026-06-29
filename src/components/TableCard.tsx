@@ -2448,11 +2448,11 @@ function TableCard({
               className="table-number-clickable"
               title="Click to change table number"
               onClick={() => {
-                setEditTableNumber(table.table_number.toString());
+                setEditTableNumber(table.table_number >= 90 ? '' : table.table_number.toString());
                 setIsEditingTableNumber(true);
               }}
             >
-              Table {table.table_number}
+              {table.table_number >= 90 ? 'Pending Table' : `Table ${table.table_number}`}
             </span>
           )}
           <span className="seated-count">({seatedCountForDisplay})</span>
@@ -2904,16 +2904,27 @@ function TableCard({
         }
 
         // Sort: same game+stakes first, then same game type (different stakes), then others
+        const gameTypeOrder: Record<string, number> = {
+          'NLH': 1, 'PLO': 2, 'BigO': 3, 'PLO5': 4, 'Limit': 5, 'Mixed': 6, 'Other': 99
+        };
+
         const sortedTcGroups = Array.from(tcGroups.values()).sort((a, b) => {
           if (a.isSameStakes && !b.isSameStakes) return -1;
           if (!a.isSameStakes && b.isSameStakes) return 1;
           if (a.isSameGame && !b.isSameGame) return -1;
           if (!a.isSameGame && b.isSameGame) return 1;
+          
+          const orderA = gameTypeOrder[a.gameType] || 50;
+          const orderB = gameTypeOrder[b.gameType] || 50;
+          if (orderA !== orderB) return orderA - orderB;
+
           return a.label.localeCompare(b.label);
         });
 
         const filteredTcGroups = tcSameGameOnly ? sortedTcGroups.filter(g => g.isSameGame) : sortedTcGroups;
-        const allVisibleTables = filteredTcGroups.flatMap(g => g.tables);
+        const allVisibleTables = filteredTcGroups.flatMap(g => 
+          [...g.tables].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        );
 
         return (
           <>
@@ -3026,9 +3037,11 @@ function TableCard({
                             <button
                               className="tc-group-add-all-btn"
                               onClick={() => {
-                                tables.forEach(t => {
-                                  handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist, tcRemoveWaitlists);
-                                });
+                                [...tables]
+                                  .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                                  .forEach(t => {
+                                    handleTableChange(tableChangeMenu.player, t.id, tableChangeMenu.isFromWaitlist, tcRemoveWaitlists);
+                                  });
                                 setTableChangeMenu(null);
                               }}
                             >
@@ -3036,7 +3049,9 @@ function TableCard({
                             </button>
                           )}
                         </div>
-                        {tables.map(t => (
+                        {[...tables]
+                          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                          .map(t => (
                           <div
                             key={t.id}
                             className={`table-change-item${isSameStakes ? ' tc-same-game' : ''}`}
@@ -3319,6 +3334,10 @@ export default memo(TableCard, (prevProps, nextProps) => {
     prevProps.table.bomb_pot_count === nextProps.table.bomb_pot_count &&
     prevProps.clubDayId === nextProps.clubDayId &&
     prevProps.searchQuery === nextProps.searchQuery &&
+    prevProps.refreshKey === nextProps.refreshKey &&
+    prevProps.initialSeated === nextProps.initialSeated &&
+    prevProps.initialWaitlist === nextProps.initialWaitlist &&
+    prevProps.checkInStatusMap === nextProps.checkInStatusMap &&
     Object.keys(prevProps.selectedPlayers).length === Object.keys(nextProps.selectedPlayers).length &&
     prevProps.allTables.length === nextProps.allTables.length
   );

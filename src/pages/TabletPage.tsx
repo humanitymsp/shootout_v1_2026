@@ -61,8 +61,6 @@ export default function TabletPage() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        initializeLocalPlayers();
-        
         const activeDay = await getActiveClubDay();
         if (!activeDay) {
           setLoading(false);
@@ -70,6 +68,8 @@ export default function TabletPage() {
         }
         
         // Store clubDayId so enrichment can use it for PlayerSync lookups
+        // Initialize + prune stale players-sync-* keys from past club days
+        initializeLocalPlayers(activeDay.id);
         setActiveClubDayIdForCache(activeDay.id);
         
         // Bulk-load ALL players into localStorage cache before table data loads.
@@ -96,7 +96,7 @@ export default function TabletPage() {
   useEffect(() => {
     if (!clubDay) return;
     
-    initializeLocalPlayers();
+    initializeLocalPlayers(clubDay.id);
     
     // Start syncing players from admin device
     const stopPlayerSync = startPlayerSyncPolling(clubDay.id, (players) => {

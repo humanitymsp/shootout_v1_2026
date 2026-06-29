@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { signIn, confirmSignIn } from 'aws-amplify/auth';
+import { Eye, EyeOff } from 'lucide-react';
 import Logo from '../components/Logo';
 import { isRateLimited, recordLoginAttempt, getRemainingAttempts, executeRecaptcha } from '../lib/loginSecurity';
 import { log, logError } from '../lib/logger';
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [requiresNewPassword, setRequiresNewPassword] = useState(false);
@@ -163,26 +165,46 @@ export default function LoginPage() {
           <form onSubmit={handleSetNewPassword}>
             <div className="form-group">
               <label htmlFor="newPassword">New Password</label>
-              <input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-                placeholder="At least 8 characters with uppercase, lowercase, number, and symbol"
-              />
+              <div className="password-input-wrapper">
+                <input
+                  id="newPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters with uppercase, lowercase, number, and symbol"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="confirmNewPassword">Confirm New Password</label>
-              <input
-                id="confirmNewPassword"
-                type="password"
-                value={confirmNewPassword}
-                onChange={(e) => setConfirmNewPassword(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
+              <div className="password-input-wrapper">
+                <input
+                  id="confirmNewPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
             </div>
             {error && <div className="error-message">{error}</div>}
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -228,14 +250,24 @@ export default function LoginPage() {
           </div>
           <div className="form-group">
             <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
+            <div className="password-input-wrapper">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
           {error && <div className="error-message">{error}</div>}
           {remainingAttempts !== null && remainingAttempts < 5 && remainingAttempts > 0 && (

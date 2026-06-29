@@ -69,9 +69,36 @@ function getTodayStorageKey(): string {
 }
 
 /**
- * Check if we need to reset (new business day, not calendar day)
- * Business day boundary: 9:00 AM - 3:00 AM next calendar day
+ * Remove stale localStorage keys from past business days / club days.
+ * Keeps only:
+ *   - daily-players-{currentBusinessDay}
+ *   - players-sync-{currentClubDayId}   (if provided)
+ * All other daily-players-* and players-sync-* keys are deleted.
+ * Call on init and on business-day transitions to prevent quota exhaustion.
  */
+export function pruneOldStorageKeys(currentClubDayId?: string): void {
+  const currentDailyKey = getTodayStorageKey();
+  const currentSyncKey = currentClubDayId ? `players-sync-${currentClubDayId}` : null;
+  const toRemove: string[] = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!key) continue;
+    if (key.startsWith(PLAYERS_STORAGE_PREFIX) && key !== currentDailyKey) {
+      toRemove.push(key);
+    } else if (key.startsWith('players-sync-') && key !== currentSyncKey) {
+      toRemove.push(key);
+    }
+  }
+
+  for (const key of toRemove) {
+    localStorage.removeItem(key);
+  }
+  if (toRemove.length > 0) {
+    log(`🗑️ Pruned ${toRemove.length} stale storage key(s): ${toRemove.join(', ')}`);
+  }
+}
+
 function checkAndResetIfNewDay(): void {
   const storedDay = localStorage.getItem(CURRENT_DAY_KEY);
   const today = getBusinessDayString();
@@ -85,6 +112,8 @@ function checkAndResetIfNewDay(): void {
     }
     localStorage.setItem(CURRENT_DAY_KEY, today);
     log(`📅 New business day detected: ${today}`);
+    // Prune any remaining stale keys (no clubDayId here — sync key kept by initializeLocalPlayers)
+    pruneOldStorageKeys();
   }
 }
 
@@ -108,10 +137,28 @@ export function getTodayPlayers(): Player[] {
 /**
  * Save players for today and sync to other tabs/devices
  */
+function safeSetItem(key: string, value: string, clubDayId?: string): void {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e: any) {
+    if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+      logWarn('⚠️ localStorage quota exceeded — pruning stale keys and retrying');
+      pruneOldStorageKeys(clubDayId);
+      try {
+        localStorage.setItem(key, value);
+      } catch (e2) {
+        logError('❌ localStorage still full after pruning — cannot save players locally:', e2);
+      }
+    } else {
+      throw e;
+    }
+  }
+}
+
 function saveTodayPlayers(players: Player[], syncToBackend = true, clubDayId?: string): void {
   checkAndResetIfNewDay();
   const key = getTodayStorageKey();
-  localStorage.setItem(key, JSON.stringify(players));
+  safeSetItem(key, JSON.stringify(players), clubDayId);
   
   // Sync to other tabs via BroadcastChannel
   try {
@@ -546,8 +593,9 @@ export function deletePlayerLocal(playerId: string): boolean {
  * Initialize - call this on app startup
  * Sets up listeners for cross-tab sync
  */
-export function initializeLocalPlayers(): void {
+export function initializeLocalPlayers(currentClubDayId?: string): void {
   checkAndResetIfNewDay();
+  pruneOldStorageKeys(currentClubDayId);
   const players = getTodayPlayers();
   log(`📋 Loaded ${players.length} players for today`);
   
