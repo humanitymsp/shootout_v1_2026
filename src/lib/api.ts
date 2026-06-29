@@ -18,6 +18,7 @@ import type {
 } from '../types';
 import { verifyDataIntegrity } from './dataIntegrity';
 import { getPersistentTables, updatePersistentTable } from './persistentTables';
+import { queryReceiptsByClubDay, queryLedgerEntriesByClubDay } from './gsiQueries';
 
 // Lazy client getter - only creates client when first used
 let clientInstance: ReturnType<typeof generateClient> | null = null;
@@ -1898,6 +1899,30 @@ export async function removePlayerFromSeat(seatId: string, tableId: string, admi
  * See docs/PAGINATION_CRITICAL_FIX.md for full documentation.
  */
 export async function getWaitlistForTable(tableId: string, clubDayId?: string, authMode?: string): Promise<TableWaitlist[]> {
+  // PERF: Fast path — use club-day GSI (DynamoDB Query, not Scan) when clubDayId is known.
+  // This avoids scanning the entire TableWaitlist table, which grows unbounded over time.
+  // Falls back to the Scan below if the GSI returns empty (first entry of the day or GSI failure).
+  if (clubDayId) {
+    try {
+      const { queryWaitlistByClubDay } = await import('./gsiQueries');
+      const dayWaitlist = await queryWaitlistByClubDay(clubDayId, authMode);
+      if (dayWaitlist.length > 0) {
+        // Filter to this specific table, excluding removed entries (client-side, same as Scan filter)
+        const filtered = dayWaitlist.filter((w: any) => w.tableId === tableId && !w.removedAt);
+        const waitlist: TableWaitlist[] = filtered.map(toTableWaitlist);
+        waitlist.sort((a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime());
+        try {
+          const { enrichArrayWithPlayerData } = await import('./localStoragePlayers');
+          return enrichArrayWithPlayerData(waitlist, authMode);
+        } catch {
+          return waitlist;
+        }
+      }
+      // GSI returned 0 — either no waitlist entries yet today, or GSI unavailable.
+      // Fall through to Scan to ensure correctness.
+    } catch { /* fall through to Scan */ }
+  }
+
   // CRITICAL: Fetch ALL waitlist players with explicit limit to ensure we get all results
   // DO NOT remove or reduce this limit - it will cause incorrect player counts
   const PAGINATION_LIMIT = 1000; // CRITICAL: Must be >= 100 to avoid pagination issues
@@ -2358,7 +2383,7 @@ export async function getWaitlistEntriesForPlayer(playerId: string, clubDayId: s
     },
     limit: 200,
   });
-  return (data || []).map(toTableWaitlist).filter(w => !w.removed_at);
+  return (data || []).map(toTableWaitlist).filter((w: TableWaitlist) => !w.removed_at);
 }
 
 export async function seatNextFromWaitlist(tableId: string, clubDayId: string, adminUser: string, doorFeeAmount?: number): Promise<void> {
@@ -2420,7 +2445,22 @@ export async function seatNextFromWaitlist(tableId: string, clubDayId: string, a
  * @returns The check-in record if found, null otherwise
  */
 export async function getCheckInForPlayer(playerId: string, clubDayId: string): Promise<CheckIn | null> {
-  // Only filter by playerId in DynamoDB — validate clubDayId and refundedAt client-side
+  // PERF: Fast path — use club-day GSI (DynamoDB Query, not Scan) to scope to today's check-ins.
+  // The Scan below filters by playerId across the entire CheckIn table (all days), which grows
+  // unbounded over time and becomes very slow (15-60s with accumulated history).
+  try {
+    const { queryCheckInsByClubDay } = await import('./gsiQueries');
+    const todayCheckIns = await queryCheckInsByClubDay(clubDayId);
+    if (todayCheckIns.length > 0) {
+      // GSI returned today's check-ins — filter by playerId and refunded status client-side
+      const found = todayCheckIns.find((ci: any) => ci.playerId === playerId && !ci.refundedAt);
+      return found ? toCheckIn(found) : null;
+    }
+    // GSI returned 0 — either first player of the day, or GSI unavailable.
+    // Fall through to Scan to ensure correctness.
+  } catch { /* fall through to Scan */ }
+
+  // Fallback: Only filter by playerId in DynamoDB — validate clubDayId and refundedAt client-side
   // to avoid unreliable DynamoDB filter behavior with `and` + `attributeExists`
   let nextToken: string | undefined = undefined;
   do {
@@ -2499,14 +2539,9 @@ async function getCurrentLedgerBalance(clubDayId: string): Promise<number> {
       return 0;
     }
     
-    const result = await client.models.LedgerEntry.list({
-      filter: { clubDayId: { eq: clubDayId } },
-    }).catch((error: any) => {
-      logWarn('LedgerEntry.list failed - model may not exist:', error);
-      return { data: [] };
-    });
+    // Use GSI query instead of Scan for much faster balance calculation
+    const entries = await queryLedgerEntriesByClubDay(clubDayId);
     
-    const entries = result.data;
     if (!entries || entries.length === 0) return 0;
     
     // Sum all entry amounts for accuracy — do NOT trust stored balance field
@@ -2532,14 +2567,9 @@ async function getNextSequenceNumber(clubDayId: string): Promise<number> {
       return 1;
     }
     
-    const result = await client.models.LedgerEntry.list({
-      filter: { clubDayId: { eq: clubDayId } },
-    }).catch((error: any) => {
-      logWarn('LedgerEntry.list failed - model may not exist:', error);
-      return { data: [] };
-    });
+    // Use GSI query instead of Scan for much faster sequence calculation
+    const entries = await queryLedgerEntriesByClubDay(clubDayId);
     
-    const entries = result.data;
     if (!entries || entries.length === 0) return 1;
     
     const maxSequence = Math.max(...entries.map((e: any) => e.sequenceNumber || 0));
@@ -3013,10 +3043,9 @@ export async function createRefund(
   let refundReceipt: any = null;
 
   for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    const receipts = await getClient().models.Receipt.list({
-      filter: { clubDayId: { eq: clubDayId } },
-    });
-    const nextReceiptNumber = (receipts.data?.length || 0) + 1;
+    // Use GSI query instead of Scan for much faster receipt number calculation
+    const receipts = await queryReceiptsByClubDay(clubDayId);
+    const nextReceiptNumber = (receipts?.length || 0) + 1;
 
     const { data: receipt } = await getClient().models.Receipt.create({
       clubDayId,
